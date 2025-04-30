@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block title %}Sayfa Bulunamadı{% endblock %}
+
+{% block content %}
+<div class="container py-5 text-center">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <h1 class="text-danger mb-4">404</h1>
+                    <h2 class="mb-4">Sayfa Bulunamadı</h2>
+                    <p class="lead mb-4">Aradığınız sayfa bulunamadı veya taşınmış olabilir.</p>
+                    <a href="{{ url_for('auth.index') }}" class="btn btn-primary">Ana Sayfaya Dön</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

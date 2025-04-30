@@ -1,0 +1,486 @@
+{% extends 'base.html' %}
+
+{% block title %}Kullanım Şartları - BulutVizyon{% endblock %}
+
+{% block styles %}
+<style>
+    :root {
+        --primary-color: #7157f9;
+        --secondary-color: #5d3bfb;
+        --accent-color: #ff328f;
+        --dark-color: #0a0a0c;
+        --dark-secondary: #141418;
+        --light-color: #ffffff;
+        --gray-light: #a0a0ab;
+        --gray-dark: #202026;
+        --gradient-purple: linear-gradient(120deg, #7157f9, #5d3bfb);
+        --gradient-pink: linear-gradient(120deg, #ff328f, #ff5a5a);
+        --shadow-soft: 0 10px 30px rgba(113, 87, 249, 0.15);
+        --shadow-hard: 0 15px 40px rgba(113, 87, 249, 0.3);
+    }
+    
+    body {
+        background-color: var(--dark-color);
+    }
+    
+    .page-header {
+        background-color: var(--dark-color);
+        padding: 120px 0 80px;
+        position: relative;
+        overflow: hidden;
+        margin-top: -80px;
+    }
+    
+    .page-header-shape {
+        position: absolute;
+        width: 600px;
+        height: 600px;
+        border-radius: 50%;
+        background: var(--gradient-purple);
+        opacity: 0.1;
+        filter: blur(80px);
+        z-index: 0;
+    }
+    
+    .page-header-shape-1 {
+        top: -200px;
+        right: -100px;
+    }
+    
+    .page-header-shape-2 {
+        bottom: -300px;
+        left: -200px;
+        background: var(--gradient-pink);
+        width: 800px;
+        height: 800px;
+    }
+    
+    .page-header-content {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .page-title {
+        font-size: 3.5rem;
+        font-weight: 800;
+        margin-bottom: 1.5rem;
+        color: var(--light-color);
+        position: relative;
+        display: inline-block;
+    }
+    
+    .page-title span {
+        color: var(--primary-color);
+    }
+    
+    .page-title::after {
+        content: '';
+        position: absolute;
+        bottom: -15px;
+        left: 0;
+        width: 80px;
+        height: 4px;
+        background: var(--gradient-purple);
+        border-radius: 2px;
+    }
+    
+    .page-subtitle {
+        font-size: 1.3rem;
+        color: var(--gray-light);
+        margin-bottom: 2rem;
+        max-width: 700px;
+    }
+    
+    .page-content {
+        background-color: var(--dark-color);
+        padding: 80px 0;
+        color: var(--light-color);
+    }
+    
+    .content-card {
+        background-color: var(--dark-secondary);
+        border-radius: 16px;
+        padding: 40px;
+        margin-bottom: 30px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .content-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-hard);
+        border-color: rgba(113, 87, 249, 0.2);
+    }
+    
+    .section-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        color: var(--light-color);
+        position: relative;
+        display: inline-block;
+    }
+    
+    .section-title span {
+        background: var(--gradient-purple);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .subsection-title {
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin: 1.8rem 0 1rem;
+        color: var(--light-color);
+    }
+    
+    .content-text {
+        color: var(--gray-light);
+        line-height: 1.7;
+        margin-bottom: 1.5rem;
+    }
+    
+    .terms-line {
+        height: 1px;
+        background: linear-gradient(to right, var(--primary-color), transparent);
+        margin: 30px 0;
+        opacity: 0.3;
+    }
+    
+    .last-updated {
+        display: inline-block;
+        background-color: rgba(113, 87, 249, 0.1);
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        margin-bottom: 2rem;
+        color: var(--primary-color);
+        border: 1px solid rgba(113, 87, 249, 0.2);
+    }
+    
+    .info-box {
+        background: linear-gradient(135deg, rgba(113, 87, 249, 0.1), rgba(93, 59, 251, 0.05));
+        border-radius: 12px;
+        padding: 30px;
+        margin: 30px 0;
+        border-left: 4px solid var(--primary-color);
+    }
+    
+    .info-box p {
+        margin-bottom: 0;
+        font-size: 1.1rem;
+        color: var(--light-color);
+    }
+    
+    .warning-box {
+        background: linear-gradient(135deg, rgba(255, 50, 143, 0.1), rgba(255, 90, 90, 0.05));
+        border-radius: 12px;
+        padding: 30px;
+        margin: 30px 0;
+        border-left: 4px solid var(--accent-color);
+    }
+    
+    .warning-box p {
+        margin-bottom: 0;
+        font-size: 1.1rem;
+        color: var(--light-color);
+    }
+    
+    .content-list {
+        list-style: none;
+        padding-left: 0;
+        margin-bottom: 2rem;
+    }
+    
+    .content-list li {
+        position: relative;
+        padding-left: 30px;
+        margin-bottom: 1rem;
+        color: var(--gray-light);
+        line-height: 1.7;
+    }
+    
+    .content-list li::before {
+        content: '\f00c';
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+        color: var(--primary-color);
+        position: absolute;
+        left: 0;
+        top: 2px;
+    }
+    
+    .ordered-list {
+        padding-left: 20px;
+        margin-bottom: 2rem;
+        counter-reset: item;
+    }
+    
+    .ordered-list li {
+        position: relative;
+        padding-left: 10px;
+        margin-bottom: 1rem;
+        color: var(--gray-light);
+        line-height: 1.7;
+        counter-increment: item;
+    }
+    
+    .ordered-list li::before {
+        content: counter(item) ".";
+        position: absolute;
+        left: -20px;
+        top: 0;
+        color: var(--primary-color);
+        font-weight: 700;
+    }
+    
+    .terms-card {
+        background-color: rgba(113, 87, 249, 0.05);
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 25px;
+        border: 1px solid rgba(113, 87, 249, 0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .terms-card:hover {
+        background-color: rgba(113, 87, 249, 0.1);
+        border-color: rgba(113, 87, 249, 0.2);
+    }
+    
+    .terms-card h4 {
+        color: var(--light-color);
+        font-size: 1.3rem;
+        margin-bottom: 15px;
+        font-weight: 600;
+    }
+    
+    .terms-card p {
+        color: var(--gray-light);
+        margin-bottom: 0;
+    }
+    
+    @media (max-width: 768px) {
+        .page-header {
+            padding: 100px 0 60px;
+        }
+        
+        .page-title {
+            font-size: 2.5rem;
+        }
+        
+        .content-card {
+            padding: 25px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div class="page-header-shape page-header-shape-1"></div>
+    <div class="page-header-shape page-header-shape-2"></div>
+    <div class="container page-header-content">
+        <div class="row justify-content-center">
+            <div class="col-lg-10 text-center">
+                <h1 class="page-title">Kullanım <span>Şartları</span></h1>
+                <p class="page-subtitle mx-auto">BulutVizyon Dijital Ekran Yönetim Sistemini kullanırken kabul ettiğiniz şartlar ve koşullar. Hizmetlerimizi kullanmadan önce lütfen dikkatlice okuyunuz.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="page-content">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="content-card">
+                    <div class="last-updated">Son Güncelleme: 01.06.2024</div>
+                    
+                    <p class="content-text">Hoş geldiniz! BulutVizyon Dijital Ekran Yönetim Sistemi'ni ve ilgili hizmetlerimizi kullanarak, bu kullanım şartlarını kabul etmiş olursunuz. Bu hizmetleri kullanmaya devam etmeden önce, lütfen bu şartları dikkatlice okuyun.</p>
+                    
+                    <div class="info-box">
+                        <p>Bu şartlar, BulutVizyon web sitesi, mobil uygulamaları ve dijital ekran yönetim hizmetleri dahil olmak üzere tüm hizmetlerimizi kapsar. Hizmetlerimizi kullanmaya başladığınızda, bu şartları kabul etmiş sayılırsınız.</p>
+                    </div>
+                </div>
+                
+                <div class="content-card">
+                    <h2 class="section-title">Hizmet <span>Tanımı</span></h2>
+                    <p class="content-text">BulutVizyon, kullanıcılarına çeşitli lokasyonlardaki dijital ekranları uzaktan yönetme imkanı sunan bir yazılım platformudur. Hizmetimiz şunları içerir:</p>
+                    
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <div class="terms-card">
+                                <h4>Ekran Yönetimi</h4>
+                                <p>Uzak lokasyonlardaki dijital ekranları tek bir arayüzden yönetme ve kontrol etme.</p>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="terms-card">
+                                <h4>İçerik Planlama</h4>
+                                <p>Dijital ekranlarda gösterilecek içerikleri oluşturma, planlama ve zamanlandırma.</p>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="terms-card">
+                                <h4>Kullanıcı Yönetimi</h4>
+                                <p>Farklı yetki seviyelerine sahip kullanıcılar oluşturma ve yönetme.</p>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="terms-card">
+                                <h4>Analitik Raporlar</h4>
+                                <p>Ekran kullanımı ve içerik performansı hakkında detaylı raporlar ve istatistikler.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p class="content-text">Bu hizmetler, farklı abonelik paketlerine göre sınırlandırılabilir veya genişletilebilir. Aktif abonelik paketinizin içerdiği hizmet ve özellikler hakkında daha fazla bilgi için hesap yönetimi sayfanızı ziyaret edebilirsiniz.</p>
+                </div>
+                
+                <div class="content-card">
+                    <h2 class="section-title">Hesap <span>Oluşturma ve Güvenlik</span></h2>
+                    <h3 class="subsection-title">Hesap Oluşturma</h3>
+                    <p class="content-text">BulutVizyon hizmetlerini kullanmak için bir hesap oluşturmanız gerekmektedir. Hesap oluştururken doğru, güncel ve eksiksiz bilgiler sağlamayı kabul ediyorsunuz. Yanlış, eksik veya güncel olmayan bilgiler sağlamanız halinde, hesabınızın askıya alınması veya sonlandırılması söz konusu olabilir.</p>
+                    
+                    <h3 class="subsection-title">Hesap Güvenliği</h3>
+                    <p class="content-text">Hesabınızın güvenliğini sağlamak ve şifrenizi korumak sizin sorumluluğunuzdadır. Şifrenizin veya hesabınızın yetkisiz kullanımından kaynaklanan tüm faaliyetlerden siz sorumlu olursunuz. Şifrenizin veya hesabınızın yetkisiz kullanımını fark ettiğinizde, derhal BulutVizyon'a bildirimde bulunmalısınız.</p>
+                    
+                    <div class="warning-box">
+                        <p>Hesap şifrenizi asla başkalarıyla paylaşmayın. Güçlü bir şifre seçin ve düzenli olarak değiştirin. Güvenlik nedeniyle, oturumunuzu her zaman güvenli bir şekilde kapatın.</p>
+                    </div>
+                </div>
+                
+                <div class="content-card">
+                    <h2 class="section-title">Kullanım <span>Koşulları</span></h2>
+                    <p class="content-text">BulutVizyon hizmetlerini kullanırken aşağıdaki koşulları kabul etmiş olursunuz:</p>
+                    <ol class="ordered-list">
+                        <li>Hizmetlerimizi yalnızca yasal amaçlar için kullanmayı ve tüm yerel, ulusal ve uluslararası yasalara ve düzenlemelere uymayı kabul ediyorsunuz.</li>
+                        <li>Hizmetlerimizi, diğer kullanıcılara zarar verecek, sistemlerimizin veya sunucularımızın düzgün çalışmasını engelleyecek şekilde kullanmayacağınızı kabul ediyorsunuz.</li>
+                        <li>Hizmetlerimiz aracılığıyla yasadışı, zararlı, kaba, müstehcen veya başka bir şekilde sakıncalı içerik dağıtmayacağınızı kabul ediyorsunuz.</li>
+                        <li>Hizmetlerimizin herhangi bir bölümünü kopyalamayacağınızı, çoğaltmayacağınızı, değiştirmeyeceğinizi, dağıtmayacağınızı veya türetilmiş çalışmalar oluşturmayacağınızı kabul ediyorsunuz.</li>
+                        <li>Hizmetlerimize yetkisiz erişim sağlamaya çalışmayacağınızı, hizmetlerimizi kesintiye uğratacak veya zarar verecek herhangi bir faaliyette bulunmayacağınızı kabul ediyorsunuz.</li>
+                    </ol>
+                    
+                    <h3 class="subsection-title">İçerik Kısıtlamaları</h3>
+                    <p class="content-text">BulutVizyon aracılığıyla yayınladığınız veya görüntülediğiniz içerikler aşağıdaki türde olmamalıdır:</p>
+                    <ul class="content-list">
+                        <li>Telif hakkı, patent, ticari marka veya diğer fikri mülkiyet haklarını ihlal eden içerikler.</li>
+                        <li>Yasadışı, zararlı, tehdit edici, istismar edici, taciz edici, karalayıcı, iftira niteliğinde, müstehcen veya başka bir şekilde sakıncalı içerikler.</li>
+                        <li>Spam, istenmeyen reklam veya tanıtım materyalleri.</li>
+                        <li>Virüsler, kötü amaçlı yazılımlar veya diğer zararlı kodlar içeren içerikler.</li>
+                    </ul>
+                    
+                    <div class="terms-line"></div>
+                    
+                    <p class="content-text">BulutVizyon, yukarıdaki kısıtlamaları ihlal eden içerikleri kaldırma ve gerektiğinde ilgili hesapları askıya alma veya sonlandırma hakkını saklı tutar.</p>
+                </div>
+                
+                <div class="content-card">
+                    <h2 class="section-title">Fikri <span>Mülkiyet Hakları</span></h2>
+                    <h3 class="subsection-title">BulutVizyon'un Hakları</h3>
+                    <p class="content-text">BulutVizyon hizmetleri, yazılımı, logoları, ticari markaları, tasarımları, metinleri ve diğer materyalleri, BulutVizyon'a veya lisans verenlere aittir. Bu içerikler telif hakkı, ticari marka ve diğer fikri mülkiyet yasaları tarafından korunmaktadır. BulutVizyon'un önceden yazılı izni olmadan, bu materyalleri kopyalayamaz, değiştiremez veya dağıtamazsınız.</p>
+                    
+                    <h3 class="subsection-title">Kullanıcı İçeriği</h3>
+                    <p class="content-text">BulutVizyon hizmetleri aracılığıyla yüklediğiniz, oluşturduğunuz veya paylaştığınız içeriklerin (metin, görsel, video, vs.) fikri mülkiyet hakları size ait olmaya devam eder. Ancak, BulutVizyon'a bu içerikleri kullanma, gösterme, dağıtma ve hizmet sağlama amaçlarıyla çoğaltma konusunda dünya çapında, telifsiz, devredilemeyen bir lisans vermiş olursunuz.</p>
+                    
+                    <p class="content-text">Üçüncü taraflara ait içerikleri, yalnızca gerekli izinleri aldığınız takdirde BulutVizyon platformunda yayınlayabilirsiniz. Başkalarının fikri mülkiyet haklarını ihlal etmediğinizden emin olmanız gerekmektedir.</p>
+                </div>
+                
+                <div class="content-card">
+                    <h2 class="section-title">Ödeme ve <span>Abonelikler</span></h2>
+                    <p class="content-text">BulutVizyon, çeşitli abonelik planları sunmaktadır. Bir abonelik satın aldığınızda, aşağıdaki şartları kabul etmiş sayılırsınız:</p>
+                    <ul class="content-list">
+                        <li>Belirtilen fiyatlar, ilgili vergileri içermeyebilir. Vergi tutarları, siparişinizin toplam tutarına eklenecektir.</li>
+                        <li>Abonelikler otomatik olarak yenilenir. Yenilemeyi istemiyorsanız, abonelik süreniz dolmadan en az 24 saat önce iptal etmelisiniz.</li>
+                        <li>Abonelik süreniz içinde yükseltme veya düşürme yapabilirsiniz. Yükseltmeler hemen etkinleşir ve fiyat farkı orantılı olarak hesaplanır. Düşürmeler, mevcut abonelik sürenizin sonunda yürürlüğe girer.</li>
+                        <li>Aboneliğinizi iptal ettiğinizde, mevcut fatura döneminin sonuna kadar hizmetlerimize erişim hakkınız devam eder.</li>
+                    </ul>
+                    
+                    <div class="info-box">
+                        <p>Abonelik iptalleri veya değişiklikleri için lütfen hesap yönetimi panelini kullanın veya info@bulutvizyon.com adresinden müşteri hizmetleriyle iletişime geçin.</p>
+                    </div>
+                </div>
+                
+                <div class="content-card">
+                    <h2 class="section-title">Sorumluluk <span>Reddi</span></h2>
+                    <p class="content-text">BulutVizyon hizmetleri "olduğu gibi" ve "mevcut olduğu gibi" sunulmaktadır. BulutVizyon, hizmetlerin kullanımından doğabilecek doğrudan, dolaylı, arızi, özel veya cezai zararlardan sorumlu tutulamaz.</p>
+                    
+                    <p class="content-text">BulutVizyon, hizmetlerinin kesintisiz, hatasız veya güvenli olacağını garanti etmez. Sistemde bakım, güncelleme veya diğer nedenlerle geçici kesintiler olabilir. Bu kesintilerden kaynaklanan veri kaybı veya iş kaybından BulutVizyon sorumlu tutulamaz.</p>
+                    
+                    <div class="warning-box">
+                        <p>Kullanıcılar, kendi içeriklerini düzenli olarak yedekleme konusunda tamamen sorumludur. BulutVizyon, herhangi bir veri kaybı durumunda sorumluluk kabul etmez.</p>
+                    </div>
+                </div>
+                
+                <div class="content-card">
+                    <h2 class="section-title">Tazminat ve <span>Sınırlı Sorumluluk</span></h2>
+                    <p class="content-text">BulutVizyon hizmetlerini kullanmanızdan kaynaklanan herhangi bir üçüncü taraf iddiası, talep, dava, zarar veya kayıp durumunda, BulutVizyon'u, yöneticilerini, çalışanlarını ve temsilcilerini tazmin etmeyi kabul ediyorsunuz.</p>
+                    
+                    <p class="content-text">BulutVizyon'un toplam sorumluluğu, son 12 ay içinde ödediğiniz abonelik ücretini aşamaz. Bazı yargı bölgelerinde arızi veya dolaylı zararların sınırlandırılmasına veya hariç tutulmasına izin verilmediği için, yukarıdaki sınırlamalar sizin için geçerli olmayabilir.</p>
+                </div>
+                
+                <div class="content-card">
+                    <h2 class="section-title">Şartların <span>Değiştirilmesi</span></h2>
+                    <p class="content-text">BulutVizyon, bu kullanım şartlarını herhangi bir zamanda değiştirme hakkını saklı tutar. Değişiklikler, web sitesinde yayınlandıktan sonra geçerli olacaktır. Önemli değişiklikler durumunda, kayıtlı e-posta adresinize bildirim göndereceğiz.</p>
+                    
+                    <p class="content-text">Şartlardaki değişikliklerden sonra hizmetlerimizi kullanmaya devam etmeniz, değiştirilmiş şartları kabul ettiğiniz anlamına gelir. Değiştirilmiş şartları kabul etmiyorsanız, hizmetlerimizi kullanmayı bırakmalı ve hesabınızı kapatmalısınız.</p>
+                </div>
+                
+                <div class="content-card">
+                    <h2 class="section-title">Hesap <span>Sonlandırma</span></h2>
+                    <p class="content-text">BulutVizyon, aşağıdaki durumlarda herhangi bir bildirimde bulunmaksızın hesabınızı askıya alabilir veya sonlandırabilir:</p>
+                    <ul class="content-list">
+                        <li>Bu kullanım şartlarını ihlal etmeniz durumunda</li>
+                        <li>Yasadışı veya uygunsuz içerik yayınlamanız durumunda</li>
+                        <li>Hizmetlerimizi kötüye kullanmanız durumunda</li>
+                        <li>Ödeme yükümlülüklerinizi yerine getirmemeniz durumunda</li>
+                        <li>Hesap bilgilerinizin yanlış veya yanıltıcı olduğunun tespit edilmesi durumunda</li>
+                    </ul>
+                    
+                    <p class="content-text">Hesabınızın sonlandırılması durumunda, içeriklerinize ve verilerinize erişim hakkını kaybedersiniz. Bu nedenle, önemli içeriklerinizi düzenli olarak yedeklemenizi öneririz.</p>
+                </div>
+                
+                <div class="content-card">
+                    <h2 class="section-title">Genel <span>Hükümler</span></h2>
+                    <h3 class="subsection-title">Geçerli Hukuk</h3>
+                    <p class="content-text">Bu şartlar, Türkiye Cumhuriyeti yasalarına tabidir ve bu yasalara göre yorumlanacaktır. Bu şartlarla ilgili herhangi bir anlaşmazlık, Edirne Mahkemeleri ve İcra Daireleri'nin münhasır yargı yetkisine tabi olacaktır.</p>
+                    
+                    <h3 class="subsection-title">Bölünebilirlik</h3>
+                    <p class="content-text">Bu şartların herhangi bir hükmünün geçersiz veya uygulanamaz olması durumunda, kalan hükümler tam olarak yürürlükte kalmaya devam edecektir.</p>
+                    
+                    <h3 class="subsection-title">Feragat</h3>
+                    <p class="content-text">BulutVizyon'un bu şartlardaki herhangi bir hakkı veya hükmü uygulamaması, söz konusu hak veya hükümden feragat ettiği anlamına gelmez.</p>
+                    
+                    <div class="info-box">
+                        <p>Bu kullanım şartları, BulutVizyon hizmetleri ile ilgili sizinle aramızdaki tüm anlaşmayı temsil eder ve bu konudaki önceki tüm anlaşmaları geçersiz kılar.</p>
+                    </div>
+                </div>
+                
+                <div class="content-card">
+                    <h2 class="section-title">İletişim <span>Bilgileri</span></h2>
+                    <p class="content-text">Bu kullanım şartları hakkında sorularınız veya geri bildirimleriniz varsa, lütfen aşağıdaki iletişim bilgilerinden bize ulaşın:</p>
+                    
+                    <div class="info-box">
+                        <h4 style="color: var(--light-color); font-size: 1.2rem; margin-bottom: 15px;">BulutVizyon Müşteri Hizmetleri</h4>
+                        <p style="font-size: 1rem; margin-bottom: 10px;">
+                            <i class="fas fa-envelope" style="margin-right: 10px; color: var(--primary-color);"></i>
+                            <a href="mailto:info@bulutvizyon.com" style="color: var(--gray-light); text-decoration: none;">info@bulutvizyon.com</a>
+                        </p>
+                        <p style="font-size: 1rem; margin-bottom: 10px;">
+                            <i class="fas fa-phone" style="margin-right: 10px; color: var(--primary-color);"></i>
+                            <a href="tel:+905443658525" style="color: var(--gray-light); text-decoration: none;">+90 544 365 8525</a>
+                        </p>
+                        <p style="font-size: 1rem;">
+                            <i class="fas fa-map-marker-alt" style="margin-right: 10px; color: var(--primary-color);"></i>
+                            <span style="color: var(--gray-light);">Trakya Üniversitesi TEKNOPARK No:11 Merkez/Edirne</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %} 

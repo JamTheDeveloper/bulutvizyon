@@ -1,0 +1,367 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ media.title }} - BulutVizyon{% endblock %}
+
+{% block styles %}
+<style>
+    .preview-container {
+        position: relative;
+        background-color: #000;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .preview-image {
+        width: 100%;
+        max-height: 500px;
+        object-fit: contain;
+        display: block;
+        margin: 0 auto;
+    }
+    .preview-video {
+        width: 100%;
+        background-color: #000;
+    }
+    .preview-controls {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0,0,0,0.7);
+        padding: 10px;
+        display: flex;
+        justify-content: center;
+    }
+    .media-property {
+        margin-bottom: 0.5rem;
+    }
+    .screen-item {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+        transition: all 0.2s;
+    }
+    .screen-item:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+    }
+    .screen-header {
+        background-size: cover;
+        background-position: center;
+        height: 100px;
+        position: relative;
+    }
+    .screen-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+    .media-tag {
+        display: inline-block;
+        background-color: #f0f2f5;
+        color: #6c757d;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2 class="mb-3"><i class="fas {% if media.file_type == 'image' %}fa-image{% else %}fa-video{% endif %}"></i> {{ media.title }}</h2>
+        <p class="text-muted">
+            {% if media.description %}
+            {{ media.description }}
+            {% else %}
+            Açıklama bulunmuyor
+            {% endif %}
+        </p>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('supervisor.media') }}" class="btn btn-outline-primary me-2">
+            <i class="fas fa-arrow-left me-1"></i> Medyalara Dön
+        </a>
+        {% if media.status == 'pending' %}
+        <form action="{{ url_for('supervisor.approve_media', media_id=media._id) }}" method="post" class="d-inline me-1">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-check me-1"></i> Onayla
+            </button>
+        </form>
+        <form action="{{ url_for('supervisor.reject_media', media_id=media._id) }}" method="post" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-danger">
+                <i class="fas fa-times me-1"></i> Reddet
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Onay Durumu Banner -->
+{% if media.status == 'pending' %}
+<div class="alert alert-warning mb-4">
+    <div class="d-flex align-items-center">
+        <div class="me-3">
+            <i class="fas fa-exclamation-triangle fa-2x"></i>
+        </div>
+        <div>
+            <h5 class="mb-1">Bu medya onay bekliyor</h5>
+            <p class="mb-0">Lütfen içeriği kontrol edip onaylayın veya reddedin. Onaylanmadan kullanıcılar tarafından ekranlarda kullanılamaz.</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <!-- Sol Kolon -->
+    <div class="col-lg-8">
+        <!-- Önizleme -->
+        <div class="card shadow mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-eye me-2"></i> Medya Önizleme</h5>
+                <a href="{{ url_for('serve_uploads', filename=media.filename) }}" target="_blank" class="btn btn-sm btn-primary">
+                    <i class="fas fa-external-link-alt me-1"></i> Tam Ekran
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="preview-container">
+                    {% if media.file_type == 'image' %}
+                    <img src="{{ url_for('serve_uploads', filename=media.filename) }}" alt="{{ media.title }}" class="preview-image">
+                    {% else %}
+                    <video controls class="preview-video">
+                        <source src="{{ url_for('serve_uploads', filename=media.filename) }}" type="video/mp4">
+                        Tarayıcınız video etiketini desteklemiyor.
+                    </video>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Dosya Bilgileri -->
+        <div class="card shadow mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-file me-2"></i> Dosya Bilgileri</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="media-property d-flex justify-content-between">
+                            <strong>Dosya Adı:</strong>
+                            <span>{{ media.filename }}</span>
+                        </div>
+                        <div class="media-property d-flex justify-content-between">
+                            <strong>Dosya Tipi:</strong>
+                            <span>{% if media.file_type == 'image' %}Resim{% else %}Video{% endif %}</span>
+                        </div>
+                        <div class="media-property d-flex justify-content-between">
+                            <strong>Boyut:</strong>
+                            <span>{{ media.file_size|filesizeformat if media.file_size else 'Bilinmiyor' }}</span>
+                        </div>
+                        {% if media.file_type == 'video' %}
+                        <div class="media-property d-flex justify-content-between">
+                            <strong>Süre:</strong>
+                            <span>{{ media.duration|round(2) if media.duration else 'Bilinmiyor' }} saniye</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <div class="media-property d-flex justify-content-between">
+                            <strong>Görüntülenme:</strong>
+                            <span>{{ media.view_count or '0' }}</span>
+                        </div>
+                        <div class="media-property d-flex justify-content-between">
+                            <strong>Görüntülenme Süresi:</strong>
+                            <span>{{ media.display_time or '0' }} saniye</span>
+                        </div>
+                        <div class="media-property d-flex justify-content-between">
+                            <strong>Durum:</strong>
+                            {% if media.status == 'active' %}
+                            <span class="badge bg-success">Aktif</span>
+                            {% elif media.status == 'pending' %}
+                            <span class="badge bg-warning text-dark">Onay Bekliyor</span>
+                            {% else %}
+                            <span class="badge bg-danger">Pasif</span>
+                            {% endif %}
+                        </div>
+                        <div class="media-property d-flex justify-content-between">
+                            <strong>Yüklenme Tarihi:</strong>
+                            <span>{{ media.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Etiketler -->
+                {% if media.tags %}
+                <div class="mt-3">
+                    <h6>Etiketler:</h6>
+                    <div>
+                        {% for tag in media.tags %}
+                        <span class="media-tag">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- İndirme Linki -->
+                <div class="mt-3">
+                    <a href="{{ url_for('serve_uploads', filename=media.filename, download=1) }}" class="btn btn-primary">
+                        <i class="fas fa-download me-1"></i> Dosyayı İndir
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Denetim Kontrolleri -->
+        {% if media.status == 'pending' %}
+        <div class="card shadow mb-4">
+            <div class="card-header bg-warning bg-opacity-10">
+                <h5 class="mb-0 text-warning"><i class="fas fa-clipboard-check me-2"></i> Denetim İşlemi</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <div class="d-grid">
+                            <form action="{{ url_for('supervisor.approve_media', media_id=media._id) }}" method="post">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-success btn-lg w-100">
+                                    <i class="fas fa-check me-2"></i> Bu İçeriği Onayla
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-grid">
+                            <form action="{{ url_for('supervisor.reject_media', media_id=media._id) }}" method="post">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-danger btn-lg w-100">
+                                    <i class="fas fa-times me-2"></i> Bu İçeriği Reddet
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <p class="small mb-0">
+                        <i class="fas fa-info-circle me-1"></i> Onayladığınız içerikler kullanıcıların ekranlarında görüntülenecektir. Lütfen içeriği dikkatlice kontrol edin.
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sağ Kolon -->
+    <div class="col-lg-4">
+        <!-- Kullanıcı Bilgisi -->
+        <div class="card shadow mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-user me-2"></i> Kullanıcı Bilgileri</h5>
+            </div>
+            <div class="card-body">
+                {% if user %}
+                <div class="d-flex align-items-center mb-3">
+                    <div class="avatar-container me-3 bg-{{ user.role }}" style="width: 50px; height: 50px; font-size: 1.2rem; color: white; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
+                        {{ user.name[:1] }}
+                    </div>
+                    <div>
+                        <h6 class="mb-1">{{ user.name }}</h6>
+                        <p class="mb-0 small">{{ user.email }}</p>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Rol:</span>
+                        {% if user.role == 'admin' %}
+                        <span class="badge bg-danger">Admin</span>
+                        {% elif user.role == 'supervisor' %}
+                        <span class="badge bg-warning text-dark">Denetmen</span>
+                        {% else %}
+                        <span class="badge bg-primary">Kullanıcı</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Durum:</span>
+                        {% if user.status == 'active' %}
+                        <span class="badge bg-success">Aktif</span>
+                        {% else %}
+                        <span class="badge bg-danger">Pasif</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Kayıt Tarihi:</span>
+                        <span>{{ user.created_at.strftime('%d.%m.%Y') }}</span>
+                    </div>
+                </div>
+                
+                <h6 class="mt-4 mb-2">Kullanıcı İstatistikleri</h6>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Toplam Medya:</span>
+                    <span>{{ user_media_count if user_media_count is defined else '0' }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Toplam Ekran:</span>
+                    <span>{{ user_screen_count if user_screen_count is defined else '0' }}</span>
+                </div>
+                
+                <a href="#" class="btn btn-sm btn-outline-primary w-100 mt-3">
+                    <i class="fas fa-user-edit me-1"></i> Kullanıcı Detayları
+                </a>
+                {% else %}
+                <div class="alert alert-warning mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i> Kullanıcı bilgisi bulunamadı!
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Diğer Medyalar -->
+        {% if user_other_media and user_other_media|length > 0 %}
+        <div class="card shadow mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-photo-video me-2"></i> Kullanıcının Diğer İçerikleri</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for other_media in user_other_media %}
+                    {% if other_media._id != media._id %}
+                    <a href="{{ url_for('supervisor.view_media', media_id=other_media._id) }}" class="list-group-item list-group-item-action py-3">
+                        <div class="d-flex">
+                            <div class="me-3" style="width: 60px; height: 60px; background-image: url('{{ url_for('serve_uploads', filename=other_media.thumbnail if other_media.thumbnail else other_media.filename) }}'); background-size: cover; background-position: center; border-radius: 4px;"></div>
+                            <div>
+                                <h6 class="mb-1">{{ other_media.title }}</h6>
+                                <div class="d-flex">
+                                    <small class="text-muted me-2">{{ other_media.created_at.strftime('%d.%m.%Y') }}</small>
+                                    {% if other_media.status == 'active' %}
+                                    <small class="badge bg-success">Aktif</small>
+                                    {% elif other_media.status == 'pending' %}
+                                    <small class="badge bg-warning text-dark">Onay Bekliyor</small>
+                                    {% else %}
+                                    <small class="badge bg-danger">Pasif</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% if user_media_count and user_media_count > 5 %}
+            <div class="card-footer text-center">
+                <a href="#" class="text-primary text-decoration-none small">
+                    <i class="fas fa-th me-1"></i> Tüm içerikleri görüntüle
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

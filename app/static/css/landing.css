@@ -1,0 +1,281 @@
+:root {
+    --primary-color: #3498db; /* Örnekteki mavi tonuna benzer bir renk */
+    --secondary-color: #2c3e50; /* Koyu mavi/gri */
+    --background-dark: #1a1a1a; /* Koyu arka plan */
+    --background-light: #2f2f2f; /* Biraz daha açık koyu */
+    --text-light: #f8f9fa;
+    --text-muted: #adb5bd;
+}
+
+body {
+    font-family: 'Poppins', sans-serif; /* Örnek siteye benzer modern bir font */
+    background-color: var(--background-dark);
+    color: var(--text-light);
+    line-height: 1.7;
+}
+
+/* Helper Classes */
+.section-spacing {
+    padding: 100px 0;
+}
+
+.bg-light {
+    background-color: var(--background-light) !important;
+}
+
+.shadow-lg {
+     box-shadow: 0 1rem 3rem rgba(0, 0, 0, .35) !important;
+}
+
+.text-primary {
+    color: var(--primary-color) !important;
+}
+
+.text-muted {
+    color: var(--text-muted) !important;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    color: var(--text-light);
+}
+
+.section-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    position: relative;
+    padding-bottom: 15px;
+    margin-bottom: 20px; /* Adjusted from 50px */
+    display: inline-block;
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    width: 60px;
+    height: 4px;
+    background-color: var(--primary-color);
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 2px;
+}
+
+/* Buttons */
+.btn {
+    padding: 12px 30px;
+    border-radius: 30px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+}
+
+.btn-custom {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.btn-custom:hover {
+    background-color: #2980b9; /* Biraz daha koyu mavi */
+    border-color: #2980b9;
+    color: white;
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+}
+
+.btn-outline-custom {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.btn-outline-custom:hover {
+    background-color: var(--primary-color);
+    color: white;
+    transform: translateY(-3px);
+}
+
+/* Hero Section */
+.hero-section {
+    min-height: 100vh;
+    background-color: var(--background-dark);
+    position: relative;
+    /* İsteğe bağlı: Hafif bir gradient veya desen eklenebilir */
+    /* background: linear-gradient(rgba(26, 26, 26, 0.8), rgba(26, 26, 26, 0.9)), url('path/to/your/background.jpg') no-repeat center center/cover; */
+}
+
+.hero-logo {
+    max-height: 120px; /* Logonun boyutunu ayarlayın */
+    margin-bottom: 40px !important;
+}
+
+.hero-heading {
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: var(--text-light);
+}
+
+.hero-subheading {
+    font-size: 1.5rem;
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+.hero-text {
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    color: var(--text-muted);
+}
+
+/* About Section */
+.about-list li {
+    margin-bottom: 10px;
+}
+.about-list i {
+    width: 20px; /* İkon hizalaması için */
+}
+
+/* Features Section */
+.feature-box {
+    background-color: var(--background-dark);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    border: 1px solid #333;
+}
+
+.feature-box:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    border-color: var(--primary-color);
+}
+
+.feature-icon {
+    width: 70px;
+    height: 70px;
+    line-height: 70px;
+    border-radius: 50%;
+    background-color: rgba(52, 152, 219, 0.1);
+    color: var(--primary-color);
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+.feature-box:hover .feature-icon {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Packages Section */
+.package-card {
+    border-radius: 10px;
+    background-color: var(--background-light);
+    border: 1px solid #333;
+    overflow: hidden;
+}
+
+.package-header {
+    background-color: #222; /* Hafif farklı bir başlık rengi */
+}
+
+.package-price-section {
+    background-color: var(--background-dark);
+}
+
+.package-price {
+    font-size: 2.8rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.package-duration {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.package-features ul {
+    padding-left: 0;
+    list-style: none;
+}
+
+.package-features li {
+    padding: 8px 0;
+    border-bottom: 1px solid #333;
+    color: var(--text-muted);
+}
+
+.package-features li:last-child {
+    border-bottom: none;
+}
+
+.package-features i {
+     color: var(--primary-color);
+}
+
+.standard-package {
+    border-color: var(--primary-color);
+    transform: scale(1.03); /* Öne çıkan paketi hafif büyüt */
+}
+
+/* CTA Section */
+.cta-section {
+    padding: 80px 0;
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.cta-section h2 {
+    color: white;
+    font-weight: 700;
+}
+
+.cta-section p {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.cta-section .btn-light {
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+.cta-section .btn-light:hover {
+    background-color: #f8f9fa;
+    color: #2980b9;
+    transform: translateY(-3px);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 991px) {
+    .hero-heading {
+        font-size: 2.8rem;
+    }
+    .hero-subheading {
+        font-size: 1.3rem;
+    }
+    .section-spacing {
+        padding: 80px 0;
+    }
+}
+
+@media (max-width: 767px) {
+    .hero-heading {
+        font-size: 2.2rem;
+    }
+    .hero-subheading {
+        font-size: 1.1rem;
+    }
+    .section-title {
+        font-size: 2rem;
+    }
+    .section-spacing {
+        padding: 60px 0;
+    }
+    .package-card {
+        margin-bottom: 30px;
+    }
+    .standard-package {
+        transform: scale(1); /* Mobilde büyütmeyi kaldır */
+    }
+} 

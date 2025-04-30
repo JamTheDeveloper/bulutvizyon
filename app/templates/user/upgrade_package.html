@@ -1,0 +1,430 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ package.name }} Paketine Yükselt{% endblock %}
+
+{% block styles %}
+<style>
+    :root {
+        --dark-gradient-free: linear-gradient(45deg, #20c997, #0ea57f);
+        --dark-gradient-basic: linear-gradient(45deg, #5e72e4, #825ee4);
+        --dark-gradient-standard: linear-gradient(45deg, #11cdef, #1171ef);
+        --dark-gradient-premium: linear-gradient(45deg, #fb6340, #fbb140);
+        --dark-bg: #121212;
+        --dark-card: #1e1e1e;
+        --dark-card-secondary: #282828;
+        --dark-text: #e0e0e0;
+        --dark-text-secondary: #aaaaaa;
+        --dark-border: #333333;
+    }
+    
+    body {
+        background-color: var(--dark-bg);
+        color: var(--dark-text);
+    }
+    
+    .upgrade-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    
+    .page-heading {
+        margin-bottom: 2rem;
+        position: relative;
+        display: inline-block;
+        color: var(--dark-text);
+    }
+    
+    .page-heading:after {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 0;
+        width: 60px;
+        height: 4px;
+        background: 
+        {% if package.id == 'free' %}
+            var(--dark-gradient-free)
+        {% elif package.id == 'basic' %}
+            var(--dark-gradient-basic)
+        {% elif package.id == 'standard' %}
+            var(--dark-gradient-standard)
+        {% elif package.id == 'premium' %}
+            var(--dark-gradient-premium)
+        {% else %}
+            var(--dark-gradient-basic)
+        {% endif %};
+        border-radius: 2px;
+    }
+    
+    .package-card {
+        border-radius: 16px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        margin-bottom: 2rem;
+        background-color: var(--dark-card);
+        border: 1px solid var(--dark-border);
+    }
+    
+    .package-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    }
+    
+    .package-header {
+        padding: 30px;
+        color: white;
+        background: 
+        {% if package.id == 'free' %}
+            var(--dark-gradient-free)
+        {% elif package.id == 'basic' %}
+            var(--dark-gradient-basic)
+        {% elif package.id == 'standard' %}
+            var(--dark-gradient-standard)
+        {% elif package.id == 'premium' %}
+            var(--dark-gradient-premium)
+        {% else %}
+            var(--dark-gradient-basic)
+        {% endif %};
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .package-header:before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 200%;
+        background: rgba(255, 255, 255, 0.1);
+        transform: rotate(30deg);
+        z-index: 0;
+    }
+    
+    .package-price {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .package-content {
+        padding: 30px;
+        background-color: var(--dark-card);
+    }
+    
+    .feature-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+        transition: transform 0.2s;
+        color: var(--dark-text);
+    }
+    
+    .feature-item:hover {
+        transform: translateX(5px);
+    }
+    
+    .feature-icon {
+        background: 
+        {% if package.id == 'free' %}
+            var(--dark-gradient-free)
+        {% elif package.id == 'basic' %}
+            var(--dark-gradient-basic)
+        {% elif package.id == 'standard' %}
+            var(--dark-gradient-standard)
+        {% elif package.id == 'premium' %}
+            var(--dark-gradient-premium)
+        {% else %}
+            var(--dark-gradient-basic)
+        {% endif %};
+        color: white;
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 20px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    
+    .feature-text {
+        flex: 1;
+        font-size: 1.05rem;
+    }
+    
+    .section-title {
+        font-weight: 700;
+        position: relative;
+        margin-bottom: 1.5rem;
+        display: inline-block;
+        color: var(--dark-text);
+    }
+    
+    .section-title:after {
+        content: '';
+        position: absolute;
+        bottom: -8px;
+        left: 0;
+        width: 40px;
+        height: 3px;
+        background: 
+        {% if package.id == 'free' %}
+            var(--dark-gradient-free)
+        {% elif package.id == 'basic' %}
+            var(--dark-gradient-basic)
+        {% elif package.id == 'standard' %}
+            var(--dark-gradient-standard)
+        {% elif package.id == 'premium' %}
+            var(--dark-gradient-premium)
+        {% else %}
+            var(--dark-gradient-basic)
+        {% endif %};
+        border-radius: 1.5px;
+    }
+    
+    .payment-section {
+        background-color: var(--dark-card);
+        border-radius: 16px;
+        padding: 30px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        border: 1px solid var(--dark-border);
+    }
+    
+    .form-control {
+        padding: 12px 15px;
+        border-radius: 8px;
+        border: 1px solid var(--dark-border);
+        transition: all 0.3s;
+        background-color: var(--dark-card-secondary);
+        color: var(--dark-text);
+    }
+    
+    .form-control:focus {
+        box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+        border-color: #3182ce;
+    }
+    
+    .form-label {
+        color: var(--dark-text);
+    }
+    
+    .btn-back {
+        background-color: transparent;
+        border: 1px solid #6c757d;
+        color: var(--dark-text);
+        padding: 10px 20px;
+        border-radius: 50px;
+        transition: all 0.3s;
+    }
+    
+    .btn-back:hover {
+        background-color: #495057;
+        color: white;
+    }
+    
+    .btn-upgrade {
+        background: 
+        {% if package.id == 'free' %}
+            var(--dark-gradient-free)
+        {% elif package.id == 'basic' %}
+            var(--dark-gradient-basic)
+        {% elif package.id == 'standard' %}
+            var(--dark-gradient-standard)
+        {% elif package.id == 'premium' %}
+            var(--dark-gradient-premium)
+        {% else %}
+            var(--dark-gradient-basic)
+        {% endif %};
+        border: none;
+        padding: 15px 20px;
+        border-radius: 50px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        color: white;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        transition: all 0.3s;
+    }
+    
+    .btn-upgrade:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 25px rgba(0,0,0,0.4);
+    }
+    
+    .detail-card {
+        background-color: var(--dark-card-secondary);
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 15px;
+        transition: all 0.3s;
+        border: 1px solid var(--dark-border);
+    }
+    
+    .detail-card:hover {
+        background-color: #333333;
+    }
+    
+    .detail-card h5 {
+        color: var(--dark-text);
+    }
+    
+    .detail-card p {
+        color: var(--dark-text-secondary) !important;
+    }
+    
+    .detail-icon {
+        font-size: 1.3rem;
+        margin-right: 10px;
+        background: 
+        {% if package.id == 'free' %}
+            var(--dark-gradient-free)
+        {% elif package.id == 'basic' %}
+            var(--dark-gradient-basic)
+        {% elif package.id == 'standard' %}
+            var(--dark-gradient-standard)
+        {% elif package.id == 'premium' %}
+            var(--dark-gradient-premium)
+        {% else %}
+            var(--dark-gradient-basic)
+        {% endif %};
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .alert-info {
+        background-color: var(--dark-card-secondary);
+        color: var(--dark-text);
+        border-color: var(--dark-border);
+    }
+    
+    .form-check-label {
+        color: var(--dark-text-secondary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5 upgrade-container">
+    <div class="d-flex justify-content-between align-items-center">
+        <h1 class="page-heading">
+            <i class="fas fa-arrow-up me-2"></i> Paket Yükseltme
+        </h1>
+        <a href="{{ url_for('user.packages') }}" class="btn btn-back">
+            <i class="fas fa-arrow-left me-1"></i> Paketlere Dön
+        </a>
+    </div>
+    
+    <div class="package-card package-{{ package.id }}">
+        <div class="package-header text-center">
+            <h2 class="mb-3">{{ package.name }}</h2>
+            <div class="package-price mb-2">{{ package.price }}</div>
+            <p class="mb-0 opacity-80">{{ package.description }}</p>
+        </div>
+        
+        <div class="package-content">
+            <div class="row">
+                <div class="col-md-6">
+                    <h4 class="section-title">Paket Özellikleri</h4>
+                    
+                    {% for feature in package.features %}
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <div class="feature-text">{{ feature }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="col-md-6">
+                    <h4 class="section-title">Teknik Detaylar</h4>
+                    
+                    <div class="detail-card d-flex align-items-center">
+                        <i class="fas fa-desktop detail-icon"></i>
+                        <div>
+                            <h5 class="m-0">Ekran Sayısı</h5>
+                            <p class="m-0 text-muted">{{ package.max_screens }} ekran desteği</p>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-card d-flex align-items-center">
+                        <i class="fas fa-photo-video detail-icon"></i>
+                        <div>
+                            <h5 class="m-0">Medya Sayısı</h5>
+                            <p class="m-0 text-muted">{{ package.max_media }} medya desteği</p>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-card d-flex align-items-center">
+                        <i class="fas fa-hdd detail-icon"></i>
+                        <div>
+                            <h5 class="m-0">Depolama Alanı</h5>
+                            <p class="m-0 text-muted">{{ package.storage_limit }} alan</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="payment-section">
+        <h3 class="section-title">Ödeme Bilgileri</h3>
+        
+        <form method="POST" action="{{ url_for('user.upgrade_package', package_id=package.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div class="alert alert-info mb-4 p-4 rounded-3">
+                <div class="d-flex">
+                    <div class="me-3">
+                        <i class="fas fa-info-circle fa-2x"></i>
+                    </div>
+                    <div>
+                        <h5 class="alert-heading">Demo Uyarısı</h5>
+                        <p class="mb-0">Bu demo sürümünde gerçek ödeme işlemi yapılmamaktadır. "Paketi Yükselt" düğmesine tıkladığınızda paketiniz otomatik olarak güncellenecektir.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="cardName" class="form-label">Kart Üzerindeki İsim</label>
+                    <input type="text" class="form-control" id="cardName" placeholder="Kart üzerindeki isim" value="{{ user.name }}">
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="cardNumber" class="form-label">Kart Numarası</label>
+                    <input type="text" class="form-control" id="cardNumber" placeholder="1234 5678 9012 3456" value="**** **** **** 1234">
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-6 mb-3 mb-md-0">
+                    <label for="expiryDate" class="form-label">Son Kullanma Tarihi</label>
+                    <input type="text" class="form-control" id="expiryDate" placeholder="MM/YY" value="12/25">
+                </div>
+                <div class="col-md-6">
+                    <label for="cvv" class="form-label">CVV</label>
+                    <input type="text" class="form-control" id="cvv" placeholder="123" value="***">
+                </div>
+            </div>
+            
+            <div class="form-check mb-4">
+                <input class="form-check-input" type="checkbox" id="agreeTerms" checked>
+                <label class="form-check-label" for="agreeTerms">
+                    Paket değişikliği ve fatura şartlarını kabul ediyorum
+                </label>
+            </div>
+            
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-upgrade">
+                    <i class="fas fa-arrow-up me-1"></i> Paketi Yükselt
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %} 

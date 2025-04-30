@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ user.name }} - Ekranlar | BulutVizyon{% endblock %}
+
+{% block styles %}
+<style>
+  .screen-card {
+    background-color: var(--dark-card);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  
+  .screen-status {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: 0.25rem;
+  }
+  
+  .status-active {
+    background-color: rgba(13, 110, 253, 0.2);
+    color: #0d6efd;
+  }
+  
+  .status-inactive {
+    background-color: rgba(220, 53, 69, 0.2);
+    color: #dc3545;
+  }
+  
+  .status-pending {
+    background-color: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+  }
+  
+  .playlist-card {
+    background-color: rgba(13, 110, 253, 0.05);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid rgba(13, 110, 253, 0.2);
+  }
+  
+  .media-list {
+    margin-top: 1rem;
+  }
+  
+  .media-item {
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    border-radius: 0.4rem;
+    background-color: var(--dark-card);
+    position: relative;
+  }
+  
+  .media-item:hover {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
+  }
+  
+  .order-badge {
+    display: inline-block;
+    width: 2rem;
+    height: 2rem;
+    line-height: 2rem;
+    text-align: center;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    margin-right: 0.5rem;
+  }
+  
+  .no-screens-alert {
+    background-color: var(--dark-card);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row mb-4">
+    <div class="col-12">
+      <h1 class="h2 mb-0">
+        <i class="fas fa-user me-2"></i> {{ user.name }} <small class="text-muted">Ekranları</small>
+      </h1>
+      <p class="text-muted">{{ user.email }}</p>
+      
+      <div class="mt-3 mb-4">
+        <a href="{{ url_for('admin.users') }}" class="btn btn-secondary">
+          <i class="fas fa-arrow-left me-1"></i> Kullanıcı Listesine Dön
+        </a>
+        <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="btn btn-primary ms-2">
+          <i class="fas fa-edit me-1"></i> Kullanıcıyı Düzenle
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  {% if screens_data %}
+    <div class="row">
+      <div class="col-12">
+        <h4><i class="fas fa-desktop me-2"></i> Ekranlar ({{ screens_data|length }})</h4>
+        <hr>
+      </div>
+    </div>
+    
+    {% for screen in screens_data %}
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="screen-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="mb-0">
+                <i class="fas fa-desktop me-2"></i> {{ screen.ekran_adi }}
+              </h5>
+              <span class="screen-status status-{{ screen.ekran_durumu }}">
+                {{ {'active': 'Aktif', 'inactive': 'Devre Dışı', 'pending': 'Onay Bekliyor'}.get(screen.ekran_durumu, screen.ekran_durumu) }}
+              </span>
+            </div>
+            
+            <p class="text-muted mb-2">ID: {{ screen.ekran_id }}</p>
+            
+            <div class="mb-3">
+              <a href="{{ url_for('admin.view_screen', screen_id=screen.ekran_id) }}" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-eye me-1"></i> Ekran Detayları
+              </a>
+            </div>
+            
+            {% if screen.playlists %}
+              {% for playlist in screen.playlists %}
+                <div class="playlist-card">
+                  <h5>
+                    <i class="fas fa-list-alt me-2"></i> {{ playlist.playlist_adi }}
+                  </h5>
+                  
+                  <p class="text-muted mb-2">
+                    {% if playlist.aciklama %}{{ playlist.aciklama }}{% else %}Açıklama yok{% endif %}
+                  </p>
+                  
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>
+                      <i class="fas fa-photo-video me-1"></i> {{ playlist.media_count }} Medya
+                    </span>
+                    <span class="screen-status status-{{ playlist.durum }}">
+                      {{ {'active': 'Aktif', 'inactive': 'Devre Dışı', 'pending': 'Onay Bekliyor'}.get(playlist.durum, playlist.durum) }}
+                    </span>
+                  </div>
+                  
+                  {% if playlist.media_listesi %}
+                    <div class="media-list">
+                      <h6><i class="fas fa-photo-video me-2"></i> Medya İçeriği</h6>
+                      
+                      {% for media in playlist.media_listesi %}
+                        <div class="media-item">
+                          <div class="row">
+                            <div class="col-auto">
+                              <span class="order-badge">{{ loop.index }}</span>
+                            </div>
+                            <div class="col">
+                              <h6 class="mb-1">{{ media.media_adi }}</h6>
+                              <div class="small text-muted">
+                                <span class="me-2">
+                                  <i class="fas {{ 'fa-video' if media.dosya_turu == 'video' else 'fa-image' }} me-1"></i>
+                                  {{ 'Video' if media.dosya_turu == 'video' else 'Görsel' }}
+                                </span>
+                                <span class="me-2">
+                                  <i class="fas fa-clock me-1"></i> {{ media.gosterim_suresi }} saniye
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  {% else %}
+                    <div class="alert alert-info mt-3">
+                      <i class="fas fa-info-circle me-2"></i> Bu playlist'e henüz medya eklenmemiş.
+                    </div>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i> Bu ekrana henüz playlist atanmamış.
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="row">
+      <div class="col-12">
+        <div class="no-screens-alert">
+          <div class="text-center py-4">
+            <i class="fas fa-desktop fa-4x mb-3 text-muted"></i>
+            <h5>Kayıtlı Ekran Bulunamadı</h5>
+            <p class="text-muted">Bu kullanıcıya ait henüz ekran bulunmuyor.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %} 

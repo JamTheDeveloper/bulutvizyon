@@ -1,0 +1,359 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ user.name }} Düzenle - BulutVizyon{% endblock %}
+
+{% block content %}
+<!-- Debug bilgileri -->
+<div class="alert alert-info mb-3">
+    <h5>Kullanıcı Bilgileri:</h5>
+    <p>ID: {{ user.id }}</p>
+    <p>Ad Soyad: {{ user.name }}</p>
+    <p>E-posta: {{ user.email }}</p>
+    <p>Rol: {{ user.role }}</p>
+</div>
+
+<div class="row mb-4">
+    <div class="col">
+        <h2 class="mb-3"><i class="fas fa-user-edit"></i> Kullanıcı Düzenle</h2>
+        <p class="text-muted">{{ user.name }} kullanıcısının bilgilerini düzenle</p>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('admin.users') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-1"></i> Kullanıcılara Dön
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow mb-4">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('admin.edit_user', user_id=user.id) }}" id="userEditForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <!-- Hata mesajları -->
+                    {% if error %}
+                    <div class="alert alert-danger" role="alert">
+                        {{ error }}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Kullanıcı Bilgileri -->
+                    <div class="mb-3">
+                        <label class="form-label">İsim</label>
+                        <input type="text" name="name" class="form-control" value="{{ user.name }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">E-posta</label>
+                        <input type="email" name="email" class="form-control" value="{{ user.email }}" required>
+                    </div>
+                    
+                    <!-- Rol Seçimi -->
+                    <div class="mb-4">
+                        <label class="form-label">Kullanıcı Rolü</label>
+                        <p class="form-text mb-2">Kullanıcının sistem içindeki rolünü belirler.</p>
+                        
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="role" id="roleUser" value="user" {% if user.role == 'user' %}checked{% endif %}>
+                            <label class="form-check-label" for="roleUser">
+                                <span class="fw-bold text-primary">Kullanıcı</span>
+                                <div class="form-text">Kendi ekranlarını ve medyalarını yönetebilir</div>
+                            </label>
+                        </div>
+                        
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="role" id="roleSupervisor" value="supervisor" {% if user.role == 'supervisor' %}checked{% endif %}>
+                            <label class="form-check-label" for="roleSupervisor">
+                                <span class="fw-bold text-warning">Denetmen</span>
+                                <div class="form-text">Kullanıcıları ve içerikleri denetleyebilir, onay verebilir</div>
+                            </label>
+                        </div>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="role" id="roleAdmin" value="admin" {% if user.role == 'admin' %}checked{% endif %}{% if user.id == session.user_id %} disabled{% endif %}>
+                            <label class="form-check-label" for="roleAdmin">
+                                <span class="fw-bold text-danger">Admin</span>
+                                <div class="form-text">Tüm sistem üzerinde tam yetkiye sahiptir</div>
+                            </label>
+                        </div>
+                        {% if user.id == session.user_id %}
+                        <div class="form-text text-danger mt-2">
+                            <i class="fas fa-info-circle"></i> Kendi admin yetkinizi kaldıramazsınız
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Paket Seçimi -->
+                    <div class="mb-3">
+                        <label for="package" class="form-label">Paket</label>
+                        <select class="form-select" id="package" name="package">
+                            <option value="" {% if not user.package %}selected{% endif %}>Paket Seçiniz</option>
+                            <option value="basic" {% if user.package == 'basic' %}selected{% endif %}>Temel Paket (3 ekran)</option>
+                            <option value="standard" {% if user.package == 'standard' %}selected{% endif %}>Standart Paket (10 ekran)</option>
+                            <option value="premium" {% if user.package == 'premium' %}selected{% endif %}>Premium Paket (25 ekran)</option>
+                            <option value="enterprise" {% if user.package == 'enterprise' %}selected{% endif %}>Kurumsal Paket (Sınırsız)</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Kullanıcı Durumu -->
+                    <div class="mb-4">
+                        <label class="form-label">Kullanıcı Durumu <span class="text-danger">*</span></label>
+                        
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="status" id="statusActive" value="active" {% if user.status == 'active' %}checked{% endif %}>
+                            <label class="form-check-label" for="statusActive">
+                                <span class="fw-bold text-success">Aktif</span>
+                                <div class="form-text">Kullanıcı giriş yapabilir ve tüm özellikleri kullanabilir</div>
+                            </label>
+                        </div>
+                        
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="status" id="statusPending" value="pending" {% if user.status == 'pending' %}checked{% endif %}>
+                            <label class="form-check-label" for="statusPending">
+                                <span class="fw-bold text-warning">Beklemede</span>
+                                <div class="form-text">Kullanıcı e-posta onayı yapmadı veya hesap onay bekliyor</div>
+                            </label>
+                        </div>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="status" id="statusInactive" value="inactive" {% if user.status == 'inactive' %}checked{% endif %}{% if user.id == session.user_id %} disabled{% endif %}>
+                            <label class="form-check-label" for="statusInactive">
+                                <span class="fw-bold text-danger">Pasif</span>
+                                <div class="form-text">Kullanıcı giriş yapamaz ve sistemi kullanamaz</div>
+                            </label>
+                        </div>
+                        {% if user.id == session.user_id %}
+                        <div class="form-text text-danger mt-2">
+                            <i class="fas fa-info-circle"></i> Kendi hesabınızı devre dışı bırakamazsınız
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary">İptal</a>
+                        <button type="submit" class="btn btn-primary" id="saveUserBtn">
+                            <i class="fas fa-save me-1"></i> Değişiklikleri Kaydet
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- Denetmen Atama - Ayrı bir bölüm olarak -->
+                <div class="mt-5 pt-4 border-top">
+                    <h5 class="mb-3">Denetmen Atama</h5>
+                    <p class="form-text mb-3">Bu kullanıcıya bir denetmen atarsanız, kullanıcının yüklediği medyalar onay bekleyecektir.</p>
+                    
+                    <form method="POST" action="{{ url_for('admin.assign_supervisor', user_id=user.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div class="input-group">
+                            <select class="form-select" name="supervisor_id">
+                                <option value="">Denetmen atanmasın</option>
+                                {% for supervisor in supervisors %}
+                                <option value="{{ supervisor.id }}" {% if assigned_supervisor and assigned_supervisor.id == supervisor.id %}selected{% endif %}>
+                                    {{ supervisor.name }} ({{ supervisor.email }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Kaydet
+                            </button>
+                        </div>
+                    </form>
+                    
+                    {% if assigned_supervisor %}
+                    <div class="form-text text-success mt-2">
+                        <i class="fas fa-info-circle"></i> Şu anda <strong>{{ assigned_supervisor.name }}</strong> denetmen olarak atanmış
+                    </div>
+                    {% else %}
+                    <div class="form-text text-muted mt-2">
+                        <i class="fas fa-info-circle"></i> Şu anda bir denetmen atanmamış
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Parola Sıfırlama -->
+        <div class="card shadow mb-4">
+            <div class="card-header bg-warning bg-opacity-10">
+                <h5 class="mb-0 text-warning">
+                    <i class="fas fa-key me-2"></i> Parola Sıfırlama
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Kullanıcının şifresini sıfırlamak için aşağıdaki butonu kullanın. Yeni bir rastgele şifre oluşturulacak.</p>
+                <form method="POST" action="{{ url_for('admin.reset_password', user_id=user.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Kullanıcıya şifre sıfırlama e-postası göndermek istediğinize emin misiniz?')">
+                        Şifre Sıfırlama Bağlantısı Gönder
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Kullanıcı Silme -->
+        {% if user.id != session.user_id %}
+        <div class="card shadow mb-4">
+            <div class="card-header bg-danger bg-opacity-10">
+                <h5 class="mb-0 text-danger">
+                    <i class="fas fa-trash-alt me-2"></i> Kullanıcıyı Sil
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Bu işlem geri alınamaz! Kullanıcıyı silmek, tüm verilerini, ekranlarını ve medyalarını da kaldıracaktır.</p>
+                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteUserModal">
+                    <i class="fas fa-trash-alt me-1"></i> Kullanıcıyı Sil
+                </button>
+                
+                <!-- Silme Onay Modalı -->
+                <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Kullanıcı Silme Onayı</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p>
+                                    <strong>{{ user.name }}</strong> kullanıcısını silmek istediğinizden emin misiniz?
+                                    Bu işlem geri alınamaz.
+                                </p>
+                                <ul class="text-danger">
+                                    <li>Kullanıcının tüm ekranları, medyaları ve içerikleri de silinecektir</li>
+                                    <li>Kullanıcı sistemdeki tüm erişimini kaybedecektir</li>
+                                </ul>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                                <form action="{{ url_for('admin.delete_user', user_id=user.id) }}" method="post">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                    <button type="submit" class="btn btn-danger">Kullanıcıyı Sil</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Kullanıcı İstatistikleri -->
+        <div class="card shadow mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Kullanıcı İstatistikleri</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="avatar-container me-3 bg-{{ user.role }}" style="width: 60px; height: 60px; font-size: 24px;">
+                        {{ user.name[0].upper() }}
+                    </div>
+                    <div>
+                        <h5 class="mb-1">{{ user.name }}</h5>
+                        <span class="text-muted">{{ user.email }}</span>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span><i class="fas fa-desktop me-2"></i> Toplam Ekran</span>
+                        <span class="badge bg-primary rounded-pill">{{ screen_count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span><i class="fas fa-photo-video me-2"></i> Toplam Medya</span>
+                        <span class="badge bg-primary rounded-pill">{{ media_count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span><i class="fas fa-eye me-2"></i> Toplam Görüntülenme</span>
+                        <span class="badge bg-primary rounded-pill">{{ view_count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span><i class="fas fa-clock me-2"></i> Hesap Oluşturulma</span>
+                        <span>{{ user.created_at.strftime('%d.%m.%Y') }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span><i class="fas fa-sign-in-alt me-2"></i> Son Giriş</span>
+                        <span>{% if user.last_login %}{{ user.last_login.strftime('%d.%m.%Y %H:%M') }}{% else %}-{% endif %}</span>
+                    </li>
+                </ul>
+                
+                {% if screen_count > 0 %}
+                <div class="mt-3">
+                    <a href="{{ url_for('admin.view_user_screens', user_id=user.id) }}" class="btn btn-primary btn-sm w-100">
+                        <i class="fas fa-desktop me-1"></i> Ekranları ve Playlist İçeriklerini Görüntüle
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Kullanıcı Aktivitesi -->
+        <div class="card shadow">
+            <div class="card-header">
+                <h5 class="mb-0">Son Aktiviteler</h5>
+            </div>
+            <div class="card-body">
+                {% if activities %}
+                <ul class="list-group list-group-flush">
+                    {% for activity in activities %}
+                    <li class="list-group-item px-0">
+                        <div class="d-flex">
+                            <div class="me-3">
+                                <i class="fas fa-{{ activity.icon }} text-{{ activity.color }}"></i>
+                            </div>
+                            <div>
+                                <div>{{ activity.description }}</div>
+                                <small class="text-muted">{{ activity.time.strftime('%d.%m.%Y %H:%M') }}</small>
+                            </div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted mb-0">Henüz aktivite bulunmuyor.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('userEditForm');
+        const saveBtn = document.getElementById('saveUserBtn');
+        
+        if (form && saveBtn) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Kaydetme butonunu devre dışı bırak
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Kaydediliyor...';
+                
+                // Form verilerini kontrol et
+                const formData = new FormData(form);
+                console.log('Form gönderiliyor:', form.action);
+                
+                try {
+                    // Formu gönder
+                    setTimeout(function() {
+                        form.submit();
+                    }, 200);
+                } catch (error) {
+                    console.error('Form gönderiminde hata:', error);
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="fas fa-save me-1"></i> Değişiklikleri Kaydet';
+                    alert('Form gönderilirken bir hata oluştu: ' + error.message);
+                }
+            });
+        } else {
+            console.error('Form veya kaydet butonu bulunamadı!');
+        }
+    });
+</script>
+{% endblock %} 

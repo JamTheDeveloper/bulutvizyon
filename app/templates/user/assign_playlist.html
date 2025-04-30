@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+
+{% block title %}Ekrana Playlist Ata - BulutVizyon{% endblock %}
+
+{% block styles %}
+<style>
+    .form-container {
+        max-width: 700px;
+        margin: 0 auto;
+    }
+    .screen-preview {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    .playlist-card {
+        margin-bottom: 1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 2px solid transparent;
+    }
+    .playlist-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+    }
+    .playlist-card.selected {
+        border-color: #0d6efd;
+    }
+    .playlist-header {
+        height: 80px;
+        background-color: #f8f9fa;
+        background-image: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        color: white;
+        position: relative;
+        border-top-left-radius: calc(0.375rem - 1px);
+        border-top-right-radius: calc(0.375rem - 1px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .playlist-icon {
+        font-size: 2rem;
+        opacity: 0.8;
+    }
+    .media-count {
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        font-size: 0.75rem;
+        padding: 3px 10px;
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="form-container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">Ekrana Playlist Ata</h1>
+            <a href="{{ url_for('user.manage_screen_content', screen_id=screen.id) }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> İçerik Yönetimine Dön
+            </a>
+        </div>
+        
+        <div class="card shadow-sm mb-4">
+            <div class="card-body p-4">
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="screen-preview">
+                            {% if screen.orientation == 'horizontal' %}
+                                <i class="fas fa-desktop fa-4x text-muted"></i>
+                            {% else %}
+                                <i class="fas fa-mobile-alt fa-4x text-muted"></i>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <h4>{{ screen.name }}</h4>
+                        <p class="text-muted">{{ screen.description or 'Açıklama yok' }}</p>
+                        
+                        <div class="mb-2">
+                            <span class="badge {{ 'bg-success' if screen.status == 'active' else 'bg-secondary' }}">
+                                {{ 'Aktif' if screen.status == 'active' else 'Pasif' }}
+                            </span>
+                            <span class="badge bg-info">
+                                {{ 'Yatay' if screen.orientation == 'horizontal' else 'Dikey' }}
+                            </span>
+                            <span class="badge bg-primary">
+                                {{ screen.resolution }}
+                            </span>
+                        </div>
+                        
+                        <div class="alert alert-warning mt-3">
+                            <i class="fas fa-exclamation-triangle me-2"></i> Ekrana playlist atandığında, mevcut içerikler kaldırılacak ve playlist içeriği eklenecektir.
+                        </div>
+                    </div>
+                </div>
+                
+                <form action="{{ url_for('user.assign_playlist_to_screen', screen_id=screen.id) }}" method="POST" id="assignForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="playlist_id" id="selected_playlist_id">
+                    
+                    <h5 class="mb-3">Playlist Seçin</h5>
+                    
+                    <ul class="nav nav-tabs mb-3" id="playlistTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="user-playlists-tab" data-bs-toggle="tab" data-bs-target="#user-playlists" type="button" role="tab">
+                                <i class="fas fa-user me-1"></i> Playlistlerim
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="public-playlists-tab" data-bs-toggle="tab" data-bs-target="#public-playlists" type="button" role="tab">
+                                <i class="fas fa-globe me-1"></i> Genel Playlistler
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content" id="playlistTabContent">
+                        <!-- Kullanıcı Playlistleri -->
+                        <div class="tab-pane fade show active" id="user-playlists" role="tabpanel">
+                            {% if user_playlists %}
+                                <div class="row">
+                                    {% for playlist in user_playlists %}
+                                        <div class="col-md-6">
+                                            <div class="card playlist-card" data-id="{{ playlist.id }}">
+                                                <div class="playlist-header">
+                                                    <i class="fas fa-list playlist-icon"></i>
+                                                    <span class="media-count">{{ playlist.media_count }} medya</span>
+                                                </div>
+                                                <div class="card-body">
+                                                    <h5 class="card-title mb-1">{{ playlist.name }}</h5>
+                                                    <p class="card-text small text-muted mb-0">{{ playlist.description or 'Açıklama yok' }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i> Henüz playlist oluşturmadınız. 
+                                    <a href="{{ url_for('user.create_playlist') }}" class="alert-link">Yeni bir playlist oluşturun</a>.
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Genel Playlistler -->
+                        <div class="tab-pane fade" id="public-playlists" role="tabpanel">
+                            {% if public_playlists %}
+                                <div class="row">
+                                    {% for playlist in public_playlists %}
+                                        <div class="col-md-6">
+                                            <div class="card playlist-card" data-id="{{ playlist.id }}">
+                                                <div class="playlist-header">
+                                                    <i class="fas fa-globe playlist-icon"></i>
+                                                    <span class="media-count">{{ playlist.media_count }} medya</span>
+                                                </div>
+                                                <div class="card-body">
+                                                    <h5 class="card-title mb-1">{{ playlist.name }}</h5>
+                                                    <p class="card-text small text-muted mb-0">{{ playlist.description or 'Açıklama yok' }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i> Kullanılabilir genel playlist bulunamadı.
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary" id="assignBtn" disabled>
+                            <i class="fas fa-link me-1"></i> Playlist'i Ekrana Ata
+                        </button>
+                        <a href="{{ url_for('user.manage_screen_content', screen_id=screen.id) }}" class="btn btn-outline-secondary">
+                            İptal
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card bg-light">
+            <div class="card-body p-3">
+                <h5><i class="fas fa-info-circle me-2"></i> Playlist Atama Hakkında</h5>
+                <ul class="mb-0">
+                    <li>Ekrana bir playlist atandığında, mevcut içerikler silinir.</li>
+                    <li>Playlist'teki medyalar, playlist'teki sırayla ekrana eklenir.</li>
+                    <li>Playlist'teki medyaların gösterim süreleri korunur.</li>
+                    <li>Playlist değişiklikleri otomatik olarak ekranlara yansımaz.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var playlistCards = document.querySelectorAll('.playlist-card');
+    var selectedPlaylistId = document.getElementById('selected_playlist_id');
+    var assignBtn = document.getElementById('assignBtn');
+    
+    // Playlist seçimi
+    playlistCards.forEach(function(card) {
+        card.addEventListener('click', function() {
+            // Seçimi kaldır
+            playlistCards.forEach(function(c) {
+                c.classList.remove('selected');
+            });
+            
+            // Seçimi işaretle
+            this.classList.add('selected');
+            
+            // Seçilen playlist ID'sini kaydet
+            selectedPlaylistId.value = this.dataset.id;
+            
+            // Atama butonunu etkinleştir
+            assignBtn.disabled = false;
+        });
+    });
+    
+    // Form gönderilmeden önce kontrol
+    document.getElementById('assignForm').addEventListener('submit', function(e) {
+        if (!selectedPlaylistId.value) {
+            e.preventDefault();
+            alert('Lütfen bir playlist seçin.');
+        }
+    });
+});
+</script>
+{% endblock %} 

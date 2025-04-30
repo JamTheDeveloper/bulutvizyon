@@ -1,0 +1,486 @@
+{% extends 'base.html' %}
+
+{% block title %}Paketler{% endblock %}
+
+{% block styles %}
+<style>
+    :root {
+        --free-package-color: #28a745;
+        --basic-package-color: #007bff;
+        --standard-package-color: #17a2b8;
+        --premium-package-color: #ffc107;
+        --dark-gradient-free: linear-gradient(45deg, #20c997, #0ea57f);
+        --dark-gradient-basic: linear-gradient(45deg, #5e72e4, #825ee4);
+        --dark-gradient-standard: linear-gradient(45deg, #11cdef, #1171ef);
+        --dark-gradient-premium: linear-gradient(45deg, #fb6340, #fbb140);
+        --dark-bg: #121212;
+        --dark-card: #1e1e1e;
+        --dark-card-secondary: #282828;
+        --dark-text: #e0e0e0;
+        --dark-text-secondary: #aaaaaa;
+        --dark-border: #333333;
+    }
+    
+    body {
+        background-color: var(--dark-bg);
+        color: var(--dark-text);
+    }
+    
+    .packages-header {
+        margin-bottom: 3rem;
+    }
+    
+    .packages-header h1, .packages-header p {
+        color: var(--dark-text);
+    }
+    
+    .package-card {
+        height: 100%;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.3);
+        background-color: var(--dark-card);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        color: white;
+        border: 1px solid var(--dark-border);
+    }
+    
+    .package-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.4);
+    }
+    
+    .package-free {
+        background: var(--dark-gradient-free);
+    }
+    
+    .package-basic {
+        background: var(--dark-gradient-basic);
+    }
+    
+    .package-standard {
+        background: var(--dark-gradient-standard);
+    }
+    
+    .package-premium {
+        background: var(--dark-gradient-premium);
+    }
+    
+    .package-current {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: rgba(0, 0, 0, 0.6);
+        color: white;
+        font-size: 0.8rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 5px;
+        z-index: 10;
+    }
+    
+    .package-header {
+        padding: 1.5rem 1rem;
+        background-color: rgba(0, 0, 0, 0.15);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .package-price {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .package-title {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-size: 1.5rem;
+    }
+    
+    .package-description {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: 0;
+    }
+    
+    .package-content {
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+    }
+    
+    .package-feature {
+        margin-bottom: 0.75rem;
+        font-size: 0.95rem;
+        color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .package-icon {
+        margin-right: 0.5rem;
+        color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .package-actions {
+        margin-top: auto;
+    }
+    
+    .package-limits .progress {
+        background-color: rgba(0, 0, 0, 0.2);
+    }
+    
+    .package-free .progress-bar {
+        background-color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .package-basic .progress-bar {
+        background-color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .package-standard .progress-bar {
+        background-color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .package-premium .progress-bar {
+        background-color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .btn-primary {
+        background-color: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        transition: all 0.3s;
+    }
+    
+    .btn-primary:hover {
+        background-color: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.4);
+    }
+    
+    .btn-outline-secondary {
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: rgba(255, 255, 255, 0.8);
+    }
+    
+    @media (max-width: 992px) {
+        .package-card {
+            margin-bottom: 2rem;
+        }
+    }
+    
+    .mt-5.p-4.bg-dark {
+        background-color: var(--dark-card) !important;
+        border: 1px solid var(--dark-border) !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="packages-header text-center">
+        <h1 class="mb-3">Paketler</h1>
+        <p class="lead mb-0">Dijital reklamlarınız için uygun paketi seçerek başlayın</p>
+    </div>
+    
+    <div class="row">
+        <!-- NöbetmatikPro (Ücretsiz) Paketi -->
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="package-card package-free position-relative">
+                {% if user.package and user.package.id == "free" %}
+                <div class="package-current">
+                    <i class="fas fa-check me-1"></i> Mevcut Paketiniz
+                </div>
+                {% endif %}
+                
+                <div class="package-header text-center">
+                    <p class="package-price">Ücretsiz</p>
+                    <h3 class="package-title">NöbetmatikPro</h3>
+                    <p class="package-description">Temel dijital ekran yönetimi</p>
+                </div>
+                
+                <div class="package-content">
+                    <div class="package-limits mb-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Ekran Sayısı</span>
+                            <span class="fw-bold">3</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 100%;"></div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Medya Sayısı</span>
+                            <span class="fw-bold">20</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 100%;"></div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Depolama Alanı</span>
+                            <span class="fw-bold">1 GB</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="package-features mb-4">
+                        <h5 class="mb-3">Özellikler</h5>
+                        <div class="package-feature">
+                            <i class="fas fa-check package-icon"></i> 3 ekran desteği
+                        </div>
+                        <div class="package-feature">
+                            <i class="fas fa-check package-icon"></i> Temel medya yönetimi
+                        </div>
+                        <div class="package-feature">
+                            <i class="fas fa-check package-icon"></i> Email desteği
+                        </div>
+                    </div>
+                    
+                    <div class="package-actions">
+                        {% if user.package and user.package.id == "free" %}
+                            <button class="btn btn-outline-secondary w-100" disabled>Mevcut Paketiniz</button>
+                        {% else %}
+                            <a href="{{ url_for('user.upgrade_package', package_id='free') }}" class="btn btn-primary w-100">
+                                <i class="fas fa-arrow-up me-1"></i> Bu Pakete Geç
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Başlangıç Paketi -->
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="package-card package-basic position-relative">
+                {% if user.package and user.package.id == "basic" %}
+                <div class="package-current">
+                    <i class="fas fa-check me-1"></i> Mevcut Paketiniz
+                </div>
+                {% endif %}
+                
+                <div class="package-header text-center">
+                    <p class="package-price">199 TL / ay</p>
+                    <h3 class="package-title">Başlangıç Paketi</h3>
+                    <p class="package-description">Küçük işletmeler için dijital ekran yönetimi</p>
+                </div>
+                
+                <div class="package-content">
+                    <div class="package-limits mb-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Ekran Sayısı</span>
+                            <span class="fw-bold">3</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: 100%;"></div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Medya Sayısı</span>
+                            <span class="fw-bold">50</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: 100%;"></div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Depolama Alanı</span>
+                            <span class="fw-bold">1 GB</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="package-features mb-4">
+                        <h5 class="mb-3">Özellikler</h5>
+                        <div class="package-feature">
+                            <i class="fas fa-check package-icon"></i> 3 ekran desteği
+                        </div>
+                        <div class="package-feature">
+                            <i class="fas fa-check package-icon"></i> Basit medya yönetimi
+                        </div>
+                        <div class="package-feature">
+                            <i class="fas fa-check package-icon"></i> Email desteği
+                        </div>
+                        <div class="package-feature">
+                            <i class="fas fa-check package-icon"></i> Temel raporlama
+                        </div>
+                    </div>
+                    
+                    <div class="package-actions">
+                        {% if user.package and user.package.id == "basic" %}
+                            <button class="btn btn-outline-secondary w-100" disabled>Mevcut Paketiniz</button>
+                        {% else %}
+                            <a href="{{ url_for('user.upgrade_package', package_id='basic') }}" class="btn btn-primary w-100">
+                                <i class="fas fa-arrow-up me-1"></i> Bu Pakete Yükselt
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Profesyonel Paket -->
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="package-card package-standard position-relative">
+                {% if user.package and user.package.id == "standard" %}
+                <div class="package-current">
+                    <i class="fas fa-check me-1"></i> Mevcut Paketiniz
+                </div>
+                {% endif %}
+                
+                <div class="package-header text-center">
+                    <p class="package-price">399 TL / ay</p>
+                    <h3 class="package-title">Profesyonel Paket</h3>
+                    <p class="package-description">Orta ölçekli işletmeler için gelişmiş yönetim</p>
+                </div>
+                
+                <div class="package-content">
+                    <div class="package-limits mb-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Ekran Sayısı</span>
+                            <span class="fw-bold">5</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div class="progress-bar bg-info" role="progressbar" style="width: 100%;"></div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Medya Sayısı</span>
+                            <span class="fw-bold">150</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div class="progress-bar bg-info" role="progressbar" style="width: 100%;"></div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Depolama Alanı</span>
+                            <span class="fw-bold">5 GB</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div class="progress-bar bg-info" role="progressbar" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="package-features mb-4">
+                        <h5 class="mb-3">Özellikler</h5>
+                        <div class="package-feature">
+                            <i class="fas fa-check package-icon"></i> 5 ekran desteği
+                        </div>
+                        <div class="package-feature">
+                            <i class="fas fa-check package-icon"></i> Gelişmiş medya yönetimi
+                        </div>
+                        <div class="package-feature">
+                            <i class="fas fa-check package-icon"></i> Öncelikli email desteği
+                        </div>
+                        <div class="package-feature">
+                            <i class="fas fa-check package-icon"></i> İleri raporlama
+                        </div>
+                    </div>
+                    
+                    <div class="package-actions">
+                        {% if user.package and user.package.id == "standard" %}
+                            <button class="btn btn-outline-secondary w-100" disabled>Mevcut Paketiniz</button>
+                        {% else %}
+                            <a href="{{ url_for('user.upgrade_package', package_id='standard') }}" class="btn btn-primary w-100">
+                                <i class="fas fa-arrow-up me-1"></i> Bu Pakete Yükselt
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Kurumsal Paket -->
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="package-card package-premium position-relative">
+                {% if user.package and user.package.id == "premium" %}
+                <div class="package-current">
+                    <i class="fas fa-check me-1"></i> Mevcut Paketiniz
+                </div>
+                {% endif %}
+                
+                <div class="package-header text-center">
+                    <p class="package-price">699 TL / ay</p>
+                    <h3 class="package-title">Kurumsal Paket</h3>
+                    <p class="package-description">Büyük işletmeler için kurumsal çözüm</p>
+                </div>
+                
+                <div class="package-content">
+                    <div class="package-limits mb-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Ekran Sayısı</span>
+                            <span class="fw-bold">20</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div class="progress-bar bg-warning" role="progressbar" style="width: 100%;"></div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Medya Sayısı</span>
+                            <span class="fw-bold">500</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div class="progress-bar bg-warning" role="progressbar" style="width: 100%;"></div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Depolama Alanı</span>
+                            <span class="fw-bold">10 GB</span>
+                        </div>
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div class="progress-bar bg-warning" role="progressbar" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="package-features mb-4">
+                        <h5 class="mb-3">Özellikler</h5>
+                        <div class="package-feature">
+                            <i class="fas fa-check package-icon"></i> 20 ekran desteği
+                        </div>
+                        <div class="package-feature">
+                            <i class="fas fa-check package-icon"></i> Sınırsız medya yükleme
+                        </div>
+                        <div class="package-feature">
+                            <i class="fas fa-check package-icon"></i> 7/24 teknik destek
+                        </div>
+                        <div class="package-feature">
+                            <i class="fas fa-check package-icon"></i> Özel API erişimi
+                        </div>
+                        <div class="package-feature">
+                            <i class="fas fa-check package-icon"></i> Gelişmiş analitik
+                        </div>
+                    </div>
+                    
+                    <div class="package-actions">
+                        {% if user.package and user.package.id == "premium" %}
+                            <button class="btn btn-outline-secondary w-100" disabled>Mevcut Paketiniz</button>
+                        {% else %}
+                            <a href="{{ url_for('user.upgrade_package', package_id='premium') }}" class="btn btn-primary w-100">
+                                <i class="fas fa-arrow-up me-1"></i> Bu Pakete Yükselt
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-5 p-4 bg-dark rounded-3 border border-1 border-light border-opacity-10 shadow">
+        <div class="row align-items-center">
+            <div class="col-lg-9">
+                <h4 class="text-white mb-3">Özel Paket mi İstiyorsunuz?</h4>
+                <p class="text-light opacity-75 mb-lg-0">İşletmenizin ihtiyaçlarına göre özelleştirilmiş çözümler için bizimle iletişime geçin.</p>
+            </div>
+            <div class="col-lg-3 text-lg-end">
+                <a href="{{ url_for('auth.contact') }}" class="btn btn-outline-light px-4 py-2">
+                    <i class="fas fa-envelope me-1"></i> İletişime Geç
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

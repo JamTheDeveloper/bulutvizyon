@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ media.title }} - BulutVizyon{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="mb-3"><i class="fas {% if media.file_type == 'image' %}fa-image{% else %}fa-video{% endif %}"></i> {{ media.title }}</h2>
+            {% if media.description %}
+            <p class="text-muted">{{ media.description }}</p>
+            {% endif %}
+        </div>
+        <div class="col-md-4 text-md-end">
+            <a href="{{ url_for('user.media') }}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-arrow-left me-1"></i> Medyalarıma Dön
+            </a>
+            <a href="{{ url_for('user.edit_media', media_id=media._id) }}" class="btn btn-primary">
+                <i class="fas fa-edit me-1"></i> Düzenle
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+                    <div class="media-viewer">
+                        {% if media.file_type == 'image' %}
+                        <img src="{{ file_url }}" alt="{{ media.title }}" class="img-fluid">
+                        {% else %}
+                        <video src="{{ file_url }}" controls autoplay class="w-100">
+                            Tarayıcınız video etiketini desteklemiyor.
+                        </video>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Medya Bilgileri</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tbody>
+                            <tr>
+                                <th>Durum</th>
+                                <td>
+                                    {% if media.status == 'active' %}
+                                    <span class="badge bg-success">Aktif</span>
+                                    {% elif media.status == 'pending' %}
+                                    <span class="badge bg-warning text-dark">Onay Bekliyor</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Pasif</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Medya Tipi</th>
+                                <td>
+                                    {% if media.file_type == 'image' %}
+                                    <i class="fas fa-image text-info me-1"></i> Resim
+                                    {% else %}
+                                    <i class="fas fa-video text-danger me-1"></i> Video
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Kategori</th>
+                                <td>{{ media.category or "Tanımlanmamış" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Görüntülenme Süresi</th>
+                                <td>{{ media.display_time }} saniye</td>
+                            </tr>
+                            <tr>
+                                <th>Boyut</th>
+                                <td>{{ (media.file_size / (1024*1024))|round(2) }} MB</td>
+                            </tr>
+                            <tr>
+                                <th>Çözünürlük</th>
+                                <td>{{ media.width }} x {{ media.height }}</td>
+                            </tr>
+                            <tr>
+                                <th>Yükleme Tarihi</th>
+                                <td>{{ media.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                            </tr>
+                            <tr>
+                                <th>ID</th>
+                                <td><small class="text-muted">{{ media._id }}</small></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer border-top-0">
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteMediaModal">
+                            <i class="fas fa-trash me-1"></i> Bu Medyayı Sil
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Silme Modal -->
+<div class="modal fade" id="deleteMediaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Medya Silme Onayı</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <div class="modal-body">
+                <p>
+                    <strong>{{ media.title }}</strong> isimli medya içeriğini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+                </p>
+                <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox" id="forceDelete" name="force_delete">
+                    <label class="form-check-label text-danger" for="forceDelete">
+                        <strong>Zorunlu sil:</strong> Bu medyayı ekranlarda kullanılsa bile tamamen sil ve ilişkili tüm içerikleri kaldır.
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <form action="/user/media/delete" method="POST">
+                    <input type="hidden" name="media_id" value="{{ media._id }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" id="forceDeleteInput" name="force_delete" value="0">
+                    <button type="submit" class="btn btn-danger">Sil</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Video oynatıcısı için varsa otomatik başlat
+        const videoPlayer = document.querySelector('video');
+        if (videoPlayer) {
+            videoPlayer.addEventListener('loadedmetadata', function() {
+                videoPlayer.play().catch(e => {
+                    console.log('Otomatik oynatma engellendi:', e);
+                });
+            });
+        }
+        
+        // Zorunlu silme checkbox'ı
+        const forceDeleteCheckbox = document.getElementById('forceDelete');
+        const forceDeleteInput = document.getElementById('forceDeleteInput');
+        
+        if (forceDeleteCheckbox && forceDeleteInput) {
+            forceDeleteCheckbox.addEventListener('change', function() {
+                forceDeleteInput.value = this.checked ? "1" : "0";
+            });
+        }
+    });
+</script>
+{% endblock %} 

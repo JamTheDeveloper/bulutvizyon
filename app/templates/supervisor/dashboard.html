@@ -1,0 +1,334 @@
+{% extends 'base.html' %}
+
+{% block title %}Denetmen Paneli - BulutVizyon{% endblock %}
+
+{% block styles %}
+<style>
+    .card-stats {
+        transition: all 0.3s;
+        background-color: var(--dark-card);
+    }
+    .card-stats:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    }
+    .media-item {
+        transition: all 0.3s;
+        background-color: var(--dark-card);
+    }
+    .media-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    .media-thumbnail {
+        height: 160px;
+        background-size: cover;
+        background-position: center;
+        background-color: var(--dark-bg);
+        border-radius: 0.25rem 0.25rem 0 0;
+    }
+    .user-avatar {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--dark-card);
+        color: var(--text-light);
+        border-radius: 50%;
+        font-weight: bold;
+    }
+    .card-header-dark {
+        background-color: var(--dark-card) !important;
+        color: var(--text-light);
+        border-bottom: 1px solid var(--dark-border);
+    }
+    .card-footer-dark {
+        background-color: var(--dark-card) !important;
+        border-top: 1px solid var(--dark-border);
+    }
+    .list-group-item {
+        background-color: var(--dark-card);
+        color: var(--text-light);
+        border-color: var(--dark-border);
+    }
+    a {
+        color: var(--secondary-color);
+        text-decoration: none;
+    }
+    a:hover {
+        color: var(--accent-color);
+    }
+    
+    /* Mobil cihazlar için responsive düzenlemeler */
+    @media (max-width: 767px) {
+        .card-stats {
+            margin-bottom: 15px;
+        }
+        .h6 {
+            font-size: 0.9rem;
+        }
+        .icon-shape {
+            width: 40px;
+            height: 40px;
+            padding: 0.5rem !important;
+        }
+        .media-thumbnail {
+            height: 120px;
+        }
+        .user-avatar {
+            width: 28px;
+            height: 28px;
+            font-size: 0.8rem;
+        }
+        .badge {
+            font-size: 0.7rem;
+        }
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+    }
+    
+    /* Extra small cihazlar için özel düzenlemeler */
+    @media (max-width: 576px) {
+        h2 {
+            font-size: 1.5rem;
+        }
+        .mb-1 {
+            margin-bottom: 0.1rem !important;
+        }
+        .icon-shape {
+            width: 35px;
+            height: 35px;
+        }
+        .media-thumbnail {
+            height: 100px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 col-md">
+        <h2 class="mb-1">Denetmen Paneli</h2>
+        <p class="text-muted">Hoş geldiniz, {{ session.user_name }}</p>
+    </div>
+    <div class="col-12 col-md-auto mt-2 mt-md-0">
+        <a href="{{ url_for('supervisor.pending_media') }}" class="btn btn-warning">
+            <i class="fas fa-exclamation-triangle me-1"></i> Onay Bekleyen İçerikler
+            {% if pending_media_count %}<span class="badge bg-danger ms-1">{{ pending_media_count }}</span>{% endif %}
+        </a>
+    </div>
+</div>
+
+<!-- İstatistikler -->
+<div class="row mb-4">
+    <div class="col-6 col-md-6 col-lg-3 mb-3">
+        <div class="card card-stats h-100 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-auto">
+                        <div class="icon-shape bg-primary text-white rounded-3 p-3">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <span class="h6 font-weight-bold mb-0 d-block">{{ user_count }}</span>
+                        <span class="text-sm text-muted">Toplam Kullanıcı</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-6 col-md-6 col-lg-3 mb-3">
+        <div class="card card-stats h-100 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-auto">
+                        <div class="icon-shape bg-success text-white rounded-3 p-3">
+                            <i class="fas fa-desktop"></i>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <span class="h6 font-weight-bold mb-0 d-block">{{ screen_count }}</span>
+                        <span class="text-sm text-muted">Aktif Ekran</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-6 col-md-6 col-lg-3 mb-3">
+        <div class="card card-stats h-100 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-auto">
+                        <div class="icon-shape bg-info text-white rounded-3 p-3">
+                            <i class="fas fa-photo-video"></i>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <span class="h6 font-weight-bold mb-0 d-block">{{ media_count }}</span>
+                        <span class="text-sm text-muted">Toplam Medya</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-6 col-md-6 col-lg-3 mb-3">
+        <div class="card card-stats h-100 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-auto">
+                        <div class="icon-shape bg-warning text-white rounded-3 p-3">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <span class="h6 font-weight-bold mb-0 d-block">{{ pending_media_count }}</span>
+                        <span class="text-sm text-muted">Onay Bekleyen</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Son İçerikler -->
+<div class="row mb-4">
+    <div class="col-md-12 col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header card-header-dark">
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <h5 class="mb-0">Son Yüklenen Medyalar</h5>
+                    <a href="{{ url_for('supervisor.media') }}" class="btn btn-sm btn-primary mt-2 mt-sm-0">
+                        <i class="fas fa-list me-1"></i> Tümünü Görüntüle
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if recent_media %}
+                <div class="row">
+                    {% for media in recent_media %}
+                    <div class="col-12 col-sm-6 mb-3">
+                        <div class="card media-item border-0 shadow-sm h-100">
+                            <div class="media-thumbnail" style="background-image: url('{{ url_for('serve_uploads', filename=media.thumbnail if media.thumbnail else media.filename) }}');">
+                                <div class="position-absolute top-0 end-0 m-2">
+                                    {% if media.status == 'active' %}
+                                    <span class="badge bg-success">Aktif</span>
+                                    {% elif media.status == 'pending' %}
+                                    <span class="badge bg-warning text-dark">Onay Bekliyor</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Pasif</span>
+                                    {% endif %}
+                                </div>
+                                <div class="position-absolute top-0 start-0 m-2">
+                                    {% if media.file_type == 'image' %}
+                                    <span class="badge bg-info"><i class="fas fa-image"></i></span>
+                                    {% else %}
+                                    <span class="badge bg-danger"><i class="fas fa-video"></i></span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <h6 class="card-title mb-2">
+                                    <a href="{{ url_for('supervisor.view_media', media_id=media._id) }}" class="text-decoration-none">
+                                        {{ media.title }}
+                                    </a>
+                                </h6>
+                                <div class="d-flex align-items-center justify-content-between small mb-2">
+                                    <div class="d-flex align-items-center">
+                                        <div class="user-avatar me-2">{{ media.user_id[:1] }}</div>
+                                        <span class="text-muted">{{ media.user_id }}</span>
+                                    </div>
+                                    <span class="text-muted">{{ media.created_at.strftime('%d.%m.%Y') }}</span>
+                                </div>
+                            </div>
+                            <div class="card-footer card-footer-dark d-flex justify-content-between py-2">
+                                <a href="{{ url_for('supervisor.view_media', media_id=media._id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye me-1"></i> Görüntüle
+                                </a>
+                                {% if media.status == 'pending' %}
+                                <form action="{{ url_for('supervisor.approve_media', media_id=media._id) }}" method="post">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-success">
+                                        <i class="fas fa-check me-1"></i> Onayla
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted mb-0">Henüz medya bulunmuyor.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-12 col-lg-4 mt-4 mt-lg-0">
+        <!-- Son Etkinlikler -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header card-header-dark">
+                <h5 class="mb-0">Son Etkinlikler</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for activity in recent_activities %}
+                    <div class="list-group-item py-3">
+                        <div class="d-flex">
+                            <div class="me-3">
+                                <div class="icon-shape icon-sm bg-{{ activity.color }} text-white rounded-circle">
+                                    <i class="fas fa-{{ activity.icon }}"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-1">{{ activity.title }}</h6>
+                                    <small class="text-muted">{{ activity.time.strftime('%H:%M') }}</small>
+                                </div>
+                                <p class="text-sm mb-0">{{ activity.description }}</p>
+                                <small class="text-muted">{{ activity.time.strftime('%d.%m.%Y') }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sistem Durumu -->
+        <div class="card shadow-sm border-0">
+            <div class="card-header card-header-dark">
+                <h5 class="mb-0">Sistem Durumu</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <span>API Servisi</span>
+                    <span class="badge bg-success">Aktif</span>
+                </div>
+                <div class="d-flex justify-content-between mb-3">
+                    <span>Medya Sunucusu</span>
+                    <span class="badge bg-success">Aktif</span>
+                </div>
+                <div class="d-flex justify-content-between mb-3">
+                    <span>Email Servisi</span>
+                    <span class="badge bg-success">Aktif</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Veritabanı</span>
+                    <span class="badge bg-success">Aktif</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

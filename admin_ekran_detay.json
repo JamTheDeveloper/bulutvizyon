@@ -1,0 +1,190 @@
+[
+  {
+    "ekran_id": "67eeb9028af1a94ce8d576a4",
+    "ekran_adi": "KASA ÖNÜ",
+    "ekran_durumu": "active",
+    "playlists": []
+  },
+  {
+    "ekran_id": "67eeb9318af1a94ce8d576a6",
+    "ekran_adi": "KOZMETİK",
+    "ekran_durumu": "active",
+    "playlists": []
+  },
+  {
+    "ekran_id": "67f17bffc1021a3fed0b8092",
+    "ekran_adi": "kafe menü board",
+    "ekran_durumu": "active",
+    "playlists": [
+      {
+        "playlist_id": "680b71947d12081be259ffc3",
+        "playlist_adi": "LEDEKRAN",
+        "aciklama": "Eczane LED EKRAN",
+        "durum": "active",
+        "media_count": 20,
+        "media_listesi": [
+          {
+            "media_id": "680a6dc4ac67ad9e882896ff",
+            "media_adi": "BEBEK-1",
+            "dosya_adi": "388e7fad6c904301ab1b1fbb93febfff.mp4",
+            "dosya_turu": "video",
+            "gosterim_suresi": 10,
+            "sira": 0
+          },
+          {
+            "media_id": "680a6cdb0aad5524af86ad49",
+            "media_adi": "ENERJİ-2",
+            "dosya_adi": "95014803859a428ab168aaea7b6c605c.mp4",
+            "dosya_turu": "video",
+            "gosterim_suresi": 10,
+            "sira": 0
+          },
+          {
+            "media_id": "680a6cb70aad5524af86ad47",
+            "media_adi": "ENERJİ-1",
+            "dosya_adi": "7d3a734f69664bc593582c5ba9ad40d6.mp4",
+            "dosya_turu": "video",
+            "gosterim_suresi": 10,
+            "sira": 0
+          },
+          {
+            "media_id": "680a6c4eac67ad9e882896fd",
+            "media_adi": "UYKU-1",
+            "dosya_adi": "b15fb3eba44b4ce09bf42f837875d22d.mp4",
+            "dosya_turu": "video",
+            "gosterim_suresi": 10,
+            "sira": 0
+          },
+          {
+            "media_id": "680a6bfb0aad5524af86ad43",
+            "media_adi": "COLLAGEN-2",
+            "dosya_adi": "854dd9b06fe8475bb25120b50ab1e665.mp4",
+            "dosya_turu": "video",
+            "gosterim_suresi": 10,
+            "sira": 0
+          },
+          {
+            "media_id": "680a6bad0aad5524af86ad3d",
+            "media_adi": "KİLO-1",
+            "dosya_adi": "c8ff37ae0cbc41609e28b921abf5a769.mp4",
+            "dosya_turu": "video",
+            "gosterim_suresi": 10,
+            "sira": 0
+          },
+          {
+            "media_id": "680a6c920aad5524af86ad45",
+            "media_adi": "UYKU-2",
+            "dosya_adi": "fe5439969f1548a581d41f55b2db6ad1.mp4",
+            "dosya_turu": "video",
+            "gosterim_suresi": 10,
+            "sira": 0
+          },
+          {
+            "media_id": "680a60fe0aad5524af86ad37",
+            "media_adi": "Eczacı-clipart-Kadın2",
+            "dosya_adi": "b43cf824b9e94211adbd9f29af20794e.mp4",
+            "dosya_turu": "video",
+            "gosterim_suresi": 10,
+            "sira": 0
+          },
+          {
+            "media_id": "6805fcdb90a8908b8a583e93",
+            "media_adi": "ilac tanıtım",
+            "dosya_adi": "6492e9143d0148b68c635d87f28dcab7.mp4",
+            "dosya_turu": "video",
+            "gosterim_suresi": 10,
+            "sira": 0
+          },
+          {
+            "media_id": "680a6af8ac67ad9e882896fb",
+            "media_adi": "GÜNEŞ-KREMİ-1",
+            "dosya_adi": "a61f46564e5d4471bf303b5ef850029d.mp4",
+            "dosya_turu": "video",
+            "gosterim_suresi": 10,
+            "sira": 0
+          },
+          {
+            "media_id": "68079e9dd9e1654e4a20912b",
+            "media_adi": "ECZNANE YDIL",
+            "dosya_adi": "a05ff2b3ce294ba1aaf9448846258e20.mp4",
+            "dosya_turu": "video",
+            "gosterim_suresi": 10,
+            "sira": 0
+          },
+          {
+            "media_id": "68063311fcfa762771abbccd",
+            "media_adi": "Ramazan",
+            "dosya_adi": "0be51ed8895043be9e4b4395ddcfbf88.mp4",
+            "dosya_turu": "video",
+            "gosterim_suresi": 10,
+            "sira": 0
+          },
+          {
+            "media_id": "680a60230aad5524af86ad35",
+            "media_adi": "Eczacı-clipart-Kadın",
+            "dosya_adi": "32da807922454a0493314fadca1fe203.mp4",
+            "dosya_turu": "video",
+            "gosterim_suresi": 10,
+            "sira": 0
+          },
+          {
+            "media_id": "680a6be20aad5524af86ad41",
+            "media_adi": "COLLAGEN-1",
+            "dosya_adi": "d5d38e08fc1a45c9bbc102fda5d020ec.mp4",
+            "dosya_turu": "video",
+            "gosterim_suresi": 10,
+            "sira": 0
+          },
+          {
+            "media_id": "680a6b920aad5524af86ad3b",
+            "media_adi": "VİTAMİN-2",
+            "dosya_adi": "bec2c0f0da4b4b5bbecca94439b0d702.mp4",
+            "dosya_turu": "video",
+            "gosterim_suresi": 10,
+            "sira": 0
+          },
+          {
+            "media_id": "680a6b370aad5524af86ad39",
+            "media_adi": "VİTAMİN-1",
+            "dosya_adi": "81d338cff080450887d8ea7da756e937.mp4",
+            "dosya_turu": "video",
+            "gosterim_suresi": 10,
+            "sira": 0
+          },
+          {
+            "media_id": "680a6bc20aad5524af86ad3f",
+            "media_adi": "KİLO-2",
+            "dosya_adi": "f19c0667dc114075bebdfec72cb05a6c.mp4",
+            "dosya_turu": "video",
+            "gosterim_suresi": 10,
+            "sira": 0
+          },
+          {
+            "media_id": "67f7bee75325344bff3a9a4b",
+            "media_adi": "ECZACI-2",
+            "dosya_adi": "e6aa2dfe726a4d29a931bd95d8a1b173.mp4",
+            "dosya_turu": "video",
+            "gosterim_suresi": 10,
+            "sira": 0
+          },
+          {
+            "media_id": "680a5ee7ac67ad9e882896f7",
+            "media_adi": "Eczacı-Kadın",
+            "dosya_adi": "4e8701355a734f06aae234abe5957d40.mp4",
+            "dosya_turu": "video",
+            "gosterim_suresi": 10,
+            "sira": 0
+          },
+          {
+            "media_id": "680a5f450aad5524af86ad32",
+            "media_adi": "Eczacı-Erkek",
+            "dosya_adi": "af375b9bef744d9bb677643fdb1d2d45.mp4",
+            "dosya_turu": "video",
+            "gosterim_suresi": 10,
+            "sira": 0
+          }
+        ]
+      }
+    ]
+  }
+]

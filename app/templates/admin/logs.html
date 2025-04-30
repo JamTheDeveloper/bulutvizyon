@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+
+{% block title %}Sistem Logları - BulutVizyon{% endblock %}
+
+{% block styles %}
+<style>
+    .log-type {
+        width: 120px;
+    }
+    .log-time {
+        width: 180px;
+    }
+    .log-user {
+        width: 150px;
+    }
+    .log-ip {
+        width: 150px;
+    }
+    .log-details {
+        max-width: 400px;
+    }
+    .log-row:hover {
+        background-color: rgba(255,255,255,0.05);
+    }
+    .table {
+        color: var(--text-light);
+    }
+    .card {
+        background-color: var(--dark-card);
+        border-color: var(--dark-border);
+    }
+    pre code {
+        color: var(--text-light);
+        background-color: var(--dark-bg);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2 class="mb-3"><i class="fas fa-history"></i> Sistem Logları</h2>
+        <p class="text-muted">Sistem üzerinde gerçekleşen olayların kaydı</p>
+    </div>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header bg-dark py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-light">Son Aktiviteler</h6>
+        <div>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-arrow-left me-1"></i> Panele Dön
+            </a>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-borderless mb-0">
+                <thead class="bg-dark">
+                    <tr>
+                        <th class="log-time">Zaman</th>
+                        <th class="log-type">İşlem</th>
+                        <th class="log-user">Kullanıcı</th>
+                        <th class="log-ip">IP Adresi</th>
+                        <th class="log-details">Detaylar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr class="log-row">
+                        <td class="log-time">
+                            <small>{{ log.timestamp.strftime('%d.%m.%Y %H:%M:%S') }}</small>
+                        </td>
+                        <td class="log-type">
+                            {% if log.action == 'login' %}
+                            <span class="badge bg-success">Giriş</span>
+                            {% elif log.action == 'logout' %}
+                            <span class="badge bg-secondary">Çıkış</span>
+                            {% elif log.action == 'password_reset' %}
+                            <span class="badge bg-warning text-dark">Şifre Sıfırlama</span>
+                            {% elif log.action == 'user_create' %}
+                            <span class="badge bg-primary">Kullanıcı Oluşturma</span>
+                            {% elif log.action == 'user_update' %}
+                            <span class="badge bg-info">Kullanıcı Güncelleme</span>
+                            {% elif log.action == 'user_delete' %}
+                            <span class="badge bg-danger">Kullanıcı Silme</span>
+                            {% elif log.action == 'screen_create' %}
+                            <span class="badge bg-primary">Ekran Oluşturma</span>
+                            {% elif log.action == 'screen_update' %}
+                            <span class="badge bg-info">Ekran Güncelleme</span>
+                            {% elif log.action == 'screen_delete' %}
+                            <span class="badge bg-danger">Ekran Silme</span>
+                            {% elif log.action == 'media_upload' %}
+                            <span class="badge bg-primary">Medya Yükleme</span>
+                            {% elif log.action == 'media_update' %}
+                            <span class="badge bg-info">Medya Güncelleme</span>
+                            {% elif log.action == 'media_delete' %}
+                            <span class="badge bg-danger">Medya Silme</span>
+                            {% elif log.action == 'media_approve' %}
+                            <span class="badge bg-success">Medya Onaylama</span>
+                            {% elif log.action == 'media_reject' %}
+                            <span class="badge bg-warning text-dark">Medya Reddetme</span>
+                            {% elif log.action == 'screen_connect' %}
+                            <span class="badge bg-primary">Ekran Bağlantısı</span>
+                            {% elif log.action == 'error' %}
+                            <span class="badge bg-danger">Hata</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ log.action }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="log-user">
+                            {% if log.user_id %}
+                            <a href="{{ url_for('admin.edit_user', user_id=log.user_id) }}">
+                                <i class="fas fa-user fa-sm me-1"></i>{{ log.user_id }}
+                            </a>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="log-ip">
+                            {% if log.ip_address %}
+                            <code>{{ log.ip_address }}</code>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="log-details">
+                            {% if log.details %}
+                            <button class="btn btn-sm btn-outline-secondary" type="button" 
+                                    data-bs-toggle="collapse" 
+                                    data-bs-target="#log-details-{{ loop.index }}" 
+                                    aria-expanded="false">
+                                Detaylar <i class="fas fa-chevron-down ms-1"></i>
+                            </button>
+                            <div class="collapse mt-2" id="log-details-{{ loop.index }}">
+                                <div class="card card-body bg-dark-lighter">
+                                    <pre class="mb-0"><code>{{ log.details|string|replace("'", '"')|replace('\"', '"')|replace("None", "null") }}</code></pre>
+                                </div>
+                            </div>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr> 
+                        <td colspan="5" class="text-center py-4">
+                            <p class="text-muted mb-0">Henüz log bulunmuyor.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %} 

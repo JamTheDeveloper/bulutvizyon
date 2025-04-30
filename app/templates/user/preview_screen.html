@@ -1,0 +1,255 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ screen.name }} - Önizleme{% endblock %}
+
+{% block styles %}
+<style>
+    .card {
+        background-color: var(--dark-card);
+        border-color: var(--dark-border);
+    }
+    
+    .card-header {
+        background-color: rgba(0, 0, 0, 0.2);
+        border-bottom: 1px solid var(--dark-border);
+        color: var(--text-light);
+    }
+    
+    .list-group-item {
+        background-color: var(--dark-card);
+        color: var(--text-light);
+        border-color: var(--dark-border);
+    }
+    
+    .table {
+        color: var(--text-light);
+    }
+    
+    .table th {
+        color: var(--text-gray);
+    }
+    
+    .form-control {
+        background-color: var(--dark-input);
+        color: var(--text-light);
+        border-color: var(--dark-border);
+    }
+
+    .input-group-text {
+        background-color: var(--dark-card);
+        color: var(--text-light);
+        border-color: var(--dark-border);
+    }
+    
+    .list-group-flush .list-group-item {
+        border-color: var(--dark-border);
+    }
+    
+    .alert-info {
+        background-color: rgba(13, 202, 240, 0.15);
+        border-color: rgba(13, 202, 240, 0.2);
+        color: var(--text-light);
+    }
+    
+    .text-muted {
+        color: var(--text-gray) !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="mb-3"><i class="fas fa-tv"></i> {{ screen.name }} - Önizleme</h2>
+            <p class="text-muted">Ekranınızın nasıl görüneceğini önizleyin</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <a href="{{ url_for('user.manage_screen_content', screen_id=screen.id|string) }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> İçerik Yönetimine Dön
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Preview Container -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Ekran Önizleme</h5>
+                        <a href="{{ preview_url }}" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="fas fa-external-link-alt me-1"></i> Tam Ekran Aç
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="ratio ratio-16x9">
+                        <iframe src="{{ preview_url }}" allowfullscreen style="background-color: #000;"></iframe>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Content List -->
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">İçerik Sıralaması</h5>
+                </div>
+                <div class="card-body">
+                    {% if screen_content %}
+                    <ul class="list-group list-group-flush">
+                        {% for content in screen_content %}
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-secondary me-2">{{ loop.index }}</span>
+                                    <div>
+                                        <span class="fw-bold">{{ content.media.title }}</span>
+                                        <div class="small text-muted">
+                                            {% if content.media.file_type == 'image' %}
+                                            <i class="fas fa-image text-info me-1"></i> Resim 
+                                            {% else %}
+                                            <i class="fas fa-video text-danger me-1"></i> Video 
+                                            {% endif %}
+                                            &middot; {{ content.display_time }} saniye
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-1"></i> Bu ekran için henüz içerik eklenmemiş.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Screen Info -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Ekran Bilgileri</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tbody>
+                            <tr>
+                                <th>Durum</th>
+                                <td>
+                                    {% if screen.status == 'active' %}
+                                    <span class="badge bg-success">Aktif</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Pasif</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Yön</th>
+                                <td>
+                                    {% if screen.orientation == 'horizontal' %}
+                                    <i class="fas fa-desktop me-1"></i> Yatay
+                                    {% else %}
+                                    <i class="fas fa-mobile-alt me-1"></i> Dikey
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Çözünürlük</th>
+                                <td>{{ screen.resolution }}</td>
+                            </tr>
+                            <tr>
+                                <th>Yenileme Süresi</th>
+                                <td>{{ screen.refresh_rate }} saniye</td>
+                            </tr>
+                            <tr>
+                                <th>Saat Gösterimi</th>
+                                <td>{{ 'Açık' if screen.show_clock else 'Kapalı' }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- API Info -->
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">API Bilgileri</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="api_key" class="form-label fw-bold">API Anahtarı</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control font-monospace" id="api_key" value="{{ screen.api_key }}" readonly>
+                            <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('api_key')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">Bu anahtarı ekran cihazlarınızda kullanın</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="api_url" class="form-label fw-bold">API URL</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control font-monospace" id="api_url" value="{{ url_for('api.get_screen_content', api_key=screen.api_key, _external=True) }}" readonly>
+                            <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('api_url')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">Ekranınızın JSON içerik kaynağı</div>
+                    </div>
+                    
+                    <form action="{{ url_for('user.regenerate_api_key', screen_id=screen.id|string) }}" method="post" class="mt-4">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-warning" onclick="confirmRegenerateKey(this)">
+                                <i class="fas fa-sync-alt me-1"></i> API Anahtarını Yenile
+                            </button>
+                        </div>
+                        <div class="form-text text-danger">
+                            <i class="fas fa-exclamation-triangle me-1"></i> Dikkat: Bu işlem tüm cihazlarda yeniden bağlantı yapılmasını gerektirir!
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function copyToClipboard(elementId) {
+        var copyText = document.getElementById(elementId);
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(copyText.value);
+        
+        // Kopya bildirimini göster
+        const tooltip = document.createElement('div');
+        tooltip.style.position = 'fixed';
+        tooltip.style.top = '1rem';
+        tooltip.style.right = '1rem';
+        tooltip.style.background = 'rgba(0, 0, 0, 0.8)';
+        tooltip.style.color = 'white';
+        tooltip.style.padding = '0.5rem 1rem';
+        tooltip.style.borderRadius = '4px';
+        tooltip.style.zIndex = '9999';
+        tooltip.innerText = 'Kopyalandı!';
+        document.body.appendChild(tooltip);
+        
+        setTimeout(() => {
+            document.body.removeChild(tooltip);
+        }, 2000);
+    }
+    
+    function confirmRegenerateKey(button) {
+        if (confirm('API anahtarını yenilemek istediğinizden emin misiniz? Bu işlem tüm bağlı cihazların yeniden bağlanmasını gerektirecektir.')) {
+            button.closest('form').submit();
+        }
+    }
+</script>
+{% endblock %} 

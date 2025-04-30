@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}BulutVizyon{% endblock %}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='images/yataylogobulut.png') }}" type="image/svg+xml">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <style>
+        :root {
+            --primary-color: #5061a8;
+            --secondary-color: #1b2b4c;
+            --accent-color: #97a1fa;
+            --dark-bg: #140f07;
+            --dark-card: #1b2b4c;
+            --light-color: #f7ebf5;
+            --text-light: #f7ebf5;
+            --text-gray: #a0a0a0;
+            --dark-border: rgba(151, 161, 250, 0.15);
+            --gradient-primary: linear-gradient(45deg, #5061a8, #97a1fa);
+        }
+        
+        body {
+            padding-top: 80px;
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--dark-bg);
+            color: var(--text-light);
+        }
+        
+        /* Beta badge */
+        .beta-badge {
+            display: inline-block;
+            background: linear-gradient(45deg, var(--secondary-color), var(--accent-color));
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 10px;
+            position: relative;
+            top: -15px;
+            margin-left: 5px;
+            box-shadow: 0 4px 10px rgba(80, 97, 168, 0.3);
+            letter-spacing: 1px;
+        }
+        
+        /* Davis-inspired Header Styles */
+        .modern-header {
+            background-color: transparent;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            padding: 15px 0;
+            transition: all 0.3s ease;
+            border-bottom: 1px solid rgba(151, 161, 250, 0.1);
+        }
+        
+        .modern-header.scrolled {
+            background-color: rgba(20, 15, 7, 0.95);
+            padding: 10px 0;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo-container img {
+            height: 50px;
+            transition: all 0.3s ease;
+        }
+        
+        .modern-nav {
+            display: flex;
+            align-items: center;
+        }
+        
+        .nav-links {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .nav-links li {
+            margin: 0 15px;
+            position: relative;
+        }
+        
+        .nav-links a {
+            color: var(--text-light);
+            text-decoration: none;
+            font-weight: 500;
+            position: relative;
+            padding: 8px 0;
+            font-size: 16px;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-links a:hover {
+            color: var(--accent-color);
+        }
+        
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--secondary-color), var(--accent-color));
+            transition: width 0.3s ease;
+        }
+        
+        .nav-links a:hover::after,
+        .nav-links a.active::after {
+            width: 100%;
+        }
+        
+        /* Animated dot indicator */
+        .nav-links li.active::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 5px;
+            height: 5px;
+            background-color: var(--accent-color);
+            border-radius: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .user-actions {
+            display: flex;
+            align-items: center;
+        }
+        
+        /* Kullanıcı avatar tasarımı */
+        .user-avatar-circle {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, var(--secondary-color), var(--primary-color));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+            box-shadow: 0 3px 10px rgba(80, 97, 168, 0.3);
+            margin-right: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .user-avatar-circle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(80, 97, 168, 0.4);
+        }
+        
+        .action-btn {
+            background-color: transparent;
+            color: var(--text-light);
+            border: 1px solid transparent;
+            padding: 10px 24px;
+            border-radius: 50px;
+            margin-left: 15px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 15px;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        /* Avatar dropdown özellikleri */
+        .dropdown-toggle::after {
+            display: none; /* Dropdown ok işaretini kaldır */
+        }
+        
+        .dropdown-toggle.action-btn:hover {
+            box-shadow: none;
+            transform: none;
+        }
+        
+        /* Dropdown menü pozisyonu */
+        .user-actions .dropdown-menu {
+            margin-top: 15px !important;
+            right: 0;
+            left: auto;
+            min-width: 240px;
+            padding: 8px 0;
+        }
+        
+        /* Dropdown menü animasyonu */
+        .dropdown-menu {
+            animation: fadeIn 0.2s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .action-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 100%;
+            background: linear-gradient(45deg, var(--secondary-color), var(--primary-color));
+            transition: all 0.5s;
+            border-radius: 50px;
+            z-index: -1;
+        }
+        
+        .action-btn:hover {
+            color: white;
+            border-color: transparent;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(80, 97, 168, 0.3);
+        }
+        
+        .action-btn:hover::before {
+            width: 100%;
+        }
+        
+        .action-btn.primary {
+            background: linear-gradient(45deg, var(--secondary-color), var(--primary-color));
+            border-color: transparent;
+            box-shadow: 0 5px 15px rgba(80, 97, 168, 0.2);
+        }
+        
+        .action-btn.primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(80, 97, 168, 0.4);
+        }
+        
+        .mobile-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-light);
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        /* Footer Styles */
+        .footer-links a {
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .footer-links a:hover {
+            color: var(--accent-color) !important;
+        }
+        
+        .footer-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 1px;
+            background-color: var(--accent-color);
+            transition: width 0.3s ease;
+        }
+        
+        .footer-links a:hover::after {
+            width: 100%;
+        }
+        
+        /* Dark mode genel stil düzenlemeleri */
+        .text-muted {
+            color: var(--text-gray) !important;
+        }
+        
+        .card {
+            background-color: var(--dark-card);
+            border-color: var(--dark-border);
+        }
+        
+        .card-header {
+            background-color: rgba(0, 0, 0, 0.2);
+            border-color: var(--dark-border);
+        }
+        
+        .table {
+            color: var(--text-light) !important;
+        }
+        
+        .table tbody td {
+            color: var(--text-light) !important;
+        }
+        
+        .table thead th {
+            color: var(--text-light) !important;
+        }
+        
+        .table-hover tbody tr:hover {
+            background-color: rgba(151, 161, 250, 0.15);
+            color: var(--accent-color) !important;
+            transition: all 0.2s ease;
+        }
+        
+        .table-hover tbody tr:hover td {
+            color: var(--accent-color) !important;
+        }
+        
+        @media (max-width: 992px) {
+            .mobile-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                background: linear-gradient(45deg, var(--secondary-color), var(--primary-color));
+                box-shadow: 0 5px 15px rgba(80, 97, 168, 0.2);
+                transition: all 0.3s ease;
+                margin-left: 10px;
+                position: relative;
+                z-index: 1100;
+            }
+            
+            .mobile-toggle:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 15px rgba(80, 97, 168, 0.4);
+            }
+            
+            .mobile-toggle .fa-bars,
+            .mobile-toggle .fa-times {
+                color: white;
+                font-size: 20px;
+                transition: all 0.3s ease;
+            }
+            
+            .mobile-toggle:active {
+                transform: scale(0.95);
+            }
+            
+            .logo-container img {
+                height: 40px;
+            }
+            
+            .beta-badge {
+                font-size: 10px;
+                padding: 2px 6px;
+                top: -12px;
+            }
+            
+            .user-fullname {
+                display: none;
+            }
+            
+            .user-actions {
+                margin-left: auto;
+                margin-right: 10px;
+            }
+            
+            .action-btn {
+                padding: 8px 15px;
+                margin-left: 5px;
+            }
+            
+            /* Mobil cihazlar için avatar boyutu */
+            .user-avatar-circle {
+                width: 34px;
+                height: 34px;
+                font-size: 14px;
+                margin-right: 0;
+            }
+            
+            /* Mobil için dropdown menü düzenlemeleri */
+            .user-actions .dropdown-menu {
+                margin-top: 10px !important;
+                margin-right: -5px !important;
+                box-shadow: 0 5px 20px rgba(0,0,0,0.3) !important;
+            }
+            
+            .dropdown-item {
+                font-size: 13px !important;
+                padding: 10px 15px !important;
+            }
+            
+            .dropdown-item i {
+                font-size: 16px;
+            }
+            
+            /* Mobil için avatar dropdown butonunu düzenle */
+            .user-actions .action-btn.dropdown-toggle {
+                padding: 0 !important;
+                margin-left: 0 !important;
+            }
+            
+            .nav-links {
+                position: fixed;
+                top: 80px;
+                left: 0;
+                width: 100%;
+                height: calc(100vh - 80px);
+                background-color: rgba(20, 15, 7, 0.98);
+                backdrop-filter: blur(10px);
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 25px;
+                padding: 50px 0;
+                transform: translateX(-100%);
+                transition: transform 0.5s ease;
+                overflow-y: auto;
+            }
+            
+            .nav-links.active {
+                transform: translateX(0);
+            }
+            
+            .nav-links li {
+                margin: 0;
+                opacity: 0;
+                transform: translateY(20px);
+                transition: opacity 0.3s ease, transform 0.3s ease;
+                transition-delay: calc(var(--i, 0) * 0.1s);
+            }
+            
+            .nav-links.active li {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            
+            .footer-links {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .footer-links a {
+                margin: 5px 8px;
+            }
+            
+            .footer-links span {
+                display: none;
+            }
+        }
+    </style>
+    
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <header class="modern-header">
+        <div class="container header-container">
+            <div class="logo-container">
+                <a href="{{ url_for('auth.index') }}">
+                    <img src="{{ url_for('static', filename='images/yataylogobulut.png') }}" alt="BulutVizyon Logo">
+                    <span class="beta-badge">BETA</span>
+                </a>
+            </div>
+            
+            <button class="mobile-toggle" id="mobileToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <nav class="modern-nav">
+                <ul class="nav-links" id="navLinks">
+                    <li style="--i: 0" class="{{ 'active' if request.endpoint == 'auth.index' else '' }}">
+                        <a href="{{ url_for('auth.index') }}" class="{{ 'active' if request.endpoint == 'auth.index' else '' }}">
+                            <span>Ana Sayfa</span>
+                        </a>
+                    </li>
+                    <li style="--i: 1" class="{{ 'active' if request.endpoint == 'user.guide' else '' }}">
+                        <a href="{{ url_for('user.guide') }}" class="{{ 'active' if request.endpoint == 'user.guide' else '' }}">
+                            <span>Kullanım Kılavuzu</span>
+                        </a>
+                    </li>
+                    <li style="--i: 2" class="{{ 'active' if request.endpoint == 'auth.about' else '' }}">
+                        <a href="{{ url_for('auth.about') }}" class="{{ 'active' if request.endpoint == 'auth.about' else '' }}">
+                            <span>Hakkımızda</span>
+                        </a>
+                    </li>
+                    <li style="--i: 3" class="{{ 'active' if request.endpoint == 'auth.faq' else '' }}">
+                        <a href="{{ url_for('auth.faq') }}" class="{{ 'active' if request.endpoint == 'auth.faq' else '' }}">
+                            <span>SSS</span>
+                        </a>
+                    </li>
+                    <li style="--i: 4" class="{{ 'active' if request.endpoint == 'auth.contact' else '' }}">
+                        <a href="{{ url_for('auth.contact') }}" class="{{ 'active' if request.endpoint == 'auth.contact' else '' }}">
+                            <span>İletişim</span>
+                        </a>
+                    </li>
+                    
+                    {% if session.get('user_id') %}
+                        {% if current_user and current_user.is_admin() %}
+                            <li style="--i: 5" class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin.') else '' }}">
+                                <a href="{{ url_for('admin.dashboard') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin.') else '' }}">
+                                    <span>Admin Panel</span>
+                                </a>
+                            </li>
+                        {% elif current_user and current_user.is_supervisor() %}
+                            <li style="--i: 5" class="{{ 'active' if request.endpoint and request.endpoint.startswith('supervisor.') else '' }}">
+                                <a href="{{ url_for('supervisor.dashboard') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('supervisor.') else '' }}">
+                                    <span>Dashboard</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                    {% endif %}
+                </ul>
+                
+                <div class="user-actions">
+                    {% if session.get('user_id') %}
+                        <div class="dropdown">
+                            <a class="action-btn d-flex align-items-center dropdown-toggle p-0 border-0 bg-transparent" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="box-shadow: none;">
+                                {% if current_user %}
+                                <div class="user-avatar-circle">
+                                    {{ current_user.name[:1] }}{{ current_user.surname[:1] if current_user.surname else "" }}
+                                </div>
+                                <span class="user-fullname">{{ current_user.name }}</span>
+                                {% else %}
+                                <i class="fas fa-user me-2"></i>
+                                <span class="user-fullname">Kullanıcı</span>
+                                {% endif %}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown" style="background-color: var(--dark-bg); border-color: rgba(255,255,255,0.05); margin-top: 10px; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('user.profile') }}" style="color: var(--text-light); padding: 12px 20px; font-size: 14px; transition: all 0.3s ease;">
+                                        <i class="fas fa-id-card me-2"></i> Profil
+                                    </a>
+                                </li>
+                                
+                                {% if current_user and current_user.is_admin() %}
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('admin.dashboard') }}" style="color: var(--text-light); padding: 12px 20px; font-size: 14px; transition: all 0.3s ease;">
+                                            <i class="fas fa-tachometer-alt me-2"></i> Admin Panel
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('admin.users') }}" style="color: var(--text-light); padding: 12px 20px; font-size: 14px; transition: all 0.3s ease;">
+                                            <i class="fas fa-users me-2"></i> Kullanıcılar
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('admin.logs') }}" style="color: var(--text-light); padding: 12px 20px; font-size: 14px; transition: all 0.3s ease;">
+                                            <i class="fas fa-history me-2"></i> Loglar
+                                        </a>
+                                    </li>
+                                {% elif current_user and current_user.is_supervisor() %}
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('supervisor.dashboard') }}" style="color: var(--text-light); padding: 12px 20px; font-size: 14px; transition: all 0.3s ease;">
+                                            <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('supervisor.users') }}" style="color: var(--text-light); padding: 12px 20px; font-size: 14px; transition: all 0.3s ease;">
+                                            <i class="fas fa-users me-2"></i> Kullanıcılar
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('supervisor.media') }}" style="color: var(--text-light); padding: 12px 20px; font-size: 14px; transition: all 0.3s ease;">
+                                            <i class="fas fa-photo-video me-2"></i> Medya
+                                        </a>
+                                    </li>
+                                {% elif current_user %}
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('user.dashboard') }}" style="color: var(--text-light); padding: 12px 20px; font-size: 14px; transition: all 0.3s ease;">
+                                            <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('user.screens') }}" style="color: var(--text-light); padding: 12px 20px; font-size: 14px; transition: all 0.3s ease;">
+                                            <i class="fas fa-desktop me-2"></i> Ekranlarım
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('user.media') }}" style="color: var(--text-light); padding: 12px 20px; font-size: 14px; transition: all 0.3s ease;">
+                                            <i class="fas fa-photo-video me-2"></i> Medyalarım
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('user.playlists') }}" style="color: var(--text-light); padding: 12px 20px; font-size: 14px; transition: all 0.3s ease;">
+                                            <i class="fas fa-list me-2"></i> Playlistlerim
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('user.packages') }}" style="color: var(--text-light); padding: 12px 20px; font-size: 14px; transition: all 0.3s ease;">
+                                            <i class="fas fa-cubes me-2"></i> Paketler
+                                        </a>
+                                    </li>
+                                {% endif %}
+                                
+                                <li><hr class="dropdown-divider" style="border-color: rgba(255,255,255,0.05);"></li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('auth.logout') }}" style="color: var(--text-light); padding: 12px 20px; font-size: 14px; transition: all 0.3s ease;">
+                                        <i class="fas fa-sign-out-alt me-2"></i> Çıkış
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    {% else %}
+                        <a href="{{ url_for('auth.login') }}" class="action-btn">
+                            <i class="fas fa-sign-in-alt me-2"></i> Giriş
+                        </a>
+                    {% endif %}
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-grow-1 py-4">
+        <div class="container">
+            <!-- Flash mesajları -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="row">
+                        <div class="col-md-8 offset-md-2">
+                            {% for category, message in messages %}
+                                {% set icon = 'info-circle' %}
+                                {% set bg_color = '#1a202c' %}
+                                {% set border_color = '#2d3748' %}
+                                {% set text_color = '#e2e8f0' %}
+                                
+                                {% if category == 'success' %}
+                                    {% set icon = 'check-circle' %}
+                                    {% set bg_color = '#1c4532' %}
+                                    {% set border_color = '#2f855a' %}
+                                    {% set text_color = '#c6f6d5' %}
+                                {% elif category == 'danger' %}
+                                    {% set icon = 'exclamation-circle' %}
+                                    {% set bg_color = '#742a2a' %}
+                                    {% set border_color = '#9b2c2c' %}
+                                    {% set text_color = '#fed7d7' %}
+                                {% elif category == 'warning' %}
+                                    {% set icon = 'exclamation-triangle' %}
+                                    {% set bg_color = '#744210' %}
+                                    {% set border_color = '#975a16' %}
+                                    {% set text_color = '#fefcbf' %}
+                                {% elif category == 'info' %}
+                                    {% set icon = 'info-circle' %}
+                                    {% set bg_color = '#2a4365' %}
+                                    {% set border_color = '#3182ce' %}
+                                    {% set text_color = '#bee3f8' %}
+                                {% endif %}
+                                
+                                <div class="alert fade show mb-3" role="alert" 
+                                     style="background-color: {{ bg_color }}; 
+                                            border: 1px solid {{ border_color }}; 
+                                            color: {{ text_color }}; 
+                                            border-radius: 8px; 
+                                            padding: 14px 20px;
+                                            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-{{ icon }} me-2" style="font-size: 1.1rem;"></i>
+                                        <span style="font-weight: 500;">{{ message }}</span>
+                                        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Kapat"
+                                                style="filter: invert(1) grayscale(100%) brightness(200%); font-size: 0.8rem;"></button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endwith %}
+            
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer class="bg-dark text-white py-5 mt-5">
+        <div class="container">
+            <div class="row mb-4">
+                <div class="col-lg-3 col-md-6 mb-4 mb-lg-0">
+                    <div class="d-flex align-items-center mb-3">
+                        <a href="{{ url_for('auth.index') }}">
+                            <img src="{{ url_for('static', filename='images/yataylogobulut.png') }}" alt="BulutVizyon Logo" height="50" class="me-2">
+                        </a>
+                    </div>
+                    <p class="small mb-3">Dijital ekranlarınızı tek merkezden yönetin, içeriklerinizi programlayın ve müşterilerinize unutulmaz deneyimler sunun.</p>
+                    <div class="d-flex mt-3">
+                        <a href="#" class="me-3 text-light"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="me-3 text-light"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="me-3 text-light"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="me-3 text-light"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+                
+                <div class="col-6 col-lg-2 col-md-6 mb-4 mb-lg-0">
+                    <h5 class="footer-heading mb-3" style="font-size: 1rem; font-weight: 600; letter-spacing: 0.5px; position: relative; display: inline-block; color: var(--light-color);">
+                        ÜRÜN
+                        <span style="position: absolute; bottom: -8px; left: 0; width: 30px; height: 2px; background: var(--gradient-purple);"></span>
+                    </h5>
+                    <ul class="list-unstyled footer-links">
+                        <li class="mb-2"><a href="#" class="text-light small">Özellikler</a></li>
+                        <li class="mb-2"><a href="#" class="text-light small">Paketler</a></li>
+                        <li class="mb-2"><a href="#" class="text-light small">Ekran Yönetimi</a></li>
+                        <li class="mb-2"><a href="#" class="text-light small">İçerik Planlama</a></li>
+                    </ul>
+                </div>
+                
+                <div class="col-6 col-lg-2 col-md-6 mb-4 mb-lg-0">
+                    <h5 class="footer-heading mb-3" style="font-size: 1rem; font-weight: 600; letter-spacing: 0.5px; position: relative; display: inline-block; color: var(--light-color);">
+                        KAYNAKLAR
+                        <span style="position: absolute; bottom: -8px; left: 0; width: 30px; height: 2px; background: var(--gradient-purple);"></span>
+                    </h5>
+                    <ul class="list-unstyled footer-links">
+                        <li class="mb-2"><a href="{{ url_for('auth.about') }}" class="text-light small">Hakkımızda</a></li>
+                        <li class="mb-2"><a href="{{ url_for('auth.faq') }}" class="text-light small">Sıkça Sorulan Sorular</a></li>
+                        <li class="mb-2"><a href="{{ url_for('auth.delivery') }}" class="text-light small">Teslimat Bilgileri</a></li>
+                        <li class="mb-2"><a href="#" class="text-light small">Blog</a></li>
+                    </ul>
+                </div>
+                
+                <div class="col-6 col-lg-2 col-md-6 mb-4 mb-lg-0">
+                    <h5 class="footer-heading mb-3" style="font-size: 1rem; font-weight: 600; letter-spacing: 0.5px; position: relative; display: inline-block; color: var(--light-color);">
+                        ŞİRKET
+                        <span style="position: absolute; bottom: -8px; left: 0; width: 30px; height: 2px; background: var(--gradient-purple);"></span>
+                    </h5>
+                    <ul class="list-unstyled footer-links">
+                        <li class="mb-2"><a href="{{ url_for('auth.terms') }}" class="text-light small">Şartlar ve Koşullar</a></li>
+                        <li class="mb-2"><a href="{{ url_for('auth.privacy') }}" class="text-light small">Gizlilik İlkeleri</a></li>
+                        <li class="mb-2"><a href="{{ url_for('auth.refund') }}" class="text-light small">İade Politikası</a></li>
+                        <li class="mb-2"><a href="#" class="text-light small">İletişim</a></li>
+                    </ul>
+                </div>
+                
+                <div class="col-6 col-lg-3 col-md-6">
+                    <h5 class="footer-heading mb-3" style="font-size: 1rem; font-weight: 600; letter-spacing: 0.5px; position: relative; display: inline-block; color: var(--light-color);">
+                        İLETİŞİM
+                        <span style="position: absolute; bottom: -8px; left: 0; width: 30px; height: 2px; background: var(--gradient-purple);"></span>
+                    </h5>
+                    <ul class="list-unstyled footer-links">
+                        <li class="mb-2">
+                            <a href="mailto:info@bulutvizyon.com" class="text-light small d-flex align-items-center">
+                                <i class="fas fa-envelope me-2" style="color: var(--accent-color); min-width: 16px;"></i>
+                                <span>info@bulutvizyon.com</span>
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="tel:+905443658525" class="text-light small d-flex align-items-center">
+                                <i class="fas fa-phone me-2" style="color: var(--accent-color); min-width: 16px;"></i>
+                                <span>+90 544 365 8525</span>
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <span class="text-light small d-flex align-items-center">
+                                <i class="fas fa-map-marker-alt me-2" style="color: var(--accent-color); min-width: 16px;"></i>
+                                <span>Edirne, Türkiye</span>
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <hr style="border-color: rgba(255,255,255,0.1); margin: 20px 0;">
+            
+            <div class="row align-items-center">
+                <div class="col-md-6 mb-3 mb-md-0 text-center text-md-start">
+                    <p class="small mb-0">&copy; {{ now().year }} BulutVizyon. Tüm hakları saklıdır.</p>
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    <div class="mb-2 small text-light d-none d-md-block">Ödeme Yöntemleri</div>
+                    <div class="payment-methods">
+                        <i class="fab fa-cc-visa me-2" style="font-size: 20px;"></i>
+                        <i class="fab fa-cc-mastercard me-2" style="font-size: 20px;"></i>
+                        <i class="fab fa-cc-paypal me-2" style="font-size: 20px;"></i>
+                        <i class="fas fa-credit-card me-2" style="font-size: 20px;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="/static/js/script.js"></script>
+    
+    <script>
+        // Add active class based on current page
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.nav-links a');
+            
+            navLinks.forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                    link.parentElement.classList.add('active');
+                }
+            });
+        });
+        
+        // Modern header scroll effect
+        window.addEventListener('scroll', function() {
+            const header = document.querySelector('.modern-header');
+            if (window.scrollY > 50) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        });
+        
+        // Hamburger menü açılma/kapanma ikonunu değiştiren fonksiyon
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileToggle = document.getElementById('mobileToggle');
+            const navLinks = document.getElementById('navLinks');
+            
+            mobileToggle.addEventListener('click', function() {
+                navLinks.classList.toggle('active');
+                
+                // İkonu değiştir
+                const icon = this.querySelector('i');
+                if (icon.classList.contains('fa-bars')) {
+                    icon.classList.remove('fa-bars');
+                    icon.classList.add('fa-times');
+                } else {
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
+                }
+            });
+        });
+        
+        // Close mobile menu when clicking a link
+        const mobileLinks = document.querySelectorAll('.nav-links a');
+        mobileLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                if (window.innerWidth < 992) {
+                    document.getElementById('navLinks').classList.remove('active');
+                    const icon = document.querySelector('#mobileToggle i');
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
+                }
+            });
+        });
+        
+        // Hover effect for dropdown items
+        const dropdownItems = document.querySelectorAll('.dropdown-item');
+        dropdownItems.forEach(item => {
+            item.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                this.style.paddingLeft = '25px';
+            });
+            
+            item.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = 'transparent';
+                this.style.paddingLeft = '20px';
+            });
+        });
+    </script>
+    
+    {% block scripts %}{% endblock %}
+
+    <style>
+        /* Mobil Footer Stilleri */
+        @media (max-width: 767px) {
+            .footer-heading {
+                margin-top: 10px;
+                font-size: 0.9rem !important;
+            }
+            
+            .footer-links a {
+                font-size: 0.85rem !important;
+                display: block;
+                padding: 6px 0;
+                text-align: left;
+            }
+            
+            .footer-links li {
+                display: flex;
+                align-items: flex-start;
+                margin-bottom: 0 !important;
+            }
+            
+            .payment-methods {
+                display: flex;
+                justify-content: center;
+            }
+            
+            .payment-methods i {
+                font-size: 18px !important;
+            }
+            
+            .footer-links {
+                padding-left: 0;
+            }
+        }
+        
+        /* Genel footer link stilleri */
+        .footer-links a, .footer-links span {
+            text-align: left;
+            display: block;
+            width: 100%;
+        }
+        
+        .footer-links li {
+            margin-bottom: 8px;
+        }
+    </style>
+</body>
+</html> 

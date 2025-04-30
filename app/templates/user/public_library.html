@@ -1,0 +1,532 @@
+{% extends 'base.html' %}
+
+{% block title %}Medya Kütüphanesi - BulutVizyon{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2 class="mb-3"><i class="fas fa-photo-video"></i> Medya Kütüphanesi</h2>
+        <p class="text-muted">Diğer kullanıcıların paylaştığı genel içerikleri görüntüleyebilir ve kendi ekranlarınızda kullanabilirsiniz.</p>
+    </div>
+    <div class="col-md-4 text-md-end align-self-center">
+        <a href="{{ url_for('user.upload_media') }}" class="btn btn-primary">
+            <i class="fas fa-upload me-2"></i> Yeni Medya Yükle
+        </a>
+    </div>
+</div>
+
+<!-- Filtreleme -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body py-3">
+        <form action="{{ url_for('user.public_library') }}" method="get" class="row g-3 align-items-center">
+            <div class="col-md-3">
+                <label class="visually-hidden" for="filter-type">Tip</label>
+                <select class="form-select" id="filter-type" name="type">
+                    <option value="">Tüm Tipler</option>
+                    <option value="image" {% if request.args.get('type') == 'image' %}selected{% endif %}>Resimler</option>
+                    <option value="video" {% if request.args.get('type') == 'video' %}selected{% endif %}>Videolar</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="visually-hidden" for="filter-category">Kategori</label>
+                <select class="form-select" id="filter-category" name="category">
+                    <option value="">Tüm Kategoriler</option>
+                    {% for category in categories %}
+                    <option value="{{ category }}" {% if selected_category == category %}selected{% endif %}>{{ category|title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5 d-flex">
+                <div class="input-group">
+                    <input type="text" class="form-control" name="search" placeholder="İçerik ara..." value="{{ request.args.get('search', '') }}">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i> Ara
+                    </button>
+                </div>
+                <a href="{{ url_for('user.public_library') }}" class="btn btn-light ms-2" title="Filtreleri Temizle">
+                    <i class="fas fa-times"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if media_list %}
+<!-- Medya Kartları Grid -->
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-2">
+    {% for media in media_list %}
+    <div class="col">
+        <div class="card media-card h-100 shadow-sm">
+            <!-- Medya Önizleme -->
+            <div class="media-preview smaller-preview" data-type="{{ media.file_type }}" data-url="/uploads/{{ media.filename }}">
+                {% if media.file_type == 'image' %}
+                <img src="/uploads/{{ media.filename }}" alt="{{ media.title }}" loading="lazy">
+                {% else %}
+                <video src="/uploads/{{ media.filename }}" muted loop></video>
+                {% endif %}
+                
+                <!-- Yayınlayan -->
+                <div class="media-owner">
+                    <span class="badge bg-dark">
+                        <i class="fas fa-user me-1"></i> Sistem
+                    </span>
+                </div>
+            </div>
+            
+            <div class="card-body p-2">
+                <div class="d-flex justify-content-between align-items-start mb-1">
+                    <h6 class="card-title mb-0">{{ media.title }}</h6>
+                    
+                    <!-- Medya Tipi -->
+                    <div class="media-type ms-1">
+                        {% if media.file_type == 'image' %}
+                        <span class="badge bg-info">
+                            <i class="fas fa-image"></i> Resim
+                        </span>
+                        {% else %}
+                        <span class="badge bg-danger">
+                            <i class="fas fa-video"></i> Video
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center" style="margin-top: 0.5rem;">
+                    <small class="text-muted"><i class="far fa-calendar-alt me-1"></i>{{ media.created_at.strftime('%d.%m.%Y') }}</small>
+                    {% if media.category %}
+                    <span class="badge bg-secondary">{{ media.category }}</span>
+                    {% endif %}
+                </div>
+                
+                {% if media.description %}
+                <p class="card-text small text-muted mt-1">{{ media.description[:50] }}{% if media.description|length > 50 %}...{% endif %}</p>
+                {% endif %}
+            </div>
+            
+            <div class="card-footer border-top-0 p-2">
+                <div class="btn-group w-100" role="group">
+                    <button type="button" class="btn btn-outline-primary btn-sm view-media" 
+                            data-bs-toggle="modal" data-bs-target="#previewModal" 
+                            data-media-id="{{ media._id }}"
+                            data-media-title="{{ media.title }}"
+                            data-media-type="{{ media.file_type }}"
+                            data-media-url="/uploads/{{ media.filename }}">
+                        <i class="fas fa-eye"></i> Önizle
+                    </button>
+                    <button type="button" class="btn btn-success btn-sm use-media" 
+                            data-bs-toggle="modal" data-bs-target="#addToPlaylistModal"
+                            data-media-id="{{ media._id }}"
+                            data-media-title="{{ media.title }}">
+                        <i class="fas fa-plus"></i> Playliste Ekle
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<!-- Boş Durum -->
+<div class="card shadow-sm">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-photo-video fa-4x text-muted mb-3"></i>
+        <h4>Kütüphanede İçerik Bulunamadı</h4>
+        <p class="text-muted">
+            {% if selected_category %}
+                "{{ selected_category }}" kategorisinde paylaşılan içerik bulunmamaktadır.
+            {% else %}
+                Şu anda kütüphanede paylaşılan içerik bulunmamaktadır.
+            {% endif %}
+        </p>
+        <a href="{{ url_for('user.public_library') }}" class="btn btn-outline-primary mt-3">
+            <i class="fas fa-sync me-2"></i> Tüm İçerikleri Göster
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<!-- Medya Önizleme Modalı -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previewModalLabel">Medya Önizleme</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <div class="modal-body text-center p-0">
+                <div id="previewContent" class="p-3">
+                    <!-- JS ile içerik eklenecek -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-success" id="useMediaButton">
+                    <i class="fas fa-plus me-1"></i> Playliste Ekle
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Playliste Ekleme Modalı -->
+<div class="modal fade" id="addToPlaylistModal" tabindex="-1" aria-labelledby="addToPlaylistModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addToPlaylistModalLabel">Playliste Ekle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Bu medyayı hangi playlistlerinize eklemek istiyorsunuz?</p>
+                <form id="addToPlaylistsForm" method="post" action="{{ url_for('user.add_to_playlists') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="media_id" id="selectedMediaId">
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Playlistleriniz</label>
+                        <div class="list-group" id="playlistsList">
+                            <!-- JS ile playlistler eklenecek -->
+                            <div class="text-center p-3">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Yükleniyor...</span>
+                                </div>
+                                <p class="mt-2">Playlistler yükleniyor...</p>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="submit" class="btn btn-primary" form="addToPlaylistsForm">
+                    <i class="fas fa-plus me-1"></i> Seçili Playlistlere Ekle
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block styles %}
+<style>
+    .smaller-preview {
+        height: 150px !important;
+        background-color: var(--dark-bg) !important;
+    }
+    
+    .media-preview {
+        background-color: var(--dark-bg) !important;
+    }
+    
+    .media-preview img, .media-preview video {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background-color: var(--dark-bg);
+    }
+    
+    .media-card {
+        transition: transform 0.2s;
+        background-color: var(--dark-card) !important;
+        border-color: var(--dark-border);
+    }
+    
+    .media-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.3);
+    }
+    
+    .media-card .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    .media-card .card-title {
+        font-size: 0.9rem;
+        line-height: 1.2;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        max-width: 70%;
+    }
+    
+    .media-card .card-text {
+        font-size: 0.8rem;
+        line-height: 1.2;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        margin-bottom: 0;
+    }
+    
+    .media-owner {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 10;
+    }
+    
+    .media-type {
+        flex-shrink: 0;
+        z-index: 5;
+    }
+    
+    .media-type .badge, .media-owner .badge {
+        font-size: 0.65rem;
+        padding: 0.15rem 0.35rem;
+    }
+    
+    /* Kart yüksekliği için düzenleme */
+    .card-body {
+        display: flex;
+        flex-direction: column;
+        min-height: 90px;
+        padding-bottom: 0.5rem !important;
+        background-color: var(--dark-card) !important;
+    }
+    
+    /* Medya kartları arası yatay boşluk artırma */
+    .row.g-2 {
+        --bs-gutter-x: 0.75rem;
+        --bs-gutter-y: 0.75rem;
+    }
+    
+    /* Kart footer'ı*/
+    .media-card .card-footer {
+        background-color: var(--dark-card) !important;
+        border-top-color: var(--dark-border) !important;
+        border-top: none;
+    }
+    
+    /* Playlist bulunamadı uyarısı için özel stil */
+    .playlist-empty-alert {
+        background-color: #2d3748;
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+    
+    .playlist-empty-alert .alert-link {
+        color: #3f80ea;
+        font-weight: 600;
+        text-decoration: none;
+    }
+    
+    .playlist-empty-alert .alert-link:hover {
+        text-decoration: underline;
+        color: #63b3ed;
+    }
+    
+    /* Modal dark tema stilleri */
+    #addToPlaylistModal .modal-content {
+        background-color: #1a202c;
+        color: #e2e8f0;
+        border-color: #2d3748;
+    }
+    
+    #addToPlaylistModal .modal-header {
+        border-bottom-color: #2d3748;
+    }
+    
+    #addToPlaylistModal .modal-footer {
+        border-top-color: #2d3748;
+    }
+    
+    #addToPlaylistModal .btn-close {
+        filter: invert(1) grayscale(100%) brightness(200%);
+    }
+    
+    #addToPlaylistModal .form-check-label {
+        color: #e2e8f0;
+    }
+    
+    #addToPlaylistModal .text-muted {
+        color: #a0aec0 !important;
+    }
+    
+    #addToPlaylistModal .list-group-item {
+        background-color: #2d3748;
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+    
+    #addToPlaylistModal .form-check-input:checked {
+        background-color: #3f80ea;
+        border-color: #3f80ea;
+    }
+    
+    /* Hata mesajı için özel stil */
+    #addToPlaylistModal .alert-danger {
+        background-color: #742a2a;
+        border-color: #9b2c2c;
+        color: #f8d7da;
+    }
+    
+    /* Playlist yükleniyor mesajı için stil */
+    #playlistsList .spinner-border.text-primary {
+        color: #3f80ea !important;
+    }
+    
+    #playlistsList .text-center p {
+        color: #a0aec0;
+    }
+    
+    /* Görsel detayları */
+    #addToPlaylistModal .form-check-input {
+        border-color: #4a5568;
+    }
+    
+    #addToPlaylistModal .form-check-input:focus {
+        box-shadow: 0 0 0 0.25rem rgba(63, 128, 234, 0.25);
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Medya önizleme için olayları ekle
+    const previewModal = document.getElementById('previewModal');
+    const previewContent = document.getElementById('previewContent');
+    const useMediaButton = document.getElementById('useMediaButton');
+    
+    // Medya önizleme
+    document.querySelectorAll('.view-media').forEach(button => {
+        button.addEventListener('click', function() {
+            const mediaId = this.getAttribute('data-media-id');
+            const mediaTitle = this.getAttribute('data-media-title');
+            const mediaType = this.getAttribute('data-media-type');
+            const mediaUrl = this.getAttribute('data-media-url');
+            
+            // Modal başlığını güncelle
+            document.getElementById('previewModalLabel').textContent = mediaTitle;
+            
+            // Önizleme içeriğini hazırla
+            previewContent.innerHTML = '';
+            
+            if (mediaType === 'image') {
+                const img = document.createElement('img');
+                img.src = mediaUrl;
+                img.className = 'img-fluid';
+                img.alt = mediaTitle;
+                previewContent.appendChild(img);
+            } else {
+                const video = document.createElement('video');
+                video.src = mediaUrl;
+                video.className = 'w-100';
+                video.controls = true;
+                video.autoplay = true;
+                previewContent.appendChild(video);
+            }
+            
+            // Kullan butonuna media_id ata
+            useMediaButton.setAttribute('data-media-id', mediaId);
+        });
+    });
+    
+    // Playliste Ekle butonu tıklandığında
+    useMediaButton.addEventListener('click', function() {
+        const mediaId = this.getAttribute('data-media-id');
+        document.getElementById('selectedMediaId').value = mediaId;
+        
+        // Bir modalı kapat, diğerini aç
+        const previewModalInstance = bootstrap.Modal.getInstance(previewModal);
+        previewModalInstance.hide();
+        
+        // Playlistleri yükle ve modali göster
+        loadUserPlaylists(mediaId);
+        
+        const addToPlaylistModal = new bootstrap.Modal(document.getElementById('addToPlaylistModal'));
+        addToPlaylistModal.show();
+    });
+    
+    // Direkt "Playliste Ekle" butonuna tıklandığında
+    document.querySelectorAll('.use-media').forEach(button => {
+        button.addEventListener('click', function() {
+            const mediaId = this.getAttribute('data-media-id');
+            document.getElementById('selectedMediaId').value = mediaId;
+            
+            // Playlistleri yükle
+            loadUserPlaylists(mediaId);
+        });
+    });
+    
+    // Kullanıcının playlistlerini yükle
+    function loadUserPlaylists(mediaId) {
+        const playlistsList = document.getElementById('playlistsList');
+        
+        console.log("Playlistler yükleniyor...");
+        
+        // API'den playlistleri al
+        fetch('/api/user/playlists')
+            .then(response => {
+                console.log("API yanıtı alındı:", response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log("Alınan playlist verisi:", data);
+                playlistsList.innerHTML = '';
+                
+                if (data.playlists && data.playlists.length > 0) {
+                    data.playlists.forEach(playlist => {
+                        const playlistItem = document.createElement('div');
+                        playlistItem.className = 'list-group-item';
+                        playlistItem.innerHTML = `
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="playlist_ids[]" value="${playlist.id}" id="playlist_${playlist.id}">
+                                <label class="form-check-label" for="playlist_${playlist.id}">
+                                    <span class="fw-bold">${playlist.name}</span>
+                                    <small class="text-muted d-block mt-1">${playlist.description || 'Açıklama yok'}</small>
+                                </label>
+                            </div>
+                        `;
+                        playlistsList.appendChild(playlistItem);
+                    });
+                } else {
+                    playlistsList.innerHTML = `
+                        <div class="alert playlist-empty-alert mb-0">
+                            <i class="fas fa-music me-2"></i> Henüz playlist bulunmuyor.
+                            <a href="${window.location.origin}/user/playlists/create" class="alert-link">Playlist oluşturmak için tıklayın</a>.
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Playlistler yüklenirken hata:', error);
+                playlistsList.innerHTML = `
+                    <div class="alert alert-danger mb-0">
+                        <i class="fas fa-exclamation-circle me-2"></i> Playlistler yüklenirken bir hata oluştu.
+                    </div>
+                `;
+            });
+    }
+    
+    // Medya önizlemeleri için hover efekti
+    document.querySelectorAll('.media-preview').forEach(preview => {
+        preview.addEventListener('mouseenter', function() {
+            const type = this.getAttribute('data-type');
+            if (type === 'video') {
+                const video = this.querySelector('video');
+                if (video) {
+                    video.play();
+                }
+            }
+        });
+        
+        preview.addEventListener('mouseleave', function() {
+            const type = this.getAttribute('data-type');
+            if (type === 'video') {
+                const video = this.querySelector('video');
+                if (video) {
+                    video.pause();
+                    video.currentTime = 0;
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ media.title }} Düzenle - BulutVizyon{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="mb-3"><i class="fas fa-edit"></i> Medya Düzenle</h2>
+            <p class="text-muted">Medya içeriğinin bilgilerini güncelleyin</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <a href="{{ url_for('user.view_media', media_id=media._id) }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Görüntülemeye Dön
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form action="{{ url_for('user.edit_media', media_id=media._id) }}" method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="title" class="form-label">Başlık</label>
+                                    <input type="text" class="form-control" id="title" name="title" value="{{ media.title }}" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">Açıklama</label>
+                                    <textarea class="form-control" id="description" name="description" rows="3">{{ media.description }}</textarea>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="preview" class="form-label">Önizleme</label>
+                                    <div class="card">
+                                        <div class="media-preview-container">
+                                            {% if media.file_type == 'image' %}
+                                            <img src="/uploads/{{ media.filename }}" alt="{{ media.title }}" class="img-fluid">
+                                            {% else %}
+                                            <div class="video-preview-placeholder">
+                                                <i class="fas fa-video fa-3x text-muted"></i>
+                                                <p class="small mt-2">Video önizlemesi</p>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="category" class="form-label">Kategori</label>
+                                    <select class="form-select" id="category" name="category">
+                                        <option value="">-- Kategori Seçin --</option>
+                                        <option value="reklam" {% if media.category == 'reklam' %}selected{% endif %}>Reklam</option>
+                                        <option value="duyuru" {% if media.category == 'duyuru' %}selected{% endif %}>Duyuru</option>
+                                        <option value="tanıtım" {% if media.category == 'tanıtım' %}selected{% endif %}>Tanıtım</option>
+                                        <option value="eczane" {% if media.category == 'eczane' %}selected{% endif %}>Eczane</option>
+                                        <option value="restoran" {% if media.category == 'restoran' %}selected{% endif %}>Restoran</option>
+                                        <option value="diğer" {% if media.category == 'diğer' %}selected{% endif %}>Diğer</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="display_time" class="form-label">Görüntülenme Süresi (sn)</label>
+                                    <input type="number" class="form-control" id="display_time" name="display_time" min="1" max="300" value="{{ media.display_time }}">
+                                    <small class="form-text text-muted">Ekranlarda görüntülenecek süre (1-300 saniye)</small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Seçenekler</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="public" name="public" {% if media.is_public %}checked{% endif %}>
+                                        <label class="form-check-label" for="public">
+                                            Herkese açık kütüphanede paylaş
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="start_date" class="form-label">Başlangıç Tarihi</label>
+                                    <input type="date" class="form-control" id="start_date" name="start_date" 
+                                        value="{% if media.start_date %}{{ media.start_date.strftime('%Y-%m-%d') }}{% endif %}">
+                                    <small class="form-text text-muted">İsteğe bağlı. Bu tarihten sonra gösterilecek.</small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="end_date" class="form-label">Bitiş Tarihi</label>
+                                    <input type="date" class="form-control" id="end_date" name="end_date"
+                                        value="{% if media.end_date %}{{ media.end_date.strftime('%Y-%m-%d') }}{% endif %}">
+                                    <small class="form-text text-muted">İsteğe bağlı. Bu tarihe kadar gösterilecek.</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i> Düzenleme yaptıktan sonra içerik yeniden onay sürecine girer.
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('user.view_media', media_id=media._id) }}" class="btn btn-outline-secondary">İptal</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Değişiklikleri Kaydet
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Medya Bilgileri</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-dark-bordered">
+                        <tbody>
+                            <tr>
+                                <th style="width: 35%">Medya ID</th>
+                                <td><small class="text-muted text-break">{{ media._id }}</small></td>
+                            </tr>
+                            <tr>
+                                <th>Dosya Adı</th>
+                                <td><small class="text-monospace text-break">{{ media.filename }}</small></td>
+                            </tr>
+                            <tr>
+                                <th>Yükleme Tarihi</th>
+                                <td>{{ media.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                            </tr>
+                            <tr>
+                                <th>Boyut</th>
+                                <td>{{ (media.file_size / (1024*1024))|round(2) }} MB</td>
+                            </tr>
+                            <tr>
+                                <th>Çözünürlük</th>
+                                <td>{{ media.width }} x {{ media.height }}</td>
+                            </tr>
+                            <tr>
+                                <th>Durum</th>
+                                <td>
+                                    {% if media.status == 'active' %}
+                                    <span class="badge bg-success">Aktif</span>
+                                    {% elif media.status == 'pending' %}
+                                    <span class="badge bg-warning text-dark">Onay Bekliyor</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Pasif</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .media-preview-container {
+        aspect-ratio: 16/9;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: var(--dark-bg);
+        overflow: hidden;
+    }
+    
+    .video-preview-placeholder {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        color: var(--text-gray);
+    }
+    
+    .card {
+        background-color: var(--dark-card);
+        border-color: var(--dark-border);
+    }
+    
+    .card-header {
+        background-color: var(--dark-card);
+        border-bottom: 1px solid var(--dark-border);
+        color: var(--text-light);
+    }
+    
+    .form-control, .form-select {
+        background-color: var(--dark-input);
+        color: var(--text-light);
+        border-color: var(--dark-border);
+    }
+    
+    .table {
+        color: var(--text-light);
+    }
+    
+    .table th, .table td {
+        border-color: var(--dark-border);
+        vertical-align: middle;
+        padding: 0.5rem;
+        word-break: break-word;
+    }
+    
+    .table-dark-bordered tr {
+        border-bottom: 1px solid var(--dark-border);
+    }
+    
+    .table-dark-bordered tr:last-child {
+        border-bottom: none;
+    }
+    
+    .text-break {
+        word-break: break-word;
+        overflow-wrap: break-word;
+        max-width: 100%;
+        display: inline-block;
+    }
+    
+    .alert-warning {
+        background-color: rgba(255, 193, 7, 0.2);
+        color: #e6cc5c;
+        border-color: rgba(255, 193, 7, 0.5);
+    }
+    
+    .text-muted {
+        color: var(--text-gray) !important;
+    }
+    
+    .btn-outline-secondary {
+        border-color: var(--dark-border);
+        color: var(--text-gray);
+    }
+    
+    .btn-outline-secondary:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: var(--text-light);
+    }
+</style>
+{% endblock %} 

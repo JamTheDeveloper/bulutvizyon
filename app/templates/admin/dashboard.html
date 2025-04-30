@@ -1,0 +1,454 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Paneli - BulutVizyon{% endblock %}
+
+{% block styles %}
+<style>
+    .dashboard-card {
+        transition: transform .3s;
+    }
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+    }
+    .stat-icon {
+        font-size: 2.5rem;
+        opacity: 0.8;
+    }
+    .table-header-dark {
+        background-color: var(--dark-card) !important;
+        color: var(--text-light) !important;
+        border-color: var(--dark-border) !important;
+    }
+    .table thead th {
+        background-color: var(--primary-color);
+        color: var(--text-light);
+    }
+    a {
+        color: var(--accent-color);
+        text-decoration: none;
+    }
+    a:hover {
+        color: var(--light-color);
+    }
+    
+    /* Kart renkleri */
+    .card-primary {
+        background: linear-gradient(135deg, var(--secondary-color), var(--primary-color)) !important;
+    }
+    
+    .card-success {
+        background: linear-gradient(135deg, #1b2b4c, #5061a8) !important;
+    }
+    
+    .card-info {
+        background: linear-gradient(135deg, #5061a8, #97a1fa) !important;
+    }
+    
+    .card-danger {
+        background: linear-gradient(135deg, #97a1fa, #f7ebf5) !important;
+        color: var(--dark-bg) !important;
+    }
+    
+    .card-warning {
+        background: linear-gradient(135deg, #f7ebf5, #97a1fa) !important;
+        color: var(--dark-bg) !important;
+    }
+    
+    .card-danger a, .card-warning a {
+        color: var(--dark-bg) !important;
+    }
+    
+    /* 5'li kart yapısı için özel sınıf */
+    @media (min-width: 992px) {
+        .col-lg-20 {
+            width: 20%;
+            flex: 0 0 20%;
+            max-width: 20%;
+        }
+    }
+    
+    /* Mobil için optimize edilmiş stiller */
+    @media (max-width: 767px) {
+        .dashboard-card {
+            margin-bottom: 1rem;
+        }
+        .stat-icon {
+            font-size: 2rem;
+        }
+        .display-4 {
+            font-size: 2rem;
+        }
+        .card-title {
+            font-size: 0.9rem;
+        }
+        .table-responsive {
+            border: 0;
+        }
+        h2 {
+            font-size: 1.5rem;
+        }
+    }
+    
+    /* Dark tema için hover stilleri */
+    .table-hover tbody tr:hover {
+        background-color: rgba(151, 161, 250, 0.15) !important;
+        color: var(--accent-color) !important;
+    }
+    .table-hover tbody tr:hover td,
+    .table-hover tbody tr:hover th,
+    .table-hover tbody tr:hover a {
+        color: var(--accent-color) !important;
+    }
+    .table-hover tbody tr:hover .badge {
+        /* Badge'lerin hover durumunda da kendi renklerini koruması */
+        color: inherit !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2 class="mb-3"><i class="fas fa-tachometer-alt"></i> Admin Kontrol Paneli</h2>
+        <p class="text-muted">Sistem durumu ve özet istatistikler</p>
+    </div>
+</div>
+
+<!-- İstatistik Kartları -->
+<div class="row mb-4">
+    <!-- Kullanıcı Sayısı -->
+    <div class="col-6 col-md-6 col-lg-20 mb-3">
+        <div class="card h-100 dashboard-card card-primary text-white shadow">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col">
+                        <h5 class="card-title">Kullanıcılar</h5>
+                        <h2 class="display-4">{{ user_count }}</h2>
+                    </div>
+                    <div class="col-auto align-self-center">
+                        <i class="fas fa-users stat-icon"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <a href="{{ url_for('admin.users') }}" class="text-white">
+                    Detaylar <i class="fas fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Ekran Sayısı -->
+    <div class="col-6 col-md-6 col-lg-20 mb-3">
+        <div class="card h-100 dashboard-card card-success text-white shadow">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col">
+                        <h5 class="card-title">Ekranlar</h5>
+                        <h2 class="display-4">{{ screen_count }}</h2>
+                    </div>
+                    <div class="col-auto align-self-center">
+                        <i class="fas fa-desktop stat-icon"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <a href="{{ url_for('admin.screens') }}" class="text-white">
+                    Detaylar <i class="fas fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Medya Sayısı -->
+    <div class="col-6 col-md-6 col-lg-20 mb-3">
+        <div class="card h-100 dashboard-card card-info text-white shadow">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col">
+                        <h5 class="card-title">Medyalar</h5>
+                        <h2 class="display-4">{{ media_count }}</h2>
+                    </div>
+                    <div class="col-auto align-self-center">
+                        <i class="fas fa-photo-video stat-icon"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <a href="{{ url_for('admin.media') }}" class="text-white">
+                    Detaylar <i class="fas fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Playlist Sayısı -->
+    <div class="col-6 col-md-6 col-lg-20 mb-3">
+        <div class="card h-100 dashboard-card card-danger shadow">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col">
+                        <h5 class="card-title">Playlistler</h5>
+                        <h2 class="display-4">{{ playlist_count }}</h2>
+                    </div>
+                    <div class="col-auto align-self-center">
+                        <i class="fas fa-list-ul stat-icon"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <a href="{{ url_for('admin.admin_playlists') }}">
+                    Detaylar <i class="fas fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Onay Bekleyen Medyalar -->
+    <div class="col-6 col-md-6 col-lg-20 mb-3">
+        <div class="card h-100 dashboard-card card-warning shadow">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col">
+                        <h5 class="card-title">Onay Bekleyenler</h5>
+                        <h2 class="display-4">{{ pending_media_count }}</h2>
+                    </div>
+                    <div class="col-auto align-self-center">
+                        <i class="fas fa-hourglass-half stat-icon"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <a href="{{ url_for('admin.media') }}">
+                    Hepsini Onayla <i class="fas fa-check ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Son Kullanıcılar -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+                <h5 class="mb-0"><i class="fas fa-users me-2"></i> Son Kullanıcılar</h5>
+                <a href="{{ url_for('admin.users') }}" class="btn btn-sm btn-primary mt-2 mt-sm-0">
+                    Tümünü Gör
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-header-dark">
+                            <tr>
+                                <th>Kullanıcı Adı</th>
+                                <th>E-posta</th>
+                                <th>Rol</th>
+                                <th>Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in recent_users %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('admin.edit_user', user_id=user.id|string) }}">
+                                        {{ user.name }}
+                                    </a>
+                                </td>
+                                <td>{{ user.email }}</td>
+                                <td>
+                                    {% if user.role == 'admin' %}
+                                    <span class="badge bg-danger">Admin</span>
+                                    {% elif user.role == 'supervisor' %}
+                                    <span class="badge bg-warning text-dark">Denetmen</span>
+                                    {% else %}
+                                    <span class="badge bg-primary">Kullanıcı</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if user.status == 'active' %}
+                                    <span class="badge bg-success">Aktif</span>
+                                    {% elif user.status == 'pending' %}
+                                    <span class="badge bg-warning text-dark">Beklemede</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Pasif</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-3">
+                                    <p class="text-muted mb-0">Henüz kullanıcı bulunmuyor.</p>
+                                    <a href="{{ url_for('admin.create_user') }}" class="btn btn-sm btn-primary mt-2">
+                                        <i class="fas fa-user-plus me-1"></i> Kullanıcı Ekle
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Son Medya Yüklemeleri -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+                <h5 class="mb-0"><i class="fas fa-photo-video me-2"></i> Son Medyalar</h5>
+                <a href="{{ url_for('admin.media') }}" class="btn btn-sm btn-primary mt-2 mt-sm-0">
+                    Tümünü Gör
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-header-dark">
+                            <tr>
+                                <th>Medya</th>
+                                <th>Tip</th>
+                                <th>Durum</th>
+                                <th>Kullanıcı</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for media in recent_media %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('admin.view_media', media_id=media.id) }}">
+                                        {{ media.title }}
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if media.file_type == 'image' %}
+                                    <i class="fas fa-image text-info"></i> Resim
+                                    {% else %}
+                                    <i class="fas fa-video text-danger"></i> Video
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if media.status == 'active' %}
+                                    <span class="badge bg-success">Aktif</span>
+                                    {% elif media.status == 'pending' %}
+                                    <span class="badge bg-warning text-dark">Onay Bekliyor</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Pasif</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% set user = User.find_by_id(media.user_id) %}
+                                    {% if user %}
+                                    <a href="{{ url_for('admin.edit_user', user_id=user.id|string) }}">
+                                        {{ user.name }}
+                                    </a>
+                                    {% else %}
+                                    <span class="text-muted">Bilinmiyor</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-3">
+                                    <p class="text-muted mb-0">Henüz medya bulunmuyor.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hızlı İşlemler -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-bolt me-2"></i> Hızlı İşlemler</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6 col-md-3 mb-3">
+                        <a href="{{ url_for('admin.create_user') }}" class="btn btn-primary w-100 py-2 py-md-3">
+                            <i class="fas fa-user-plus me-2"></i> <span class="d-none d-md-inline">Kullanıcı</span> Ekle
+                        </a>
+                    </div>
+                    <div class="col-6 col-md-3 mb-3">
+                        <a href="{{ url_for('admin.upload_media') }}" class="btn btn-success w-100 py-2 py-md-3">
+                            <i class="fas fa-upload me-2"></i> Medya <span class="d-none d-md-inline">Yükle</span>
+                        </a>
+                    </div>
+                    <div class="col-6 col-md-3 mb-3">
+                        <a href="{{ url_for('admin.admin_playlists') }}" class="btn btn-danger w-100 py-2 py-md-3">
+                            <i class="fas fa-list-ul me-2"></i> Playlistler
+                        </a>
+                    </div>
+                    <div class="col-6 col-md-3 mb-3">
+                        <a href="{{ url_for('admin.logs') }}" class="btn btn-info w-100 py-2 py-md-3 text-white">
+                            <i class="fas fa-clipboard-list me-2"></i> Loglar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Son Playlistler -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+                <h5 class="mb-0"><i class="fas fa-list-ul me-2"></i> Son Playlistler</h5>
+                <a href="{{ url_for('admin.admin_playlists') }}" class="btn btn-sm btn-primary mt-2 mt-sm-0">
+                    Tümünü Gör
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-header-dark">
+                            <tr>
+                                <th>Playlist Adı</th>
+                                <th>Medya Sayısı</th>
+                                <th>Kullanıcı</th>
+                                <th>Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for playlist in recent_playlists %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('admin.view_playlist', playlist_id=playlist.id) }}">
+                                        {{ playlist.name }}
+                                    </a>
+                                </td>
+                                <td>{{ playlist.media_count }}</td>
+                                <td>{{ playlist.user_name }}</td>
+                                <td>
+                                    {% if playlist.status == 'active' %}
+                                    <span class="badge bg-success">Aktif</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Pasif</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-3">
+                                    <p class="text-muted mb-0">Henüz playlist bulunmuyor.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

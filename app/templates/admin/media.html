@@ -1,0 +1,463 @@
+{% extends 'base.html' %}
+
+{% block title %}Medyalar - BulutVizyon{% endblock %}
+
+{% block styles %}
+<style>
+    .media-card {
+        position: relative;
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .media-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .media-thumbnail {
+        position: relative;
+        height: 200px;
+        width: 100%;
+        border-radius: 8px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #1a1a1a;
+    }
+    
+    .media-details {
+        padding: 12px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .media-title {
+        font-weight: 600;
+        margin-bottom: 5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .media-info {
+        font-size: 0.8rem;
+        color: #666;
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+    }
+    
+    .media-type-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(0,0,0,0.6);
+        color: white;
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-size: 0.7rem;
+        z-index: 2;
+    }
+    
+    .media-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 5px;
+        margin-top: auto;
+    }
+    
+    .media-thumbnail img, 
+    .media-thumbnail video {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+    
+    .media-thumbnail img {
+        object-fit: cover;
+    }
+    
+    .media-thumbnail video {
+        object-fit: contain;
+        background-color: #000;
+    }
+
+    .media-status {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 2;
+    }
+    .media-type {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 2;
+    }
+    .media-user {
+        display: flex;
+        align-items: center;
+    }
+    .media-user-avatar {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background-color: var(--dark-bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 0.5rem;
+        font-size: 0.7rem;
+        font-weight: bold;
+        color: #fff;
+    }
+    .media-controls {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0,0,0,0.7);
+        padding: 10px;
+        display: flex;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    .media-thumbnail:hover .media-controls {
+        opacity: 1;
+    }
+    .card {
+        background-color: var(--dark-card);
+        border-color: var(--dark-border);
+    }
+    .input-group-text {
+        background-color: var(--dark-card);
+        color: var(--text-light);
+        border-color: var(--dark-border);
+    }
+    .text-muted {
+        color: var(--text-gray) !important;
+    }
+    
+    .video-preview {
+        display: none;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1;
+    }
+    
+    .media-card:hover .video-preview {
+        z-index: 2;
+    }
+    
+    .thumb-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 2;
+        transition: opacity 0.3s ease;
+    }
+    
+    .media-card:hover .thumb-img {
+        opacity: 0;
+    }
+    
+    .position-relative {
+        position: relative;
+    }
+    .card-body {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    .media-name {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .media-duration {
+        font-size: 12px;
+        color: #666;
+        margin-top: 3px;
+    }
+    
+    .media-file-info {
+        font-size: 11px;
+        color: #888;
+        margin-top: 2px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2><i class="fas fa-photo-video"></i> Medya Yönetimi</h2>
+        <p class="text-muted">Tüm medyaları görüntüleyin, onaylayın veya reddedin</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('admin.upload_media') }}" class="btn btn-primary">
+            <i class="fas fa-upload"></i> Medya Yükle
+        </a>
+    </div>
+</div>
+
+<!-- Filtreler ve Arama -->
+<div class="card shadow mb-4">
+    <div class="card-header bg-dark">
+        <h5 class="mb-0">Filtreler</h5>
+    </div>
+    <div class="card-body p-3">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" class="form-control" name="search" placeholder="Medya ara..." value="{{ request.args.get('search', '') }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" name="type">
+                    <option value="">Tüm Tipler</option>
+                    <option value="image" {% if request.args.get('type') == 'image' %}selected{% endif %}>Resimler</option>
+                    <option value="video" {% if request.args.get('type') == 'video' %}selected{% endif %}>Videolar</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" name="status">
+                    <option value="">Tüm Durumlar</option>
+                    <option value="active" {% if request.args.get('status') == 'active' %}selected{% endif %}>Aktif</option>
+                    <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>Onay Bekleyen</option>
+                    <option value="inactive" {% if request.args.get('status') == 'inactive' %}selected{% endif %}>Pasif</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" name="sort">
+                    <option value="newest" {% if request.args.get('sort') == 'newest' %}selected{% endif %}>En Yeni</option>
+                    <option value="oldest" {% if request.args.get('sort') == 'oldest' %}selected{% endif %}>En Eski</option>
+                    <option value="name_asc" {% if request.args.get('sort') == 'name_asc' %}selected{% endif %}>İsim (A-Z)</option>
+                    <option value="name_desc" {% if request.args.get('sort') == 'name_desc' %}selected{% endif %}>İsim (Z-A)</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Filtrele</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Onay Bekleyen Medyalar -->
+{% if pending_media_count %}
+<div class="alert alert-warning mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <span>{{ pending_media_count }} adet onay bekleyen medya bulunuyor.</span>
+        </div>
+        <a href="#" class="btn btn-sm btn-warning">Hepsini Onayla</a>
+    </div>
+</div>
+{% endif %}
+
+<!-- Medya Listesi -->
+<div class="row">
+    {% for media in media_list %}
+    <div class="col-md-3 mb-4">
+        <div class="media-card">
+            <div class="media-thumbnail">
+                {% if media.file_type == 'image' or (media.file_type is string and (media.file_type.endswith('.jpg') or media.file_type.endswith('.png') or media.file_type.endswith('.jpeg'))) %}
+                    <span class="media-type-badge">Resim</span>
+                    {% if media.filename %}
+                        <img src="{{ url_for('serve_uploads', filename=media.filename) }}" class="thumb-img" alt="{{ media.title }}">
+                    {% else %}
+                        <img src="{{ url_for('static', filename='img/video-placeholder.jpg') }}" class="thumb-img" alt="Resim bulunamadı">
+                    {% endif %}
+                {% elif media.file_type == 'video' or (media.file_type is string and media.file_type.endswith('.mp4')) %}
+                    <span class="media-type-badge">Video</span>
+                    <img src="{{ url_for('static', filename='img/video-placeholder.jpg') }}" class="thumb-img" alt="{{ media.title }}">
+                    {% if media.filename %}
+                    <video class="video-preview" preload="auto" muted loop>
+                        <source src="{{ url_for('serve_uploads', filename=media.filename) }}?t={{ media.created_at.timestamp() if media.created_at else 0 }}" type="video/mp4">
+                    </video>
+                    {% endif %}
+                {% else %}
+                    <span class="media-type-badge">Medya</span>
+                    <img src="{{ url_for('static', filename='img/video-placeholder.jpg') }}" class="thumb-img" alt="Önizleme yok">
+                {% endif %}
+            </div>
+            <div class="media-details">
+                <h5 class="media-title">{{ media.title }}</h5>
+                <div class="media-info">
+                    <span>{{ media.user_name|default('Kullanıcı Bilinmiyor') }}</span>
+                    <span>{{ media.created_at.strftime('%d.%m.%Y') if media.created_at else 'Tarih yok' }}</span>
+                </div>
+                {% if media.file_type == 'video' or (media.file_type is string and media.file_type.endswith('.mp4')) %}
+                <div class="media-file-info">
+                    <div class="media-duration" data-media-id="{{ media._id }}">Süre: <span class="duration-value">Hesaplanıyor...</span></div>
+                    <div>Boyut: {{ (media.file_size/1024/1024)|round(1) if media.file_size else 'Bilinmiyor' }} MB</div>
+                    <div>İzlenme: {{ media.views|default(0) }}</div>
+                </div>
+                {% else %}
+                <div class="media-file-info">
+                    <div>Gösterim: {{ media.views|default(0) }}</div>
+                </div>
+                {% endif %}
+                <div class="media-actions">
+                    <a href="{{ url_for('admin.view_media', media_id=media._id) }}" class="btn btn-sm btn-info">
+                        <i class="fa fa-edit"></i>
+                    </a>
+                    <a href="{{ url_for('admin.delete_media', media_id=media._id) }}" class="btn btn-sm btn-danger" onclick="return confirm('Bu medyayı silmek istediğinize emin misiniz?')">
+                        <i class="fa fa-trash"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="alert alert-info text-center">
+            <i class="fas fa-info-circle me-2"></i> Henüz medya bulunmuyor.
+        </div>
+    </div>
+    {% endfor %}
+    <div class="col-12 text-center mt-2">
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if pagination is defined and pagination.has_prev %}
+                <li class="page-item"><a class="page-link" href="?page={{ pagination.prev_num }}{{ pagination.query_params }}">Önceki</a></li>
+                {% else %}
+                <li class="page-item disabled"><a class="page-link" href="#">Önceki</a></li>
+                {% endif %}
+                
+                {% if pagination is defined %}
+                {% for page in pagination.iter_pages() %}
+                    {% if page %}
+                        {% if page != pagination.page %}
+                            <li class="page-item"><a class="page-link" href="?page={{ page }}{{ pagination.query_params }}">{{ page }}</a></li>
+                        {% else %}
+                            <li class="page-item active"><a class="page-link" href="#">{{ page }}</a></li>
+                        {% endif %}
+                    {% else %}
+                        <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
+                    {% endif %}
+                {% endfor %}
+                {% endif %}
+                
+                {% if pagination is defined and pagination.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ pagination.next_num }}{{ pagination.query_params }}">Sonraki</a></li>
+                {% else %}
+                <li class="page-item disabled"><a class="page-link" href="#">Sonraki</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const mediaCards = document.querySelectorAll('.media-card');
+        
+        // Varsayılan video kontrollerini etkinleştir
+        const videos = document.querySelectorAll('video.video-preview');
+        
+        // Video süre hesaplama fonksiyonu
+        function formatDuration(seconds) {
+            if (isNaN(seconds) || seconds === Infinity) return "Bilinmiyor";
+            
+            const minutes = Math.floor(seconds / 60);
+            seconds = Math.floor(seconds % 60);
+            
+            return `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
+        }
+        
+        videos.forEach(video => {
+            video.controls = false;
+            video.muted = true;
+            video.preload = "auto";
+            video.playsInline = true;
+            
+            // Video hazır olduğunda ilk kareyi ayarla
+            video.addEventListener('loadeddata', function() {
+                video.currentTime = 0;
+                // İlk kare hazır olduğunda placeholder resmini kaldır
+                const placeholder = video.previousElementSibling;
+                if (placeholder && placeholder.classList.contains('thumb-img')) {
+                    placeholder.style.opacity = '0';
+                    video.style.display = 'block';
+                    video.pause();
+                }
+                
+                // Video süresini hesapla ve göster
+                const card = video.closest('.media-card');
+                if (card) {
+                    const durationElement = card.querySelector('.duration-value');
+                    if (durationElement) {
+                        durationElement.textContent = formatDuration(video.duration);
+                    }
+                }
+            });
+            
+            // Video yüklenemezse veya hata olursa
+            video.addEventListener('error', function() {
+                const card = video.closest('.media-card');
+                if (card) {
+                    const durationElement = card.querySelector('.duration-value');
+                    if (durationElement) {
+                        durationElement.textContent = "Yüklenemedi";
+                    }
+                }
+            });
+        });
+        
+        mediaCards.forEach(card => {
+            const video = card.querySelector('.video-preview');
+            if (video) {
+                card.addEventListener('mouseenter', function() {
+                    try {
+                        const playPromise = video.play();
+                        if (playPromise !== undefined) {
+                            playPromise.catch(e => {
+                                console.log("Video oynatma hatası:", e);
+                                setTimeout(() => {
+                                    video.play().catch(e2 => console.log("İkinci deneme de başarısız:", e2));
+                                }, 100);
+                            });
+                        }
+                    } catch (e) {
+                        console.log("Video oynatma hatası:", e);
+                    }
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    if (!video.paused) {
+                        video.pause();
+                    }
+                    video.currentTime = 0;
+                });
+            }
+        });
+    });
+</script>
+{% endblock %} 

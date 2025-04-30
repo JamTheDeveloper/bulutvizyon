@@ -1,0 +1,532 @@
+{% extends 'base.html' %}
+
+{% block title %}Gizlilik Politikası - BulutVizyon{% endblock %}
+
+{% block styles %}
+<style>
+    :root {
+        --primary-color: #7157f9;
+        --secondary-color: #5d3bfb;
+        --accent-color: #ff328f;
+        --dark-color: #0a0a0c;
+        --dark-secondary: #141418;
+        --light-color: #ffffff;
+        --gray-light: #a0a0ab;
+        --gray-dark: #202026;
+        --gradient-purple: linear-gradient(120deg, #7157f9, #5d3bfb);
+        --gradient-pink: linear-gradient(120deg, #ff328f, #ff5a5a);
+        --shadow-soft: 0 10px 30px rgba(113, 87, 249, 0.15);
+        --shadow-hard: 0 15px 40px rgba(113, 87, 249, 0.3);
+    }
+    
+    body {
+        background-color: var(--dark-color);
+    }
+    
+    .page-header {
+        background-color: var(--dark-color);
+        padding: 120px 0 80px;
+        position: relative;
+        overflow: hidden;
+        margin-top: -80px;
+    }
+    
+    .page-header-shape {
+        position: absolute;
+        width: 600px;
+        height: 600px;
+        border-radius: 50%;
+        background: var(--gradient-purple);
+        opacity: 0.1;
+        filter: blur(80px);
+        z-index: 0;
+    }
+    
+    .page-header-shape-1 {
+        top: -200px;
+        right: -100px;
+    }
+    
+    .page-header-shape-2 {
+        bottom: -300px;
+        left: -200px;
+        background: var(--gradient-pink);
+        width: 800px;
+        height: 800px;
+    }
+    
+    .page-header-content {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .page-title {
+        font-size: 3.5rem;
+        font-weight: 800;
+        margin-bottom: 1.5rem;
+        color: var(--light-color);
+        position: relative;
+        display: inline-block;
+    }
+    
+    .page-title span {
+        color: var(--primary-color);
+    }
+    
+    .page-title::after {
+        content: '';
+        position: absolute;
+        bottom: -15px;
+        left: 0;
+        width: 80px;
+        height: 4px;
+        background: var(--gradient-purple);
+        border-radius: 2px;
+    }
+    
+    .page-subtitle {
+        font-size: 1.3rem;
+        color: var(--gray-light);
+        margin-bottom: 2rem;
+        max-width: 700px;
+    }
+    
+    .page-content {
+        background-color: var(--dark-color);
+        padding: 80px 0;
+        color: var(--light-color);
+    }
+    
+    .content-card {
+        background-color: var(--dark-secondary);
+        border-radius: 16px;
+        padding: 40px;
+        margin-bottom: 30px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .content-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-hard);
+        border-color: rgba(113, 87, 249, 0.2);
+    }
+    
+    .section-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        color: var(--light-color);
+        position: relative;
+        display: inline-block;
+    }
+    
+    .section-title span {
+        background: var(--gradient-purple);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .subsection-title {
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin: 1.8rem 0 1rem;
+        color: var(--light-color);
+    }
+    
+    .content-text {
+        color: var(--gray-light);
+        line-height: 1.7;
+        margin-bottom: 1.5rem;
+    }
+    
+    .privacy-line {
+        height: 1px;
+        background: linear-gradient(to right, var(--primary-color), transparent);
+        margin: 30px 0;
+        opacity: 0.3;
+    }
+    
+    .last-updated {
+        display: inline-block;
+        background-color: rgba(113, 87, 249, 0.1);
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        margin-bottom: 2rem;
+        color: var(--primary-color);
+        border: 1px solid rgba(113, 87, 249, 0.2);
+    }
+    
+    .info-box {
+        background: linear-gradient(135deg, rgba(113, 87, 249, 0.1), rgba(93, 59, 251, 0.05));
+        border-radius: 12px;
+        padding: 30px;
+        margin: 30px 0;
+        border-left: 4px solid var(--primary-color);
+    }
+    
+    .info-box p {
+        margin-bottom: 0;
+        font-size: 1.1rem;
+        color: var(--light-color);
+    }
+    
+    .warning-box {
+        background: linear-gradient(135deg, rgba(255, 50, 143, 0.1), rgba(255, 90, 90, 0.05));
+        border-radius: 12px;
+        padding: 30px;
+        margin: 30px 0;
+        border-left: 4px solid var(--accent-color);
+    }
+    
+    .warning-box p {
+        margin-bottom: 0;
+        font-size: 1.1rem;
+        color: var(--light-color);
+    }
+    
+    .content-list {
+        list-style: none;
+        padding-left: 0;
+        margin-bottom: 2rem;
+    }
+    
+    .content-list li {
+        position: relative;
+        padding-left: 30px;
+        margin-bottom: 1rem;
+        color: var(--gray-light);
+        line-height: 1.7;
+    }
+    
+    .content-list li::before {
+        content: '\f00c';
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+        color: var(--primary-color);
+        position: absolute;
+        left: 0;
+        top: 2px;
+    }
+    
+    .content-list-alt li::before {
+        content: '\f0da';
+    }
+    
+    .policy-card {
+        display: flex;
+        padding: 25px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        background-color: rgba(113, 87, 249, 0.05);
+        border: 1px solid rgba(113, 87, 249, 0.1);
+    }
+    
+    .policy-icon {
+        flex: 0 0 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: rgba(113, 87, 249, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--primary-color);
+        font-size: 1.5rem;
+        margin-right: 20px;
+    }
+    
+    .policy-content {
+        flex: 1;
+    }
+    
+    .policy-content h4 {
+        color: var(--light-color);
+        margin-bottom: 10px;
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+    
+    .policy-content p {
+        color: var(--gray-light);
+        margin-bottom: 0;
+    }
+    
+    .table {
+        color: var(--gray-light);
+        margin-bottom: 2rem;
+    }
+    
+    .table th {
+        background-color: rgba(113, 87, 249, 0.1);
+        color: var(--light-color);
+        font-weight: 600;
+        border-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    .table td {
+        border-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    @media (max-width: 768px) {
+        .page-header {
+            padding: 100px 0 60px;
+        }
+        
+        .page-title {
+            font-size: 2.5rem;
+        }
+        
+        .content-card {
+            padding: 25px;
+        }
+        
+        .policy-card {
+            flex-direction: column;
+        }
+        
+        .policy-icon {
+            margin-bottom: 15px;
+            margin-right: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div class="page-header-shape page-header-shape-1"></div>
+    <div class="page-header-shape page-header-shape-2"></div>
+    <div class="container page-header-content">
+        <div class="row justify-content-center">
+            <div class="col-lg-10 text-center">
+                <h1 class="page-title">Gizlilik <span>Politikası</span></h1>
+                <p class="page-subtitle mx-auto">BulutVizyon olarak, kullanıcılarımızın gizliliği bizim için önceliklidir. Bu politika, verilerinizin nasıl toplandığını ve kullanıldığını açıklar.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="page-content">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="content-card">
+                    <div class="last-updated">Son Güncelleme: 10 Mayıs 2023</div>
+                    
+                    <p class="content-text">BulutVizyon olarak, kullanıcılarımızın gizliliğine saygı duyuyoruz. Bu gizlilik politikası, hizmetlerimizi kullanırken sizden topladığımız bilgileri ve bu bilgilerin nasıl kullanıldığını açıklamaktadır.</p>
+                    
+                    <div class="info-box">
+                        <p>Bu politika, BulutVizyon web sitesini, mobil uygulamalarını ve dijital ekran yönetim hizmetlerini kapsar. Hizmetlerimizi kullanarak, bu politikada belirtilen uygulamaları kabul etmiş sayılırsınız.</p>
+                    </div>
+                </div>
+                
+                <div class="content-card">
+                    <h2 class="section-title">Topladığımız <span>Bilgiler</span></h2>
+                    <p class="content-text">Hizmetlerimizi sağlamak, geliştirmek ve korumak için aşağıdaki bilgileri toplayabiliriz:</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="policy-card">
+                                <div class="policy-icon">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div class="policy-content">
+                                    <h4>Hesap Bilgileri</h4>
+                                    <p>Ad, soyad, e-posta adresi, telefon numarası, şirket bilgileri</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="policy-card">
+                                <div class="policy-icon">
+                                    <i class="fas fa-credit-card"></i>
+                                </div>
+                                <div class="policy-content">
+                                    <h4>Ödeme Bilgileri</h4>
+                                    <p>Fatura adresi, kredi kartı bilgileri (güvenli ödeme sağlayıcıları aracılığıyla)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="policy-card">
+                                <div class="policy-icon">
+                                    <i class="fas fa-desktop"></i>
+                                </div>
+                                <div class="policy-content">
+                                    <h4>Cihaz Bilgileri</h4>
+                                    <p>IP adresi, tarayıcı türü, cihaz tanımlayıcıları, konum bilgileri</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="policy-card">
+                                <div class="policy-icon">
+                                    <i class="fas fa-chart-bar"></i>
+                                </div>
+                                <div class="policy-content">
+                                    <h4>Kullanım Verileri</h4>
+                                    <p>Etkileşimler, görüntülemeler, oturumlar, ekran kullanım istatistikleri</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h3 class="subsection-title">Çerezler ve İzleme Teknolojileri</h3>
+                    <p class="content-text">Web sitemizde ve uygulamalarımızda, kullanıcı deneyimini iyileştirmek ve hizmetlerimizi geliştirmek için çerezler ve benzer izleme teknolojileri kullanıyoruz. Bu teknolojiler aşağıdaki amaçlarla kullanılabilir:</p>
+                    <ul class="content-list content-list-alt">
+                        <li>Oturum yönetimi ve kullanıcı kimlik doğrulaması</li>
+                        <li>Tercihlerinizi ve ayarlarınızı hatırlama</li>
+                        <li>Web sitesi ve uygulama kullanımını analiz etme</li>
+                        <li>Reklam performansını ölçme ve kişiselleştirme</li>
+                    </ul>
+                    
+                    <div class="warning-box">
+                        <p>Tarayıcı ayarlarınızı değiştirerek çerezleri devre dışı bırakabilir veya bunlar hakkında uyarı alabilirsiniz. Ancak bu, hizmetlerimizin bazı özelliklerinin düzgün çalışmasını engelleyebilir.</p>
+                    </div>
+                </div>
+                
+                <div class="content-card">
+                    <h2 class="section-title">Bilgilerin <span>Kullanımı</span></h2>
+                    <p class="content-text">Topladığımız bilgileri aşağıdaki amaçlar için kullanabiliriz:</p>
+                    <ul class="content-list">
+                        <li>Hesabınızı oluşturmak ve yönetmek</li>
+                        <li>Hizmetlerimizi sağlamak, sürdürmek ve geliştirmek</li>
+                        <li>Müşteri desteği sağlamak ve sorularınızı yanıtlamak</li>
+                        <li>Ödeme işlemlerini gerçekleştirmek</li>
+                        <li>Güvenlik ihlallerini önlemek ve tespit etmek</li>
+                        <li>Yasal yükümlülüklerimizi yerine getirmek</li>
+                        <li>Size önemli bildirimler ve güncellemeler göndermek</li>
+                        <li>Ürün ve hizmetlerimiz hakkında pazarlama iletişimi göndermek (dilediğiniz zaman abonelikten çıkabilirsiniz)</li>
+                    </ul>
+                    
+                    <div class="privacy-line"></div>
+                    
+                    <h3 class="subsection-title">Yasal Dayanak</h3>
+                    <p class="content-text">Kişisel verilerinizi işlemek için aşağıdaki yasal dayanakları kullanırız:</p>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>İşleme Amacı</th>
+                                <th>Yasal Dayanak</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Sözleşme yükümlülüklerini yerine getirme</td>
+                                <td>Sizinle bir sözleşme yapmak veya talep ettiğiniz hizmetleri sağlamak için gerekli olduğunda</td>
+                            </tr>
+                            <tr>
+                                <td>Yasal yükümlülükler</td>
+                                <td>Yasal bir yükümlülüğe uymak için gerekli olduğunda</td>
+                            </tr>
+                            <tr>
+                                <td>Meşru menfaatler</td>
+                                <td>Hizmetlerimizi iyileştirmek ve güvenliği sağlamak gibi meşru menfaatlerimiz için gerekli olduğunda</td>
+                            </tr>
+                            <tr>
+                                <td>Onay</td>
+                                <td>Belirli durumlarda, açık onayınızı aldığımızda (örn. pazarlama iletişimi için)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="content-card">
+                    <h2 class="section-title">Bilgilerin <span>Paylaşımı</span></h2>
+                    <p class="content-text">Kişisel bilgilerinizi aşağıdaki durumlar dışında üçüncü taraflarla paylaşmıyoruz:</p>
+                    <ul class="content-list">
+                        <li>Hizmet Sağlayıcılar: Hizmetlerimizi sağlamamıza yardımcı olan üçüncü taraf hizmet sağlayıcılarla paylaşabiliriz (ödeme işlemcileri, bulut depolama sağlayıcıları, müşteri destek hizmetleri gibi).</li>
+                        <li>Yasal Gereklilikler: Yasal bir yükümlülüğe uymak, BulutVizyon'un haklarını veya güvenliğini korumak, yasal bir sürece yanıt vermek veya kamu güvenliğini korumak için bilgileri paylaşabiliriz.</li>
+                        <li>İş Transferleri: Şirketimiz bir birleşme, satın alma veya varlık satışına dahil olursa, kişisel bilgileriniz aktarılan varlıklar arasında olabilir.</li>
+                        <li>İzninizle: Sizin açık izninizi aldığımız diğer durumlarda bilgilerinizi paylaşabiliriz.</li>
+                    </ul>
+                    
+                    <div class="warning-box">
+                        <p>BulutVizyon, kişisel verileri pazarlama amacıyla üçüncü taraflara satmaz veya kiralamaz.</p>
+                    </div>
+                </div>
+                
+                <div class="content-card">
+                    <h2 class="section-title">Veri <span>Güvenliği</span></h2>
+                    <p class="content-text">BulutVizyon, kişisel verilerinizin güvenliğini sağlamak için teknik ve organizasyonel önlemler almaktadır:</p>
+                    <ul class="content-list">
+                        <li>Tüm kişisel veriler, güçlü şifreleme yöntemleri kullanılarak iletilir ve depolanır.</li>
+                        <li>Düzenli güvenlik denetimleri ve penetrasyon testleri gerçekleştiririz.</li>
+                        <li>Çalışanlarımız, veri koruma politikalarımız konusunda eğitilir ve sadece görevlerini yerine getirmek için gerekli verilere erişim sağlanır.</li>
+                        <li>Sistemlerimize yetkisiz erişimi önlemek için çok faktörlü kimlik doğrulama ve erişim kontrolleri kullanırız.</li>
+                    </ul>
+                    
+                    <div class="info-box">
+                        <p>Hiçbir veri iletim veya depolama yöntemi internet üzerinden %100 güvenli değildir. Bu nedenle, kişisel verilerinizin mutlak güvenliğini garanti edemesek de, korumak için ticari olarak makul çabayı gösteriyoruz.</p>
+                    </div>
+                </div>
+                
+                <div class="content-card">
+                    <h2 class="section-title">Kullanıcı <span>Hakları</span></h2>
+                    <p class="content-text">KVKK ve diğer veri koruma yasaları kapsamında aşağıdaki haklara sahipsiniz:</p>
+                    <ul class="content-list">
+                        <li>Bilgilere Erişim: Hakkınızda topladığımız kişisel verilere erişim talep etme hakkı</li>
+                        <li>Düzeltme: Yanlış veya eksik verilerin düzeltilmesini talep etme hakkı</li>
+                        <li>Silme: Belirli koşullar altında kişisel verilerinizin silinmesini talep etme hakkı</li>
+                        <li>İşlemenin Kısıtlanması: Belirli koşullar altında kişisel verilerinizin işlenmesini kısıtlama hakkı</li>
+                        <li>Veri Taşınabilirliği: Sağladığınız verileri yapılandırılmış, yaygın olarak kullanılan ve makine tarafından okunabilir bir formatta alma hakkı</li>
+                        <li>İtiraz: Meşru menfaatlerimiz temelinde işlemeye itiraz etme hakkı</li>
+                        <li>Otomatik Kararlara İtiraz: Otomatik kararlara ve profil oluşturmaya itiraz etme hakkı</li>
+                    </ul>
+                    
+                    <div class="privacy-line"></div>
+                    
+                    <p class="content-text">Yukarıdaki haklardan herhangi birini kullanmak için, <a href="mailto:privacy@bulutvizyon.com" style="color: var(--primary-color); text-decoration: none;">privacy@bulutvizyon.com</a> adresinden bizimle iletişime geçebilirsiniz. Kimliğinizi doğrulamak için ek bilgiler talep edebiliriz.</p>
+                </div>
+                
+                <div class="content-card">
+                    <h2 class="section-title">Veri <span>Saklama</span></h2>
+                    <p class="content-text">Kişisel verilerinizi, hizmetlerimizi sağlamak için gerekli olduğu sürece veya meşru iş amaçları için gerekli olduğu sürece saklıyoruz. Verilerin ne kadar süreyle saklanacağını belirlerken şunları dikkate alırız:</p>
+                    <ul class="content-list">
+                        <li>Verinin niteliği ve hassasiyeti</li>
+                        <li>Verinin işlenme amacı</li>
+                        <li>Yasal, düzenleyici, sözleşmeden doğan veya diğer yükümlülükler</li>
+                    </ul>
+                    
+                    <p class="content-text">Hesabınızı kapattığınızda, kişisel verilerinizi sistemlerimizden sileriz veya anonimleştiririz, ancak yasal yükümlülüklerimizi yerine getirmek, anlaşmazlıkları çözmek ve politikalarımızı uygulamak için gerekli olduğu durumda belirli bilgileri saklayabiliriz.</p>
+                </div>
+                
+                <div class="content-card">
+                    <h2 class="section-title">Çocukların <span>Gizliliği</span></h2>
+                    <p class="content-text">BulutVizyon hizmetleri, 18 yaşın altındaki kişiler için tasarlanmamıştır. Bilerek 18 yaşın altındaki kişilerden kişisel veri toplamıyoruz. 18 yaşın altındaki bir çocuğun bize kişisel bilgiler sağladığını fark ederseniz, lütfen <a href="mailto:privacy@bulutvizyon.com" style="color: var(--primary-color); text-decoration: none;">privacy@bulutvizyon.com</a> adresinden bizimle iletişime geçin.</p>
+                </div>
+                
+                <div class="content-card">
+                    <h2 class="section-title">Politika <span>Değişiklikleri</span></h2>
+                    <p class="content-text">Bu gizlilik politikasını zaman zaman güncelleyebiliriz. Önemli değişiklikler olması durumunda, değişiklikleri web sitemizde duyuracak veya doğrudan size bildirim göndereceğiz.</p>
+                    <p class="content-text">Politikadaki değişiklikleri düzenli olarak kontrol etmenizi öneririz. Bu politikada yapılan güncellemeler, web sitemizde yayınlandıktan sonra geçerli olacaktır.</p>
+                </div>
+                
+                <div class="content-card">
+                    <h2 class="section-title">İletişim <span>Bilgileri</span></h2>
+                    <p class="content-text">Bu gizlilik politikası veya kişisel verilerinizin işlenmesiyle ilgili sorularınız veya endişeleriniz için aşağıdaki iletişim bilgilerinden bize ulaşabilirsiniz:</p>
+                    
+                    <div class="info-box">
+                        <h4 style="color: var(--light-color); font-size: 1.2rem; margin-bottom: 15px;">BulutVizyon Veri Koruma Yetkilisi</h4>
+                        <p style="font-size: 1rem; margin-bottom: 10px;">
+                            <i class="fas fa-envelope" style="margin-right: 10px; color: var(--primary-color);"></i>
+                            <a href="mailto:privacy@bulutvizyon.com" style="color: var(--gray-light); text-decoration: none;">privacy@bulutvizyon.com</a>
+                        </p>
+                        <p style="font-size: 1rem; margin-bottom: 10px;">
+                            <i class="fas fa-phone" style="margin-right: 10px; color: var(--primary-color);"></i>
+                            <a href="tel:+902121234570" style="color: var(--gray-light); text-decoration: none;">+90 212 123 4570</a>
+                        </p>
+                        <p style="font-size: 1rem;">
+                            <i class="fas fa-map-marker-alt" style="margin-right: 10px; color: var(--primary-color);"></i>
+                            <span style="color: var(--gray-light);">Merkez Mah., Teknoloji Cad. No:12, 34000 İstanbul, Türkiye</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %} 

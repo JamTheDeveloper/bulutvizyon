@@ -1,0 +1,324 @@
+{% extends 'base.html' %}
+
+{% block title %}Ekranlarım{% endblock %}
+
+{% block styles %}
+<style>
+    .screen-card {
+        background: linear-gradient(135deg, var(--dark-card) 0%, rgba(25, 28, 36, 0.9) 100%);
+        border-color: var(--dark-border);
+        transition: all 0.3s ease;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .screen-card:hover {
+        box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+        transform: translateY(-5px);
+        background: linear-gradient(135deg, var(--dark-card) 0%, rgba(35, 38, 46, 0.95) 100%);
+    }
+    .screen-preview {
+        background-color: var(--dark-bg);
+        height: 160px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border-radius: 4px;
+        box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+        margin: 0 -1px;
+    }
+    .screen-placeholder {
+        background-color: var(--dark-card);
+        height: 100%;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    .modal-content {
+        background-color: var(--dark-card);
+        color: var(--text-light);
+        border-color: var(--dark-border);
+    }
+    .modal-header, .modal-footer {
+        border-color: var(--dark-border);
+    }
+    code {
+        background-color: rgba(13, 202, 240, 0.1);
+        color: var(--accent-color);
+        padding: 4px 8px;
+        border-radius: 4px;
+        display: inline-block;
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .card-body {
+        padding: 1.5rem;
+    }
+    .card-footer {
+        background: linear-gradient(135deg, rgba(25, 28, 36, 0.5) 0%, rgba(35, 38, 46, 0.7) 100%);
+        border-color: var(--dark-border);
+        padding: 1rem 1.5rem;
+    }
+    .btn-group .btn {
+        border-color: var(--dark-border);
+    }
+    .alert-info {
+        background-color: rgba(13, 202, 240, 0.15);
+        border-color: rgba(13, 202, 240, 0.2);
+        color: var(--text-light);
+    }
+    .text-muted {
+        color: var(--text-gray) !important;
+    }
+    .badge {
+        padding: 0.5em 0.8em;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+    }
+    .badge.bg-success {
+        background: linear-gradient(to right, #28a745, #20c997) !important;
+    }
+    .badge.bg-secondary {
+        background: linear-gradient(to right, #6c757d, #495057) !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2 mb-0">Ekranlarım</h1>
+        {% if screen_count < allowed_screen_count %}
+        <a href="{{ url_for('user.create_screen') }}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-2"></i> Yeni Ekran Oluştur
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Ekran sınır bilgisi -->
+    <div class="alert alert-info mb-4">
+        <div class="d-flex align-items-center">
+            <div class="me-3">
+                <i class="fas fa-info-circle fa-2x"></i>
+            </div>
+            <div>
+                <strong>Ekran Limiti:</strong> {{ screen_count }} / {{ allowed_screen_count }}
+                {% if screen_count >= allowed_screen_count %}
+                <p class="mb-0 mt-1">Maksimum ekran sayısına ulaştınız. Daha fazla ekran eklemek için <a href="{{ url_for('user.packages') }}">paketinizi yükseltin</a>.</p>
+                {% else %}
+                <p class="mb-0 mt-1">{{ allowed_screen_count - screen_count }} ekran daha oluşturabilirsiniz.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if not screens %}
+    <div class="text-center py-5">
+        <img src="{{ url_for('static', filename='img/empty-screens.svg') }}" alt="Ekran Bulunamadı" class="mb-4" style="max-width: 250px;">
+        <h3>Henüz Ekran Oluşturmadınız</h3>
+        <p class="text-muted mb-4">İçeriklerinizi yayınlamak için bir ekran oluşturun.</p>
+        {% if screen_count < allowed_screen_count %}
+        <a href="{{ url_for('user.create_screen') }}" class="btn btn-primary btn-lg mt-3">
+            <i class="fas fa-plus-circle me-2"></i> İlk Ekranımı Oluştur
+        </a>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+        {% for screen in screens %}
+        <div class="col">
+            <div class="card h-100 screen-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        {% if screen.status == 'active' %}
+                        <span class="badge bg-success me-2">Aktif</span>
+                        {% else %}
+                        <span class="badge bg-secondary me-2">Pasif</span>
+                        {% endif %}
+                        <h4 class="card-title mb-0 text-truncate">{{ screen.name }}</h4>
+                    </div>
+                    
+                    <div class="d-flex justify-content-center align-items-center screen-preview mb-3">
+                        {% if screen.preview_image %}
+                        <img src="{{ screen.preview_image }}" alt="{{ screen.name }}" class="img-fluid">
+                        {% else %}
+                        <div class="d-flex flex-column align-items-center justify-content-center h-100 w-100 screen-placeholder">
+                            {% if screen.orientation == 'horizontal' %}
+                            <i class="fas fa-desktop fa-3x mb-2 text-muted"></i>
+                            {% else %}
+                            <i class="fas fa-mobile-alt fa-3x mb-2 text-muted"></i>
+                            {% endif %}
+                            <span class="text-muted small">{{ screen.resolution }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <p class="card-text small">
+                        {% if screen.description %}
+                        {{ screen.description|truncate(100) }}
+                        {% else %}
+                        <span class="text-muted">Açıklama yok</span>
+                        {% endif %}
+                    </p>
+
+                    <div class="d-flex mt-3 screen-info">
+                        <div class="me-3">
+                            <span class="d-block text-muted small">Çözünürlük</span>
+                            <span class="d-block fw-bold">{{ screen.resolution }}</span>
+                        </div>
+                        <div class="me-3">
+                            <span class="d-block text-muted small">Yön</span>
+                            <span class="d-block fw-bold">
+                                {% if screen.orientation == 'horizontal' %}
+                                Yatay
+                                {% else %}
+                                Dikey
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div>
+                            <span class="d-block text-muted small">Konum</span>
+                            <span class="d-block fw-bold">
+                                {% if screen.location %}
+                                {{ screen.location }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <span class="d-block text-muted small">API Anahtarı</span>
+                        <div class="d-flex align-items-center">
+                            <code class="small text-truncate me-2">{{ screen.api_key }}</code>
+                            <button class="btn btn-sm btn-outline-secondary" type="button" onclick="copyToClipboard('{{ screen.api_key }}')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <div class="d-flex justify-content-between">
+                        <div class="btn-group">
+                            <!-- Butonların debug bilgisi ve düzeltilmiş URL'ler -->
+                            <!-- ID Tipi: {{ screen.id.__class__.__name__ }}, Değer: {{ screen.id }} -->
+                            <a href="{{ url_for('user.manage_screen_content', screen_id=screen.id|string) }}" class="btn btn-sm btn-outline-primary" title="İçerik Yönet">
+                                <i class="fas fa-images me-1"></i> İçerik Ekle
+                            </a>
+                            <a href="{{ url_for('user.preview_screen', screen_id=screen.id|string) }}" class="btn btn-sm btn-outline-info" title="Önizle">
+                                <i class="fas fa-eye me-1"></i> Önizleme
+                            </a>
+                            <a href="{{ url_for('user.edit_screen', screen_id=screen.id|string) }}" class="btn btn-sm btn-outline-secondary" title="Düzenle">
+                                <i class="fas fa-edit me-1"></i> Düzenle
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-danger" title="Sil" 
+                                onclick="confirmDelete('{{ screen.id|string }}', '{{ screen.name }}')">
+                                <i class="fas fa-trash-alt me-1"></i> Sil
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Silme Onay Modalı -->
+<div class="modal fade" id="deleteScreenModal" tabindex="-1" aria-labelledby="deleteScreenModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteScreenModalLabel">Ekranı Sil</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <div class="modal-body">
+                <p>Bu ekranı ve tüm içeriklerini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.</p>
+                <p class="fw-bold screen-name-display"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <form id="deleteScreenForm" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">Ekranı Sil</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Silme modalı işleyicisi
+        var deleteScreenModal = document.getElementById('deleteScreenModal');
+        if (deleteScreenModal) {
+            deleteScreenModal.addEventListener('show.bs.modal', function(event) {
+                var button = event.relatedTarget;
+                var screenId = button.getAttribute('data-screen-id');
+                var screenName = button.getAttribute('data-screen-name');
+                
+                var screenNameDisplay = this.querySelector('.screen-name-display');
+                screenNameDisplay.textContent = screenName;
+                
+                var deleteForm = document.getElementById('deleteScreenForm');
+                deleteForm.action = "{{ url_for('user.delete_screen', screen_id='__id__') }}".replace('__id__', screenId);
+            });
+        }
+    });
+    
+    function confirmDelete(screenId, screenName) {
+        // Silme modalını göster
+        var deleteScreenModal = new bootstrap.Modal(document.getElementById('deleteScreenModal'));
+        
+        // Modal bilgilerini ayarla
+        document.querySelector('.screen-name-display').textContent = screenName;
+        
+        // Form action URL'sini ayarla
+        var deleteForm = document.getElementById('deleteScreenForm');
+        deleteForm.action = "{{ url_for('user.delete_screen', screen_id='__id__') }}".replace('__id__', screenId);
+        
+        // Modalı göster
+        deleteScreenModal.show();
+    }
+    
+    function copyToClipboard(text) {
+        // Geçici textarea oluştur
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'absolute';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        
+        // Metni seç ve kopyala
+        textarea.select();
+        document.execCommand('copy');
+        
+        // Textarea'yı kaldır
+        document.body.removeChild(textarea);
+        
+        // Kopya bildirimini göster
+        const tooltip = document.createElement('div');
+        tooltip.style.position = 'fixed';
+        tooltip.style.top = '1rem';
+        tooltip.style.right = '1rem';
+        tooltip.style.background = 'rgba(0, 0, 0, 0.8)';
+        tooltip.style.color = 'white';
+        tooltip.style.padding = '0.5rem 1rem';
+        tooltip.style.borderRadius = '4px';
+        tooltip.style.zIndex = '9999';
+        tooltip.innerText = 'Kopyalandı!';
+        document.body.appendChild(tooltip);
+        
+        setTimeout(() => {
+            document.body.removeChild(tooltip);
+        }, 2000);
+    }
+</script>
+{% endblock %} 

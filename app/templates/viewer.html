@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>BulutVizyon Ekran Görüntüleyici</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: Arial, sans-serif;
+            color: white;
+            position: relative;
+        }
+        
+        #media-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.8s ease-in-out; /* Varsayılan fade efekti */
+            transform-origin: center center;
+        }
+
+        .slide.active {
+            opacity: 1;
+            z-index: 2;
+        }
+
+        .slide.next {
+            /* next sınıfı artık sadece JS'te mantıksal ayırma için kullanılabilir,
+               doğrudan CSS animasyonu tetiklemez (fade hariç) */
+            z-index: 1; 
+            opacity: 0; /* Başlangıçta görünmez olsun */
+        }
+
+        /* Geçiş Efektleri - Sadece Fade kaldı */
+        .transition-fade .slide.active {
+            /* Opacity transition'ı .slide üzerinde tanımlı */
+        }
+        .transition-fade .slide.next {
+             /* Opacity transition'ı .slide üzerinde tanımlı */
+        }
+
+        /* KALDIRILAN SLIDE ANIMASYONLARI
+        .transition-slide-left .slide.active {
+            animation: slideOutLeft 0.8s forwards;
+        }
+        .transition-slide-left .slide.next {
+            animation: slideInRight 0.8s forwards;
+        }
+
+        .transition-slide-right .slide.active {
+            animation: slideOutRight 0.8s forwards;
+        }
+        .transition-slide-right .slide.next {
+            animation: slideInLeft 0.8s forwards;
+        }
+
+        @keyframes slideInLeft {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOutLeft {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(-100%); opacity: 0; }
+        }
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        */
+
+        .slide img,
+        .slide video {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: block; /* Ekstra boşlukları engelle */
+        }
+        
+        #loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            color: white;
+        }
+        
+        #loading p {
+            font-size: 1.2em;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+    </style>
+</head>
+<body>
+        <div id="media-container"></div>
+        <div id="loading">
+            <div class="spinner"></div>
+        <p>Yükleniyor...</p>
+    </div>
+
+    <script>
+        const API_KEY = "{{ screen.api_key }}";
+        const API_URL = `/api/screen/${API_KEY}`;
+        // Jinja2 template syntax düzeltmesi ve JavaScript uyumu:
+        const REFRESH_INTERVAL = parseInt("{{ screen.refresh_rate | default(15) }}") * 1000;
+
+        const mediaContainer = document.getElementById('media-container');
+        const loadingElement = document.getElementById('loading');
+
+        let contentList = [];
+        let currentIndex = 0;
+        let slideTimeout = null;
+        let apiCheckTimeout = null;
+
+        const transitionEffects = ['transition-fade'];
+
+        function getRandomTransition() {
+            return 'transition-fade';
+        }
+
+        function showLoading(message = 'Yükleniyor...') {
+            loadingElement.querySelector('p').textContent = message;
+            loadingElement.style.display = 'flex';
+        }
+
+        function hideLoading() {
+            loadingElement.style.display = 'none';
+        }
+
+        async function fetchContent() {
+            console.log('Fetching content...');
+            clearTimeout(apiCheckTimeout); // Önceki zamanlayıcıyı temizle
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP error: ${response.status}`);
+                }
+                const data = await response.json();
+
+                if (data.success && data.content && data.content.length > 0) {
+                    console.log('Content fetched successfully:', data.content.length, 'items');
+                    const newContent = data.content;
+                    const hasContentChanged = JSON.stringify(contentList) !== JSON.stringify(newContent);
+
+                    contentList = newContent; // Listeyi her zaman güncelle
+
+                    if (hasContentChanged) {
+                        console.log('Content has changed. Restarting slider and sending URLs to SW.');
+                        await sendUrlsToServiceWorker(contentList); // URL'leri SW'ye gönder
+                        startSlider(); // Slider'ı yeni listeyle başlat/yeniden başlat
+                    } else {
+                        console.log('Content unchanged.');
+                        // İçerik değişmediyse zamanlayıcıyı yeniden kur ve SW'ye URL'leri gönder (belki SW yeniden başlamıştır)
+                        await sendUrlsToServiceWorker(contentList);
+                         scheduleApiCheck();
+                    }
+                     hideLoading();
+                } else {
+                    console.error('No content found or API error:', data.message || 'Unknown error');
+                    showLoading('İçerik bulunamadı. Tekrar deneniyor...');
+                    scheduleApiCheck(30000); // 30 saniye sonra tekrar dene
+                }
+            } catch (error) {
+                console.error('API Fetch Error:', error);
+                // Ağ hatası mı kontrol et (tarayıcı desteği değişebilir)
+                const isOffline = !navigator.onLine;
+                if (isOffline && contentList.length > 0) {
+                    // Çevrimdışı ve zaten içerik varsa: Hata gösterme, slider devam etsin.
+                    console.warn('Network error detected, but content exists. Continuing in offline mode.');
+                    hideLoading(); // Yükleniyor ekranını gizle (eğer açıksa)
+                    // Slider zaten çalışıyor olmalı, ekstra bir şey yapmaya gerek yok.
+                    // Sadece API kontrolünü daha uzun aralıkla planla.
+                    scheduleApiCheck(60000); // 1 dakika sonra tekrar dene
+                } else {
+                     // Gerçek bir hata veya ilk yüklemede çevrimdışı olma durumu
+                     showLoading(isOffline ? 'Çevrimdışı. Önbellek kontrol ediliyor...' : 'Bağlantı hatası. Tekrar deneniyor...');
+                     scheduleApiCheck(isOffline ? 30000 : 5000); // Çevrimdışı ise 30sn, değilse 5sn
+                }
+            }
+        }
+
+        function scheduleApiCheck(delay = REFRESH_INTERVAL) {
+             clearTimeout(apiCheckTimeout);
+             apiCheckTimeout = setTimeout(fetchContent, delay);
+             console.log(`Scheduled next API check in ${delay / 1000} seconds.`);
+        }
+
+        // Medya URL'lerini Service Worker'a gönderir
+        async function sendUrlsToServiceWorker(list) {
+            if (!list || list.length === 0) return;
+            // Aktif bir Service Worker kontrolcüsü olmasını bekle
+            if ('serviceWorker' in navigator) {
+                try {
+                    // SW'nin hazır ve kontrolü ele almış olmasını bekle
+                    const registration = await navigator.serviceWorker.ready;
+                    if (registration.active) {
+                        const urlsToCache = list
+                            .map(item => item.media.file_url)
+                            .filter(url => url); 
+                        
+                        if (urlsToCache.length > 0) {
+                             console.log('Sending URLs to Active Service Worker for pre-caching:', urlsToCache);
+                             // registration.active üzerinden mesaj gönder
+                             registration.active.postMessage({
+                                type: 'CACHE_URLS',
+                                payload: urlsToCache
+                             });
+                        }
+                    } else {
+                         console.warn('Service Worker is registered but not active yet.');
+                    }
+                } catch (error) {
+                    console.error('Error waiting for or communicating with Service Worker:', error);
+                }
+            } else {
+                 console.warn('Service Worker not supported in this browser.');
+            }
+        }
+
+        function createSlideElement(item, index) {
+            const slide = document.createElement('div');
+            slide.className = 'slide';
+            slide.dataset.index = index;
+
+            if (item.media.file_type === 'image') {
+                const img = document.createElement('img');
+                img.src = item.media.file_url;
+                img.alt = item.media.title || 'Görsel';
+                img.loading = 'lazy';
+                img.onerror = (e) => {
+                    console.error(`Image failed to load: ${img.src}`, e);
+                    // Çevrimdışı iken hata olursa, hemen geçme, zamanlayıcıya bırak
+                    if (!navigator.onLine) {
+                         console.warn('Image load failed while offline. Relying on slide timer.');
+                         slide.innerHTML = '<p style="color: orange;">Görsel yüklenemedi (Çevrimdışı)</p>';
+                         // nextSlide() ÇAĞIRMA
+                    } else {
+                         // Çevrimiçi iken hata olursa, sonraki slayta geç
+                         slide.innerHTML = '<p style="color: red;">Görsel yüklenemedi</p>';
+                         clearTimeout(slideTimeout);
+                         setTimeout(nextSlide, 500); // Kısa bekleme sonrası geç
+                    }
+                }
+                slide.appendChild(img);
+            } else if (item.media.file_type === 'video') {
+                    const video = document.createElement('video');
+                    video.muted = true;
+                    video.playsInline = true;
+                video.setAttribute('webkit-playsinline', '');
+                video.preload = 'metadata';
+                video.onerror = (e) => {
+                    console.error(`Video error event: ${video.src}`, e);
+                    // Çevrimdışı iken hata olursa, hemen geçme
+                    if (!navigator.onLine) {
+                         console.warn('Video load/play error while offline. Relying on slide timer/onended.');
+                         // Belki bir mesaj gösterilebilir, ama oynatıcı alanı bozulmasın
+                         // nextSlide() ÇAĞIRMA
+                    } else {
+                         // Çevrimiçi iken hata olursa, sonraki slayta geç
+                         clearTimeout(slideTimeout);
+                         setTimeout(nextSlide, 500); // Kısa bekleme sonrası geç
+                    }
+                };
+                video.onended = () => {
+                    console.log(`Video ended: ${video.src}`);
+                    clearTimeout(slideTimeout);
+                    nextSlide();
+                };
+                 video.onloadedmetadata = () => {
+                    console.log(`Video metadata loaded: ${video.src}`);
+                 };
+                slide.appendChild(video);
+            }
+            return slide;
+        }
+
+        function playVideo(videoElement) {
+            if (!videoElement) return;
+            if (!videoElement.src) {
+                console.warn('Video source not set before play attempt.');
+                // Kaynak yoksa hemen sonrakine geçmeyi dene
+                clearTimeout(slideTimeout);
+                setTimeout(nextSlide, 100);
+                    return;
+                }
+                
+            // Video oynatmaya hazır mı kontrol et (readyState > 2 genellikle yeterli)
+            if (videoElement.readyState >= 3) { // HAVE_FUTURE_DATA veya HAVE_ENOUGH_DATA
+                videoElement.currentTime = 0;
+                videoElement.play().then(() => {
+                    console.log(`Video playing: ${videoElement.src}`);
+                }).catch(error => {
+                    console.error('Video play failed immediately:', error, videoElement.src);
+                    clearTimeout(slideTimeout);
+                    setTimeout(nextSlide, 500);
+                });
+            } else {
+                // Henüz hazır değilse, kısa bir süre bekleyip tekrar dene
+                console.log(`Video not ready (readyState: ${videoElement.readyState}), waiting...`, videoElement.src);
+                let waitAttempts = 0;
+                const waitInterval = setInterval(() => {
+                    waitAttempts++;
+                    if (videoElement.readyState >= 3) {
+                        clearInterval(waitInterval);
+                        console.log(`Video ready after ${waitAttempts * 100}ms, playing...`);
+                        videoElement.currentTime = 0;
+                        videoElement.play().then(() => {
+                            console.log(`Video playing after wait: ${videoElement.src}`);
+                        }).catch(error => {
+                             console.error('Video play failed after wait:', error, videoElement.src);
+                            clearTimeout(slideTimeout);
+                             setTimeout(nextSlide, 500);
+                        });
+                    } else if (waitAttempts >= 50) { // 5 saniye bekle, sonra vazgeç
+                        clearInterval(waitInterval);
+                        console.error('Video did not become ready for playback, skipping.', videoElement.src);
+                        clearTimeout(slideTimeout);
+                        setTimeout(nextSlide, 100);
+                    }
+                }, 100);
+            }
+        }
+
+        function showSlide(index) {
+            clearTimeout(slideTimeout);
+            console.log(`Showing slide ${index}`);
+
+            if (contentList.length === 0) {
+                console.warn('Content list is empty, cannot show slide.');
+                showLoading('Oynatılacak içerik yok.');
+                scheduleApiCheck(10000);
+                    return;
+                }
+                
+             if (index >= contentList.length) index = 0;
+             if (index < 0) index = contentList.length - 1;
+             currentIndex = index;
+
+            const currentItem = contentList[currentIndex];
+            const nextIndex = (currentIndex + 1) % contentList.length;
+            const nextItem = contentList[nextIndex]; // Sonraki öğeyi al
+
+            const previousActiveSlide = mediaContainer.querySelector('.slide.active');
+
+            // Yeni aktif slaytı oluştur/bul
+            let newActiveSlide = mediaContainer.querySelector(`.slide[data-index='${currentIndex}']`);
+            if (!newActiveSlide) {
+                newActiveSlide = createSlideElement(currentItem, currentIndex);
+                mediaContainer.appendChild(newActiveSlide);
+            }
+
+            // --- Sonraki Slaytı Hazırlama --- 
+            let newNextSlide = null;
+            if (contentList.length > 1) { 
+                newNextSlide = mediaContainer.querySelector(`.slide[data-index='${nextIndex}']`);
+                if (!newNextSlide) {
+                     newNextSlide = createSlideElement(nextItem, nextIndex);
+                     // Başlangıçta DOM'a ekle ama görünmez ve arkada tut
+                     newNextSlide.style.opacity = '0'; 
+                     newNextSlide.style.zIndex = '-1'; 
+                     mediaContainer.appendChild(newNextSlide);
+                     console.log(`Preloaded next slide DOM element: ${nextIndex}`);
+                }
+                 if (nextItem.media.file_type === 'video') {
+                    const nextVideo = newNextSlide.querySelector('video');
+                    // Sadece kaynak atanmamışsa ve oynatılmıyorsa yükle
+                    if (nextVideo && !nextVideo.src && nextVideo.paused) {
+                         nextVideo.src = nextItem.media.file_url;
+                         nextVideo.load(); 
+                         console.log(`Preloading next video metadata: ${nextVideo.src}`);
+                    }
+                }
+            }
+            // ----------------------------------
+
+            // Önceki slaytları temizle (yeni aktif, önceki aktif ve bir sonraki hariç)
+            const allSlides = mediaContainer.querySelectorAll('.slide');
+            allSlides.forEach(s => {
+                 // Korunacaklar: Yeni aktif olacak, şu an aktif olan (geçiş için), ön yüklenen sonraki
+                if (s !== newActiveSlide && s !== previousActiveSlide && s !== newNextSlide) {
+                    console.log(`Removing unrelated slide: ${s.dataset.index}`);
+                    const video = s.querySelector('video');
+                    if (video) {
+                        video.pause();
+                        video.removeAttribute('src');
+                        video.load();
+                    }
+                    // DOM'dan kaldırırken hata oluşursa yakala
+                    try { mediaContainer.removeChild(s); } catch(e) { console.warn('Error removing slide:', e); }
+                }
+            });
+
+             // Yeni slaytı hazırlama (aktif video src)
+             if (currentItem.media.file_type === 'video') {
+                const video = newActiveSlide.querySelector('video');
+                // Sadece kaynak atanmamışsa ata
+                if (video && !video.src) {
+                    video.src = currentItem.media.file_url;
+                    video.load();
+                    console.log(`Active video source set and load initiated: ${video.src}`);
+                }
+            }
+
+             // Geçişi başlat
+            requestAnimationFrame(() => {
+                 const videoElementToPlay = newActiveSlide.querySelector('video');
+
+                 if (previousActiveSlide && previousActiveSlide !== newActiveSlide) {
+                    const transitionClass = getRandomTransition();
+                    console.log(`Applying transition: ${transitionClass}`);
+
+                    // 1. Girecek slaytı hazırla (`next` sınıfı ve başlangıç stili)
+                    newActiveSlide.classList.add('next');
+                    newActiveSlide.style.opacity = '0'; // Başlangıçta görünmez
+                    newActiveSlide.style.zIndex = 1;    // Aktif olanın arkasında
+
+                    // 2. Çıkacak slayt zaten 'active' ve zIndex=2 olmalı
+                    previousActiveSlide.style.zIndex = 2; // Emin olalım
+
+                    // 3. Konteynera geçiş sınıfını ekle (Bu, CSS animasyonlarını tetikler)
+                    mediaContainer.className = transitionClass;
+
+                    // 4. Tarayıcının stilleri işlemesini bekle (küçük bir gecikme)
+                    //    requestAnimationFrame içinde olduğumuz için bu genellikle yeterli
+                    //    ama emin olmak için void newActiveSlide.offsetWidth; de kullanılabilir.
+                    //    void newActiveSlide.offsetWidth;
+
+                    // 5. Animasyonu Başlat:
+                    //    - Girecek slaytı 'active' yap (CSS 'next' animasyonunu tetikler)
+                    //    - Çıkacak slayt 'active' olduğu için CSS çıkış animasyonunu tetikler
+                    requestAnimationFrame(() => { // İkinci RAF ile animasyon başlangıcını garantile
+                        newActiveSlide.classList.remove('next');
+                        newActiveSlide.classList.add('active');
+                        newActiveSlide.style.opacity = '1'; // Görünür hale getir (CSS transition/animation halleder)
+                        newActiveSlide.style.zIndex = 2;    // Üste çıkar
+
+                        // Çıkacak slaytın zIndex'ini düşür ki yeni gelenin arkasında kalsın (animasyon bitince)
+                        previousActiveSlide.style.zIndex = 1;
+                    });
+
+                    // 6. Animasyon Bitiminde Temizlik
+                    setTimeout(() => {
+                        if (previousActiveSlide && previousActiveSlide.parentNode === mediaContainer) {
+                            const video = previousActiveSlide.querySelector('video');
+                            if (video) {
+                                video.pause();
+                                video.removeAttribute('src');
+                                try { video.load(); } catch (e) { console.warn("Error calling load on removed slide video:", e); }
+                            }
+                            try { mediaContainer.removeChild(previousActiveSlide); } catch (e) { console.warn('Error removing previous slide:', e); }
+                            console.log('Removed previous slide:', previousActiveSlide?.dataset?.index);
+                        }
+                        // Yeni slaytın sadece 'active' sınıfına sahip olduğundan emin ol
+                        if (newActiveSlide) {
+                            newActiveSlide.classList.remove('next'); // Kalmışsa temizle
+                        }
+                        // Konteynerdan geçiş sınıfını kaldır
+                        mediaContainer.className = '';
+
+                    }, 800); // CSS animasyon süresiyle eşleşmeli (veya biraz fazlası)
+
+                 } else {
+                     // İlk slayt durumu (geçiş yok)
+                     mediaContainer.className = '';
+                     newActiveSlide.style.opacity = '1';
+                     newActiveSlide.classList.add('active');
+                     newActiveSlide.style.zIndex = 2; // Aktif slayt her zaman üstte
+                 }
+
+                 // --- Diğer işlemler ---
+
+                 // Ön yüklenen slaytı tekrar arkaya al (eğer yeni aktif olan değilse)
+                 if(newNextSlide && newNextSlide !== newActiveSlide) { 
+                    newNextSlide.style.zIndex = '-1';
+                 }
+
+                 console.log('Activated slide:', newActiveSlide.dataset.index);
+
+                 // Aktif slayttaki videoyu oynat
+                 if (currentItem.media.file_type === 'video') {
+                    if (videoElementToPlay) { 
+                        console.log("Attempting to play video in active slide:", videoElementToPlay.src || "(no src yet)");
+                         playVideo(videoElementToPlay); 
+                        } else {
+                         console.error("Video element not found in active slide!", newActiveSlide.dataset.index);
+                         // Video yoksa hemen sonrakine geçmeyi dene
+                         clearTimeout(slideTimeout);
+                         setTimeout(nextSlide, 100);
+                     }
+                 }
+
+                 setSlideTimer(currentItem);
+            });
+        }
+
+        function setSlideTimer(item) {
+             clearTimeout(slideTimeout);
+             let durationMs = 10000; // Varsayılan 10sn
+
+             if (item.media.file_type === 'image') {
+                 durationMs = (item.display_time || 10) * 1000;
+             } else if (item.media.file_type === 'video') {
+                 const video = mediaContainer.querySelector(`.slide.active video`);
+                 const apiDuration = (item.duration || 30) * 1000; // API'den gelen süre veya 30sn fallback
+                 const isOffline = !navigator.onLine;
+
+                 let videoDurationOk = video && video.duration && isFinite(video.duration) && video.duration > 1;
+
+                 if (videoDurationOk) {
+                     // Video metadata süresi güvenilir, onu kullan (+ güvenlik payı)
+                     durationMs = (video.duration * 1000) + (isOffline ? 7000 : 5000); // Çevrimdışıysa biraz daha fazla tampon
+                     console.log(`Video timer set from metadata: ${video.duration}s + buffer`);
+                 } else {
+                     // Video metadata süresi güvenilir değil veya yüklenmemiş
+                     if (isOffline) {
+                         // Çevrimdışı: API süresine güven ama daha uzun bir minimum sağla
+                         durationMs = Math.max(apiDuration, 15000) + 5000; // API süresi veya en az 15sn + 5sn tampon
+                         console.log(`Video timer set from API/fallback (Offline): min(15s, API) + 5s buffer`);
+                     } else {
+                          // Çevrimiçi: API süresine güven (+ standart güvenlik payı)
+                         durationMs = apiDuration + 5000; // API/fallback + 5sn
+                         console.log(`Video timer set from API/fallback (Online): API + 5s buffer`);
+                     }
+                 }
+
+                 console.log(`Video fallback timer set to ${durationMs / 1000}s (primary trigger is 'onended')`);
+
+             } else {
+                 console.warn(`Unknown media type for timer: ${item.media.file_type}`);
+             }
+
+             // Negatif veya çok kısa süreleri engelle (genel minimum)
+             durationMs = Math.max(durationMs, 5000); // En az 5 saniye gösterim süresi
+
+             console.log(`Next slide timer set for ${durationMs / 1000} seconds.`);
+             slideTimeout = setTimeout(nextSlide, durationMs);
+        }
+
+        function nextSlide() {
+            console.log('Next slide requested.');
+            // Eğer içerik hala yükleniyorsa veya liste boşsa bir şey yapma
+            if (loadingElement.style.display !== 'none' || contentList.length === 0) {
+                console.warn('Skipping nextSlide request while loading or empty list.');
+                return;
+            }
+            showSlide(currentIndex + 1);
+        }
+
+        function startSlider() {
+             console.log('Starting slider...');
+             // Aktif zamanlayıcıları temizle
+             clearTimeout(slideTimeout);
+             clearTimeout(apiCheckTimeout);
+
+             if (contentList.length > 0) {
+                mediaContainer.innerHTML = ''; // Başlarken temizle
+                currentIndex = 0; // Her zaman ilk slayttan başla
+                hideLoading();
+                showSlide(currentIndex);
+                scheduleApiCheck(); // API kontrolünü başlat/zamanla
+             } else {
+                showLoading('Başlatılacak içerik yok.');
+                mediaContainer.innerHTML = ''; // İçerik yoksa alanı temizle
+                scheduleApiCheck(5000);
+             }
+        }
+
+        // Başlangıç
+        document.addEventListener('DOMContentLoaded', () => {
+            showLoading();
+            fetchContent();
+            
+            document.addEventListener('click', () => {
+                if (!document.fullscreenElement) {
+                     document.documentElement.requestFullscreen().catch(err => {
+                         console.warn(`Fullscreen request failed: ${err.message}`);
+                     });
+                 }
+            });
+        });
+
+        // Service Worker Kaydı
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js') // sw.js dosyasının yolunu doğru ayarlayın
+              .then(registration => {
+                console.log('ServiceWorker registration successful with scope: ', registration.scope);
+              })
+              .catch(error => {
+                console.log('ServiceWorker registration failed: ', error);
+              });
+          });
+        }
+
+    </script>
+</body>
+</html> 

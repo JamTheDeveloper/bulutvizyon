@@ -1,0 +1,342 @@
+{% extends 'base.html' %}
+
+{% block title %}Sıkça Sorulan Sorular - BulutVizyon{% endblock %}
+
+{% block styles %}
+<style>
+    :root {
+        --primary-color: #7157f9;
+        --secondary-color: #5d3bfb;
+        --accent-color: #ff328f;
+        --dark-color: #0a0a0c;
+        --dark-secondary: #141418;
+        --light-color: #ffffff;
+        --gray-light: #a0a0ab;
+        --gray-dark: #202026;
+        --gradient-purple: linear-gradient(120deg, #7157f9, #5d3bfb);
+        --gradient-pink: linear-gradient(120deg, #ff328f, #ff5a5a);
+        --shadow-soft: 0 10px 30px rgba(113, 87, 249, 0.15);
+        --shadow-hard: 0 15px 40px rgba(113, 87, 249, 0.3);
+    }
+    
+    body {
+        background-color: var(--dark-color);
+    }
+    
+    .page-header {
+        background-color: var(--dark-color);
+        padding: 120px 0 80px;
+        position: relative;
+        overflow: hidden;
+        margin-top: -80px;
+    }
+    
+    .page-header-shape {
+        position: absolute;
+        width: 600px;
+        height: 600px;
+        border-radius: 50%;
+        background: var(--gradient-purple);
+        opacity: 0.1;
+        filter: blur(80px);
+        z-index: 0;
+    }
+    
+    .page-header-shape-1 {
+        top: -200px;
+        right: -100px;
+    }
+    
+    .page-header-shape-2 {
+        bottom: -300px;
+        left: -200px;
+        background: var(--gradient-pink);
+        width: 800px;
+        height: 800px;
+    }
+    
+    .page-header-content {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .page-title {
+        font-size: 3.5rem;
+        font-weight: 800;
+        margin-bottom: 1.5rem;
+        color: var(--light-color);
+        position: relative;
+        display: inline-block;
+    }
+    
+    .page-title span {
+        color: var(--primary-color);
+    }
+    
+    .page-title::after {
+        content: '';
+        position: absolute;
+        bottom: -15px;
+        left: 0;
+        width: 80px;
+        height: 4px;
+        background: var(--gradient-purple);
+        border-radius: 2px;
+    }
+    
+    .page-subtitle {
+        font-size: 1.3rem;
+        color: var(--gray-light);
+        margin-bottom: 2rem;
+        max-width: 700px;
+    }
+    
+    .page-content {
+        background-color: var(--dark-color);
+        padding: 80px 0;
+        color: var(--light-color);
+    }
+    
+    /* FAQ Özel Stilleri */
+    .faq-wrapper {
+        background-color: var(--dark-secondary);
+        border-radius: 16px;
+        padding: 40px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .faq-categories {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 40px;
+    }
+    
+    .faq-category {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        padding: 10px 24px;
+        border-radius: 50px;
+        color: var(--gray-light);
+        transition: all 0.3s ease;
+        cursor: pointer;
+        font-weight: 500;
+    }
+    
+    .faq-category:hover {
+        background: rgba(113, 87, 249, 0.1);
+        color: var(--primary-color);
+        border-color: rgba(113, 87, 249, 0.2);
+    }
+    
+    .faq-category.active {
+        background: var(--gradient-purple);
+        color: white;
+        border-color: transparent;
+        box-shadow: var(--shadow-soft);
+    }
+    
+    .faq-item {
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        padding: 25px 0;
+        transition: all 0.3s ease;
+    }
+    
+    .faq-item:first-child {
+        padding-top: 0;
+    }
+    
+    .faq-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+    
+    .faq-item:hover {
+        transform: translateX(5px);
+    }
+    
+    .faq-question {
+        color: var(--light-color);
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        position: relative;
+        display: inline-block;
+    }
+    
+    .faq-question span {
+        background: var(--gradient-purple);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 700;
+    }
+    
+    .faq-answer {
+        color: var(--gray-light);
+        line-height: 1.7;
+        margin-bottom: 0;
+        font-size: 1.05rem;
+    }
+    
+    @media (max-width: 768px) {
+        .page-header {
+            padding: 100px 0 60px;
+        }
+        
+        .page-title {
+            font-size: 2.5rem;
+        }
+        
+        .faq-wrapper {
+            padding: 25px;
+        }
+        
+        .faq-categories {
+            justify-content: center;
+        }
+        
+        .faq-question {
+            font-size: 1.3rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div class="page-header-shape page-header-shape-1"></div>
+    <div class="page-header-shape page-header-shape-2"></div>
+    <div class="container page-header-content">
+        <div class="row justify-content-center">
+            <div class="col-lg-10 text-center">
+                <h1 class="page-title">Sıkça Sorulan <span>Sorular</span></h1>
+                <p class="page-subtitle mx-auto">BulutVizyon hakkında merak ettiğiniz her şey</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="page-content">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="faq-wrapper">
+                    <div class="faq-categories">
+                        <div class="faq-category active">Tümü</div>
+                        <div class="faq-category">Genel</div>
+                        <div class="faq-category">Teknik</div>
+                        <div class="faq-category">Ödeme</div>
+                        <div class="faq-category">Destek</div>
+                    </div>
+                    
+                    <div class="faq-items">
+                        <div class="faq-item" data-category="genel">
+                            <h3 class="faq-question"><span>▸</span> BulutVizyon nedir?</h3>
+                            <p class="faq-answer">BulutVizyon, işletmelerin dijital ekranlarını tek bir merkezden yönetmelerini sağlayan profesyonel bir dijital ekran yönetim sistemidir. Bulut tabanlı çözümümüz ile içeriklerinizi dilediğiniz yerden kolayca yönetebilirsiniz.</p>
+                        </div>
+                        
+                        <div class="faq-item" data-category="genel">
+                            <h3 class="faq-question"><span>▸</span> Nasıl başlayabilirim?</h3>
+                            <p class="faq-answer">Ücretsiz hesap oluşturarak hemen başlayabilirsiniz. Kayıt olduktan sonra ekranlarınızı sisteme ekleyip içerik yüklemeye başlayabilirsiniz. Kullanıcı dostu arayüzümüz sayesinde herhangi bir teknik bilgi gerektirmeden sistemi kullanabilirsiniz.</p>
+                        </div>
+                        
+                        <div class="faq-item" data-category="teknik">
+                            <h3 class="faq-question"><span>▸</span> Hangi tür ekranlar destekleniyor?</h3>
+                            <p class="faq-answer">Sistemimiz Led Ekranlar, Micro PC'ler, Android ve iOS tabanlı tabletler, Smart TV'ler (Tizen ve WebOS işletim sistemli) ile uyumludur. Özel donanım gereksinimi yoktur, mevcut ekranlarınızı kullanabilirsiniz.</p>
+                        </div>
+                        
+                        <div class="faq-item" data-category="teknik">
+                            <h3 class="faq-question"><span>▸</span> İçerik yükleme limiti var mı?</h3>
+                            <p class="faq-answer">Her pakette farklı depolama limitleri bulunmaktadır. Başlangıç paketi 1GB, Profesyonel paket 5GB ve Kurumsal paket 10GB depolama alanı sunmaktadır. İhtiyaçlarınıza göre en uygun paketi seçebilirsiniz.</p>
+                        </div>
+                        
+                        <div class="faq-item" data-category="destek">
+                            <h3 class="faq-question"><span>▸</span> Teknik destek sunuyor musunuz?</h3>
+                            <p class="faq-answer">Evet, tüm müşterilerimize e-posta ve telefon üzerinden teknik destek sağlıyoruz. Kurumsal paket kullanıcılarımız için 7/24 öncelikli destek hizmeti sunuyoruz. Ayrıca kapsamlı bir bilgi tabanı ve video eğitimlerimiz ile sık karşılaşılan sorunların çözümlerini bulabilirsiniz.</p>
+                        </div>
+                        
+                        <div class="faq-item" data-category="teknik">
+                            <h3 class="faq-question"><span>▸</span> İçeriklerimi nasıl planlayabilirim?</h3>
+                            <p class="faq-answer">Kullanıcı dostu arayüzümüz sayesinde içeriklerinizi günlük, haftalık veya aylık olarak planlayabilir, farklı ekranlar için farklı yayın akışları oluşturabilirsiniz. İçeriklerinizi belirli saatlerde veya tarihlerde göstermek için zamanlanmış yayınlar oluşturabilirsiniz.</p>
+                        </div>
+                        
+                        <div class="faq-item" data-category="ödeme">
+                            <h3 class="faq-question"><span>▸</span> Ödeme seçenekleri nelerdir?</h3>
+                            <p class="faq-answer">Kredi kartı ile aylık veya yıllık ödeme yapabilirsiniz. Kurumsal müşterilerimiz için havale/EFT seçeneği de sunulmaktadır. Tüm ödemeleriniz için fatura kesilmektedir ve abonelik sürecinizi istediğiniz zaman yönetim paneli üzerinden kontrol edebilirsiniz.</p>
+                        </div>
+                        
+                        <div class="faq-item" data-category="ödeme">
+                            <h3 class="faq-question"><span>▸</span> Deneme süresi var mı?</h3>
+                            <p class="faq-answer">Evet, tüm özelliklerimizi 14 gün boyunca ücretsiz olarak test edebilirsiniz. Deneme süresi sonunda dilediğiniz paketi seçebilirsiniz. Deneme süresinde herhangi bir kredi kartı bilgisi alınmamaktadır ve süre sonunda otomatik ücretlendirme yapılmaz.</p>
+                        </div>
+                        
+                        <div class="faq-item" data-category="ödeme">
+                            <h3 class="faq-question"><span>▸</span> Sözleşme süresi ne kadardır?</h3>
+                            <p class="faq-answer">Aylık ve yıllık abonelik seçeneklerimiz bulunmaktadır. Yıllık aboneliklerimizde %20 indirim sunuyoruz. Sözleşme süreniz sona erdiğinde otomatik olarak yenilenir, ancak istediğiniz zaman iptal edebilirsiniz. İptal işlemi için herhangi bir ceza ücreti uygulanmaz.</p>
+                        </div>
+                        
+                        <div class="faq-item" data-category="teknik">
+                            <h3 class="faq-question"><span>▸</span> İnternet bağlantısı kesilirse içeriklerim gösterilmeye devam eder mi?</h3>
+                            <p class="faq-answer">Evet, sistemimiz çevrimdışı çalışma moduna sahiptir. İnternet bağlantısı kesildiğinde, cihazlar en son indirilen içerikleri göstermeye devam eder ve bağlantı sağlandığında otomatik olarak senkronize olur. Bu özellik sayesinde internet kesintilerinden etkilenmeden kesintisiz yayın yapabilirsiniz.</p>
+                        </div>
+                        
+                        <div class="faq-item" data-category="genel">
+                            <h3 class="faq-question"><span>▸</span> Hizmetlerinize nasıl erişim sağlayabilirim?</h3>
+                            <p class="faq-answer">Abonelik ödemeniz onaylandıktan sonra, e-posta adresinize bir aktivasyon bağlantısı gönderilecektir. Bu bağlantıyı kullanarak şifrenizi oluşturabilir ve yönetim panelinize erişebilirsiniz. Yönetim paneli, web tarayıcısı üzerinden erişilebilen bulut tabanlı bir uygulamadır.</p>
+                        </div>
+                        
+                        <div class="faq-item" data-category="teknik">
+                            <h3 class="faq-question"><span>▸</span> Donanım bileşenlerini mutlaka sizden mi satın almalıyım?</h3>
+                            <p class="faq-answer">Hayır, BulutVizyon yazılımı, belirli teknik gereksinimleri karşılayan çeşitli donanım cihazlarıyla uyumludur. Kendi donanımınızı kullanabilir veya bizden temin edebilirsiniz. Ancak, bizden temin edilen donanımlar, yazılımımızla tam uyumlu olacak şekilde önceden yapılandırılmıştır ve kurulum süreci daha hızlı olacaktır.</p>
+                        </div>
+                        
+                        <div class="faq-item" data-category="teknik">
+                            <h3 class="faq-question"><span>▸</span> Kurulum için teknik bilgiye ihtiyacım var mı?</h3>
+                            <p class="faq-answer">Temel paket için, basit teknik bilgi yeterlidir. Detaylı kurulum kılavuzlarımız adım adım tüm süreci açıklamaktadır. Premium ve Kurumsal paketler için uzmanlarımız kurulum sürecinde size yardımcı olacaktır. Teknik zorluklar yaşamanız durumunda, destek ekibimiz her zaman yardıma hazırdır.</p>
+                        </div>
+                        
+                        <div class="faq-item" data-category="ödeme">
+                            <h3 class="faq-question"><span>▸</span> Aboneliğimi yükseltmek istersem ne yapmalıyım?</h3>
+                            <p class="faq-answer">Mevcut aboneliğinizi istediğiniz zaman hesap yönetimi panelinden yükseltebilirsiniz. Yükseltme işlemi anında gerçekleşir ve fiyat farkı, mevcut abonelik sürenizin kalan günlerine göre orantılı olarak hesaplanır. Yükseltme sonrası ek özelliklere hemen erişim sağlayabilirsiniz.</p>
+                        </div>
+                        
+                        <div class="faq-item" data-category="ödeme">
+                            <h3 class="faq-question"><span>▸</span> İptal ve iade politikanız nedir?</h3>
+                            <p class="faq-answer">Dijital hizmetlerimiz için, ilk 14 gün içinde tam iade garantisi sunuyoruz, herhangi bir sebeple memnun kalmazsanız. 14 günden sonra yapılan iptal işlemlerinde, kalan süre için iade yapılmamaktadır. Donanım bileşenleri için, teslimat tarihinden itibaren 30 gün içinde, orijinal ambalajında ve hasarsız olarak iade edilmesi durumunda tam iade sağlanmaktadır.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const categories = document.querySelectorAll('.faq-category');
+        const faqItems = document.querySelectorAll('.faq-item');
+        
+        categories.forEach(category => {
+            category.addEventListener('click', function() {
+                // Görsel değişim için sınıfları güncelle
+                categories.forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
+                
+                const selectedCategory = this.textContent.toLowerCase();
+                
+                // Soruları filtrele
+                faqItems.forEach(item => {
+                    // Eğer "Tümü" seçildiyse veya soru seçilen kategoriye aitse göster
+                    if (selectedCategory === 'tümü' || item.getAttribute('data-category') === selectedCategory) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        });
+    });
+</script>
+{% endblock %} 

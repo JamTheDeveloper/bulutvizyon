@@ -1,0 +1,455 @@
+{% extends 'supervisor/base.html' %}
+
+{% block title %}Profilim - BulutVizyon{% endblock %}
+
+{% block styles %}
+<style>
+    /* Genel UI Değişkenleri */
+    :root {
+        --card-border-radius: 0.85rem;
+        --section-spacing: 1.75rem;
+    }
+    
+    /* Profil Başlık Bölümü */
+    .profile-header {
+        background: linear-gradient(135deg, #fd7e14, #ffc107);
+        border-radius: var(--card-border-radius);
+        padding: 2rem;
+        margin-bottom: var(--section-spacing);
+        border: none;
+        color: #212529;
+        box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Avatar */
+    .profile-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #ffc107, #fd7e14);
+        color: #212529;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
+        border: 4px solid rgba(255, 255, 255, 0.5);
+    }
+    
+    /* İçerik Kart Stilleri */
+    .profile-section {
+        background-color: var(--dark-card);
+        border-radius: var(--card-border-radius);
+        padding: 1.75rem;
+        margin-bottom: var(--section-spacing);
+        box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--dark-border);
+        transition: all 0.3s ease;
+    }
+    
+    .profile-section:hover {
+        box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+    }
+    
+    /* İstatistik Kartları */
+    .profile-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    
+    .stat-item {
+        text-align: center;
+        padding: 1.25rem 1rem;
+        border-radius: var(--card-border-radius);
+        background-color: var(--dark-bg);
+        flex: 1;
+        min-width: calc(25% - 0.75rem);
+        border: 1px solid var(--dark-border);
+        transition: all 0.3s ease;
+    }
+    
+    .stat-item:hover {
+        background-color: rgba(255, 193, 7, 0.1);
+        transform: translateY(-3px);
+    }
+    
+    .stat-value {
+        font-size: 1.75rem;
+        font-weight: bold;
+        margin-bottom: 0.25rem;
+        background: linear-gradient(135deg, #ffc107, #fd7e14);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .stat-label {
+        font-size: 0.875rem;
+        color: var(--text-gray);
+        font-weight: 500;
+    }
+    
+    /* Form Elementi Stilleri */
+    .profile-form label {
+        font-weight: 500;
+        color: var(--text-light);
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control {
+        background-color: var(--dark-input);
+        color: var(--text-light);
+        border-color: var(--dark-border);
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25);
+    }
+    
+    /* Activity List */
+    .activity-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .activity-item {
+        padding: 1.25rem;
+        border-radius: var(--card-border-radius);
+        background-color: var(--dark-bg);
+        margin-bottom: 0.75rem;
+        border: 1px solid var(--dark-border);
+        transition: all 0.3s ease;
+    }
+    
+    .activity-item:hover {
+        background-color: rgba(255, 193, 7, 0.1);
+        transform: translateY(-2px);
+    }
+    
+    .activity-icon {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background-color: rgba(255, 193, 7, 0.15);
+        color: #ffc107;
+        margin-right: 1rem;
+    }
+    
+    /* Form Switch */
+    .form-check-input {
+        background-color: var(--dark-input);
+        border-color: var(--dark-border);
+    }
+    
+    .form-check-input:checked {
+        background-color: #ffc107;
+        border-color: #ffc107;
+    }
+    
+    .form-switch .form-check-input:focus {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
+    }
+    
+    /* Buton Stilleri */
+    .btn {
+        border-radius: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #ffc107, #fd7e14);
+        border: none;
+        color: #212529;
+    }
+    
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #fd7e14, #ffc107);
+        transform: translateY(-2px);
+        box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+        color: #212529;
+    }
+    
+    /* Yardımcı Sınıflar */
+    .text-muted {
+        color: var(--text-gray) !important;
+    }
+    
+    hr {
+        border-color: var(--dark-border);
+        opacity: 0.5;
+        margin: 1.25rem 0;
+    }
+    
+    h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+        color: var(--text-light);
+    }
+    
+    /* Responsive Ayarlar */
+    @media (max-width: 991.98px) {
+        .profile-stats {
+            gap: 0.5rem;
+        }
+        
+        .stat-item {
+            min-width: calc(50% - 0.5rem);
+            padding: 1rem;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+        }
+    }
+    
+    @media (max-width: 767.98px) {
+        .profile-header {
+            padding: 1.5rem;
+        }
+        
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            font-size: 2.5rem;
+        }
+        
+        .profile-section {
+            padding: 1.25rem;
+        }
+        
+        h2.h3 {
+            font-size: 1.35rem;
+        }
+        
+        .btn {
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+        }
+        
+        .activity-icon {
+            width: 35px;
+            height: 35px;
+            font-size: 0.9rem;
+        }
+    }
+    
+    @media (max-width: 575.98px) {
+        .profile-stats {
+            flex-direction: column;
+        }
+        
+        .stat-item {
+            min-width: 100%;
+        }
+        
+        .d-flex.justify-content-between {
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .d-flex.justify-content-between .btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h2 mb-2">
+                <i class="fas fa-user-circle me-2"></i> Profilim
+            </h1>
+            <p class="text-muted">Hesap bilgilerinizi ve ayarlarınızı yönetin</p>
+        </div>
+    </div>
+    
+    <!-- Profil Üst Bölüm -->
+    <div class="profile-header">
+        <div class="row align-items-center">
+            <div class="col-md-2 text-center text-md-start mb-4 mb-md-0">
+                <div class="profile-avatar mx-auto mx-md-0">
+                    {{ user.name[:1].upper() }}
+                </div>
+            </div>
+            <div class="col-md-10">
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <h2 class="h3 mb-1">{{ user.name }}</h2>
+                        <p class="text-muted mb-2">{{ user.email }}</p>
+                        <div class="mb-0">
+                            <span class="badge bg-warning text-dark me-2">{{ user.role.title() }}</span>
+                            <span class="badge {% if user.status == 'active' %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ 'Aktif' if user.status == 'active' else 'Pasif' }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <p class="mb-1"><span class="text-muted">Son giriş:</span> <strong>{{ user.last_login.strftime('%d.%m.%Y %H:%M') if user.last_login else 'Hiç giriş yapılmadı' }}</strong></p>
+                        <p class="mb-0"><span class="text-muted">Hesap oluşturulma:</span> <strong>{{ user.created_at.strftime('%d.%m.%Y') }}</strong></p>
+                    </div>
+                </div>
+                
+                <!-- İstatistik Kartları -->
+                <div class="profile-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">{{ stats.approved_media }}</div>
+                        <div class="stat-label">Onayladığım Medya</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ stats.rejected_media }}</div>
+                        <div class="stat-label">Reddettiğim Medya</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ stats.pending_media }}</div>
+                        <div class="stat-label">Bekleyen Medya</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ stats.managed_screens }}</div>
+                        <div class="stat-label">Ekranlarım</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-6">
+            <!-- Profil Bilgilerim -->
+            <div class="profile-section">
+                <h3 class="h5 mb-3"><i class="fas fa-user me-2"></i> Hesap Bilgilerim</h3>
+                <hr>
+                
+                <form class="profile-form" action="{{ url_for('supervisor.update_profile') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Ad Soyad</label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ user.name }}" required>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="email" class="form-label">E-posta Adresi</label>
+                        <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Değişiklikleri Kaydet
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Şifre Değiştir -->
+            <div class="profile-section">
+                <h3 class="h5 mb-3"><i class="fas fa-lock me-2"></i> Şifre Değiştir</h3>
+                <hr>
+                
+                <form class="profile-form" action="{{ url_for('supervisor.change_password') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="mb-3">
+                        <label for="current_password" class="form-label">Mevcut Şifre</label>
+                        <input type="password" class="form-control" id="current_password" name="current_password" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="new_password" class="form-label">Yeni Şifre</label>
+                        <input type="password" class="form-control" id="new_password" name="new_password" required>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="confirm_password" class="form-label">Yeni Şifre (Tekrar)</label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-key me-1"></i> Şifremi Değiştir
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <!-- Bildirim Ayarları -->
+            <div class="profile-section">
+                <h3 class="h5 mb-3"><i class="fas fa-bell me-2"></i> Bildirim Ayarları</h3>
+                <hr>
+                
+                <form action="{{ url_for('supervisor.update_notification_settings') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="mb-3 form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="emailNotifications" name="email_notifications" {% if notifications.email %}checked{% endif %}>
+                        <label class="form-check-label" for="emailNotifications">E-posta Bildirimleri</label>
+                    </div>
+                    
+                    <div class="mb-3 form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="mediaApprovalNotifications" name="media_approval_notifications" {% if notifications.media_approval %}checked{% endif %}>
+                        <label class="form-check-label" for="mediaApprovalNotifications">Medya Onay Bildirimleri</label>
+                    </div>
+                    
+                    <div class="mb-4 form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="screenStatusNotifications" name="screen_status_notifications" {% if notifications.screen_status %}checked{% endif %}>
+                        <label class="form-check-label" for="screenStatusNotifications">Ekran Durum Bildirimleri</label>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Bildirimleri Güncelle
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Son Etkinlikler -->
+            <div class="profile-section">
+                <h3 class="h5 mb-3"><i class="fas fa-history me-2"></i> Son Etkinliklerim</h3>
+                <hr>
+                
+                {% if activities %}
+                <div class="activity-list">
+                    {% for activity in activities %}
+                    <div class="activity-item">
+                        <div class="d-flex align-items-center">
+                            <div class="activity-icon flex-shrink-0">
+                                <i class="fas fa-{{ activity.icon }}"></i>
+                            </div>
+                            <div class="w-100">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <h6 class="mb-0 fw-semibold">{{ activity.title }}</h6>
+                                    <small class="text-muted ms-2">{{ activity.time.strftime('%H:%M') }}</small>
+                                </div>
+                                <p class="mb-1 small">{{ activity.description }}</p>
+                                <small class="text-muted">{{ activity.time.strftime('%d.%m.%Y') }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> Henüz bir etkinlik bulunmuyor.
+                </div>
+                {% endif %}
+                
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('supervisor.activities') }}" class="btn btn-outline-warning">
+                        <i class="fas fa-list me-1"></i> Tüm Etkinlikleri Gör
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

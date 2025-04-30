@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BulutVizyon'a Hoş Geldiniz</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #2c3e50;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+        }
+        .content {
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .footer {
+            text-align: center;
+            padding: 15px;
+            font-size: 12px;
+            color: #999;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #3498db;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .credentials {
+            background-color: #efefef;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>BulutVizyon'a Hoş Geldiniz!</h1>
+        </div>
+        <div class="content">
+            <p>Merhaba {{ name }},</p>
+            
+            <p>BulutVizyon Dijital Ekran Yönetim Sistemi'ne hoş geldiniz. Hesabınız başarıyla oluşturuldu.</p>
+            
+            <div class="credentials">
+                <p><strong>Giriş bilgileriniz:</strong></p>
+                <p>E-posta: {{ email }}</p>
+                <p>Başlangıç Şifreniz: {{ initial_password }}</p>
+                <p><em>Not: Güvenliğiniz için lütfen ilk girişte şifrenizi değiştirin.</em></p>
+            </div>
+            
+            <p>Giriş yapmak ve dijital ekranlarınızı yönetmeye başlamak için aşağıdaki butona tıklayabilirsiniz:</p>
+            
+            <div style="text-align: center;">
+                <a href="{{ login_url }}" class="button">Giriş Yap</a>
+            </div>
+            
+            <p>Herhangi bir sorunuz veya yardıma ihtiyacınız olursa, lütfen müşteri destek ekibimizle iletişime geçmekten çekinmeyin.</p>
+            
+            <p>Teşekkürler,<br>
+            BulutVizyon Ekibi</p>
+        </div>
+        <div class="footer">
+            <p>{{ company_name }} &copy; {{ now.year }}</p>
+            <p>{{ company_address }}</p>
+            <p>Bu e-posta otomatik olarak gönderilmiştir, lütfen yanıtlamayınız.</p>
+        </div>
+    </div>
+</body>
+</html> 

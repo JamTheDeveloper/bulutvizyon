@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block title %}Medya Yükle - BulutVizyon{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2><i class="fas fa-upload"></i> Medya Yükle</h2>
+        <p class="text-muted">Sisteme yeni medya içeriği ekleyin</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('admin.media') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left"></i> Medyalara Dön
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">Yeni Medya Yükleme</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('admin.upload_media') }}" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="mb-3">
+                        <label for="file" class="form-label">Dosya Seçin <span class="text-danger">*</span></label>
+                        <input type="file" class="form-control" id="file" name="file" required accept="image/jpeg,image/png,image/gif,video/mp4,video/webm,video/mov">
+                        <div class="form-text">İzin verilen formatlar: JPG, PNG, GIF, MP4, WEBM, MOV</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Başlık <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="title" name="title" required maxlength="100">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Açıklama</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" maxlength="500"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="category" class="form-label">Kategori</label>
+                                <select class="form-select" id="category" name="category">
+                                    <option value="">Kategori Seçin</option>
+                                    <option value="reklam">Reklam</option>
+                                    <option value="duyuru">Duyuru</option>
+                                    <option value="tanıtım">Tanıtım</option>
+                                    <option value="eczane">Eczane</option>
+                                    <option value="restoran">Restoran</option>
+                                    <option value="diğer">Diğer</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="display_time" class="form-label">Görüntülenme Süresi (saniye)</label>
+                                <input type="number" class="form-control" id="display_time" name="display_time" value="10" min="3" max="120">
+                                <div class="form-text">Ekranlarda gösterilecek süre (videolar için boş bırakabilirsiniz)</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="is_public" name="is_public">
+                            <label class="form-check-label" for="is_public">Herkese Açık Kütüphanede Göster</label>
+                        </div>
+                        <div class="form-text">Bu seçenek işaretlenirse, medya tüm kullanıcıların kütüphanesinde görünür olacaktır.</div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="mb-3">
+                        <label for="assign_to_user" class="form-label">Kullanıcıya Ata (Opsiyonel)</label>
+                        <select class="form-select" id="assign_to_user" name="assign_to_user">
+                            <option value="">Kullanıcıya atama - yalnızca admin olarak kaydet</option>
+                            {% for user in users %}
+                            <option value="{{ user.id }}">{{ user.name }} ({{ user.email }})</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Seçilen kullanıcıya bir kopyası atanır. Medya hem sizin hem kullanıcının hesabında görünecektir.</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="reset" class="btn btn-light me-md-2">Formu Temizle</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-upload me-1"></i> Medya Yükle
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">Yükleme Bilgileri</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle me-1"></i> İçerik Oluşturma Kuralları</h6>
+                    <ul class="mb-0 ps-3">
+                        <li>Maksimum dosya boyutu: 50 MB</li>
+                        <li>Görsel boyutları: En az 1280x720 piksel</li>
+                        <li>Video süresi: En fazla 3 dakika</li>
+                        <li>Telif hakkı ve gizlilik politikalarına uygun içerikler yükleyin</li>
+                    </ul>
+                </div>
+                
+                <div class="alert alert-warning mt-3">
+                    <h6><i class="fas fa-exclamation-triangle me-1"></i> Dikkat</h6>
+                    <p class="mb-0">Admin tarafından yüklenen medyalar otomatik olarak onaylanır. Herkese açık olarak işaretlenen içerikler, tüm kullanıcıların medya kütüphanesinde görünür olacaktır.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Dosya tipine göre görüntülenme süresini otomatik ayarla
+    const fileInput = document.getElementById('file');
+    const displayTimeInput = document.getElementById('display_time');
+    
+    fileInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const fileType = this.files[0].type;
+            
+            // Eğer video dosyası ise, görüntülenme süresini sıfırla (video kendi süresince oynatılır)
+            if (fileType.startsWith('video/')) {
+                displayTimeInput.value = '';
+                displayTimeInput.disabled = true;
+            } else {
+                // Resim dosyası ise, varsayılan görüntülenme süresini ayarla
+                displayTimeInput.value = '10';
+                displayTimeInput.disabled = false;
+            }
+        }
+    });
+});
+</script>
+{% endblock %} 

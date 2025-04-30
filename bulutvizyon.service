@@ -1,0 +1,13 @@
+[Unit]
+Description=BulutVizyon Server
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/root/bulutvizyonServer
+Environment="PATH=/root/bulutvizyonServer/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStart=/root/bulutvizyonServer/venv/bin/gunicorn --workers 2 --bind 0.0.0.0:5006 --log-file=logs/gunicorn.log wsgi:app
+Restart=always
+
+[Install]
+WantedBy=multi-user.target 

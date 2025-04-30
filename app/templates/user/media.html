@@ -1,0 +1,340 @@
+{% extends 'base.html' %}
+
+{% block title %}Medyalarım - BulutVizyon{% endblock %}
+
+{% block styles %}
+<style>
+    .media-card {
+        background-color: var(--dark-card);
+        border-color: var(--dark-border);
+        transition: all 0.3s ease;
+    }
+    .media-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.3);
+    }
+    .media-preview {
+        background-color: var(--dark-bg);
+        height: 150px !important;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .media-preview img, .media-preview video {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+    .media-type {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 2;
+    }
+    .media-status {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 2;
+    }
+    .card-body {
+        background-color: var(--dark-card);
+        min-height: 90px;
+        padding: 0.5rem !important;
+    }
+    .card-footer {
+        background-color: var(--dark-card) !important;
+        border-top-color: var(--dark-border) !important;
+        padding: 0.5rem !important;
+    }
+    .modal-content {
+        background-color: var(--dark-card);
+        color: var(--text-light);
+    }
+    .modal-header, .modal-footer {
+        border-color: var(--dark-border);
+    }
+    .form-check-label {
+        color: var(--text-light);
+    }
+    .btn-light {
+        background-color: var(--dark-card);
+        color: var(--text-light);
+        border-color: var(--dark-border);
+    }
+    .btn-light:hover {
+        background-color: var(--dark-bg);
+        color: var(--text-light);
+    }
+    .card {
+        background-color: var(--dark-card);
+        border-color: var(--dark-border);
+    }
+    .text-muted {
+        color: var(--text-gray) !important;
+    }
+    .media-card .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    .media-card .card-title {
+        font-size: 0.9rem;
+        line-height: 1.2;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        max-width: 70%;
+        margin-bottom: 0;
+    }
+    
+    .media-card .card-text {
+        font-size: 0.8rem;
+        line-height: 1.2;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        margin-bottom: 0;
+    }
+    
+    .media-type .badge, .media-status .badge {
+        font-size: 0.65rem;
+        padding: 0.15rem 0.35rem;
+    }
+    
+    /* Medya kartları arası yatay boşluk artırma */
+    .row.g-4 {
+        --bs-gutter-x: 0.75rem;
+        --bs-gutter-y: 0.75rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2 class="mb-3"><i class="fas fa-photo-video"></i> Medyalarım</h2>
+        <p class="text-muted">Ekranlarınızda gösterilecek tüm medya içeriklerinizi yönetin</p>
+    </div>
+    <div class="col-md-4 text-md-end align-self-center">
+        <a href="{{ url_for('user.upload_media') }}" class="btn btn-primary">
+            <i class="fas fa-upload me-2"></i> Yeni Medya Yükle
+        </a>
+    </div>
+</div>
+
+<!-- Filtreleme -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body py-3">
+        <form action="{{ url_for('user.media') }}" method="get" class="row g-3 align-items-center">
+            <div class="col-md-3">
+                <label class="visually-hidden" for="filter-type">Tip</label>
+                <select class="form-select" id="filter-type" name="type">
+                    <option value="">Tüm Tipler</option>
+                    <option value="image" {% if request.args.get('type') == 'image' %}selected{% endif %}>Resimler</option>
+                    <option value="video" {% if request.args.get('type') == 'video' %}selected{% endif %}>Videolar</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="visually-hidden" for="filter-status">Durum</label>
+                <select class="form-select" id="filter-status" name="status">
+                    <option value="">Tüm Durumlar</option>
+                    <option value="active" {% if request.args.get('status') == 'active' %}selected{% endif %}>Aktif</option>
+                    <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>Onay Bekliyor</option>
+                    <option value="inactive" {% if request.args.get('status') == 'inactive' %}selected{% endif %}>Pasif</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="visually-hidden" for="filter-category">Kategori</label>
+                <select class="form-select" id="filter-category" name="category">
+                    <option value="">Tüm Kategoriler</option>
+                    <option value="reklam" {% if request.args.get('category') == 'reklam' %}selected{% endif %}>Reklam</option>
+                    <option value="duyuru" {% if request.args.get('category') == 'duyuru' %}selected{% endif %}>Duyuru</option>
+                    <option value="tanıtım" {% if request.args.get('category') == 'tanıtım' %}selected{% endif %}>Tanıtım</option>
+                    <option value="eczane" {% if request.args.get('category') == 'eczane' %}selected{% endif %}>Eczane</option>
+                    <option value="restoran" {% if request.args.get('category') == 'restoran' %}selected{% endif %}>Restoran</option>
+                    <option value="diğer" {% if request.args.get('category') == 'diğer' %}selected{% endif %}>Diğer</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex">
+                <button type="submit" class="btn btn-primary me-2 flex-grow-1">
+                    <i class="fas fa-filter me-1"></i> Filtrele
+                </button>
+                <a href="{{ url_for('user.media') }}" class="btn btn-light flex-shrink-0" title="Filtreleri Temizle">
+                    <i class="fas fa-times"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if media_list %}
+<!-- Medya Kartları Grid -->
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% for media in media_list %}
+    <div class="col">
+        <div class="card media-card h-100 shadow-sm">
+            <!-- Medya Önizleme -->
+            <div class="media-preview" data-type="{{ media.file_type }}" data-url="/uploads/{{ media.filename }}">
+                {% if media.file_type == 'image' %}
+                <img src="/uploads/{{ media.filename }}" alt="{{ media.title }}" loading="lazy">
+                {% else %}
+                <video src="/uploads/{{ media.filename }}" muted loop></video>
+                {% endif %}
+                
+                <!-- Medya Tipi -->
+                <div class="media-type">
+                    {% if media.file_type == 'image' %}
+                    <span class="badge bg-info">
+                        <i class="fas fa-image"></i> Resim
+                    </span>
+                    {% else %}
+                    <span class="badge bg-danger">
+                        <i class="fas fa-video"></i> Video
+                    </span>
+                    {% endif %}
+                </div>
+                
+                <!-- Medya Durumu -->
+                <div class="media-status">
+                    {% if media.status == 'active' %}
+                    <span class="badge bg-success">Aktif</span>
+                    {% elif media.status == 'pending' %}
+                    <span class="badge bg-warning text-dark">Onay Bekliyor</span>
+                    {% else %}
+                    <span class="badge bg-danger">Pasif</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card-body p-2">
+                <div class="d-flex justify-content-between align-items-start mb-1">
+                    <h6 class="card-title mb-0">{{ media.title }}</h6>
+                </div>
+                
+                {% if media.description %}
+                <p class="card-text small text-muted mt-1">{{ media.description[:50] }}{% if media.description|length > 50 %}...{% endif %}</p>
+                {% endif %}
+                
+                <div class="d-flex justify-content-between align-items-center" style="margin-top: 0.5rem;">
+                    <small class="text-muted"><i class="far fa-calendar-alt me-1"></i>{{ media.created_at.strftime('%d.%m.%Y') }}</small>
+                    {% if media.category %}
+                    <span class="badge bg-secondary">{{ media.category }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card-footer bg-white border-top-0 p-2">
+                <div class="btn-group w-100" role="group">
+                    <a href="{{ url_for('user.view_media', media_id=media._id) }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-eye"></i> Görüntüle
+                    </a>
+                    <a href="{{ url_for('user.edit_media', media_id=media._id) }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-edit"></i> Düzenle
+                    </a>
+                    <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteMedia{{ media.id }}">
+                        <i class="fas fa-trash"></i> Sil
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Silme Modal -->
+        <div class="modal fade" id="deleteMedia{{ media.id }}" tabindex="-1" aria-labelledby="deleteMediaLabel{{ media.id }}" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="deleteMediaLabel{{ media.id }}">Medya Silme Onayı</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>
+                            <strong>{{ media.title }}</strong> isimli medya içeriğini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+                        </p>
+                        <div class="form-check mt-3">
+                            <input class="form-check-input force-delete-check" type="checkbox" id="forceDelete{{ media.id }}" data-input-id="forceDeleteInput{{ media.id }}">
+                            <label class="form-check-label text-danger" for="forceDelete{{ media.id }}">
+                                <strong>Zorunlu sil:</strong> Bu medyayı ekranlarda kullanılsa bile tamamen sil ve ilişkili tüm içerikleri kaldır.
+                            </label>
+                        </div>
+                        <!-- Hata ayıklama için ID'yi göster -->
+                        <small class="text-muted mt-2">Medya ID: {{ media._id }}</small>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                        <form action="{{ url_for('user.delete_media') }}" method="POST">
+                            <input type="hidden" name="media_id" value="{{ media._id }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" id="forceDeleteInput{{ media.id }}" name="force_delete" value="0">
+                            <button type="submit" class="btn btn-danger">Sil</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<!-- Boş Durum -->
+<div class="card shadow-sm">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-photo-video fa-4x text-muted mb-3"></i>
+        <h4>Henüz Medya İçeriğiniz Yok</h4>
+        <p class="text-muted">Ekranlarınızda gösterilecek resim ve video içeriklerinizi yükleyebilirsiniz.</p>
+        <a href="{{ url_for('user.upload_media') }}" class="btn btn-primary mt-3">
+            <i class="fas fa-upload me-2"></i> İlk Medyanızı Yükleyin
+        </a>
+    </div>
+</div>
+{% endif %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Tüm zorunlu silme checkboxlarını dinleyin
+    const checkboxes = document.querySelectorAll('.force-delete-check');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const inputId = this.getAttribute('data-input-id');
+            const hiddenInput = document.getElementById(inputId);
+            
+            if (hiddenInput) {
+                hiddenInput.value = this.checked ? "1" : "0";
+            }
+        });
+    });
+    
+    // Medya önizlemeleri için hover efekti
+    document.querySelectorAll('.media-preview').forEach(preview => {
+        preview.addEventListener('mouseenter', function() {
+            const type = this.getAttribute('data-type');
+            if (type === 'video') {
+                const video = this.querySelector('video');
+                if (video) {
+                    video.play();
+                }
+            }
+        });
+        
+        preview.addEventListener('mouseleave', function() {
+            const type = this.getAttribute('data-type');
+            if (type === 'video') {
+                const video = this.querySelector('video');
+                if (video) {
+                    video.pause();
+                    video.currentTime = 0;
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
+{% endblock %} 

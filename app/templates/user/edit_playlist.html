@@ -1,0 +1,632 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ playlist.name }} Düzenle - BulutVizyon{% endblock %}
+
+{% block styles %}
+
+<style>
+    .media-panel {
+        height: calc(100vh - 250px);
+        min-height: 400px;
+        display: flex;
+        flex-direction: column;
+    }
+    .media-list {
+        flex-grow: 1;
+        overflow-y: auto;
+        max-height: 100%;
+    }
+    .media-item {
+        border: 1px solid var(--dark-border);
+        margin-bottom: 8px;
+        border-radius: 5px;
+        background-color: var(--dark-card);
+        transition: all 0.2s;
+    }
+    .media-item:hover {
+        border-color: var(--primary-color);
+    }
+    .media-handle {
+        cursor: move;
+        padding: 10px;
+        color: var(--text-gray);
+    }
+    .media-handle:hover {
+        color: var(--text-light);
+    }
+    .media-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 15px;
+        margin-top: 1rem;
+    }
+    .add-media-item {
+        position: relative;
+        border-radius: 5px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 2px solid transparent;
+    }
+    .add-media-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    .add-media-item.selected {
+        border-color: var(--primary-color);
+    }
+    .media-preview {
+        width: 100%;
+        height: 100px;
+        overflow: hidden;
+        background-color: var(--dark-bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .media-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .media-preview .video-icon {
+        font-size: 2rem;
+        color: var(--text-gray);
+    }
+    .media-info {
+        padding: 8px;
+        background-color: var(--dark-card);
+        color: var(--text-light);
+    }
+    .media-title {
+        font-size: 0.85rem;
+        margin-bottom: 4px;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--text-light);
+    }
+    .media-type-badge {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        font-size: 0.7rem;
+        padding: 2px 5px;
+    }
+    .no-media-placeholder {
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-gray);
+        background-color: var(--dark-card);
+        border-radius: 5px;
+        border: 1px dashed var(--dark-border);
+    }
+    .nav-tabs .nav-link {
+        color: var(--text-gray);
+        border: none;
+        background: transparent;
+        position: relative;
+        transition: all 0.2s;
+    }
+    .nav-tabs .nav-link.active, .nav-tabs .nav-link:hover {
+        color: var(--text-light);
+        border: none;
+        background: transparent;
+    }
+    .nav-tabs .nav-link::after {
+        content: '';
+        position: absolute;
+        width: 0;
+        height: 2px;
+        bottom: 0;
+        left: 0;
+        background-color: var(--primary-color);
+        transition: width 0.3s;
+    }
+    .nav-tabs .nav-link.active::after, .nav-tabs .nav-link:hover::after {
+        width: 100%;
+    }
+    .form-container {
+        background-color: var(--dark-card);
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    .form-control {
+        background-color: var(--dark-input);
+        border-color: var(--dark-border);
+        color: var(--text-light);
+    }
+    .form-control:focus {
+        background-color: var(--dark-input);
+        border-color: var(--primary-color);
+        color: var(--text-light);
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    .form-select {
+        background-color: var(--dark-input);
+        border-color: var(--dark-border);
+        color: var(--text-light);
+    }
+    .form-select:focus {
+        background-color: var(--dark-input);
+        border-color: var(--primary-color);
+        color: var(--text-light);
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    .form-label {
+        color: var(--text-light);
+    }
+    
+    /* Ek dark theme stillemeler */
+    .card {
+        background-color: var(--dark-card);
+        border-color: var(--dark-border);
+    }
+    
+    .card-header {
+        background-color: var(--dark-bg);
+        border-bottom-color: var(--dark-border);
+        color: var(--text-light);
+    }
+    
+    .list-group-item {
+        background-color: var(--dark-card);
+        border-color: var(--dark-border);
+        color: var(--text-light);
+    }
+    
+    .modal-content {
+        background-color: var(--dark-card);
+        border-color: var(--dark-border);
+        color: var(--text-light);
+    }
+    
+    .modal-header, .modal-footer {
+        border-color: var(--dark-border);
+    }
+    
+    .btn-close {
+        color: var(--text-light);
+    }
+    
+    .text-muted {
+        color: var(--text-gray) !important;
+    }
+    
+    /* Ek düzenlemeler */
+    .card-header.bg-light {
+        background-color: var(--dark-bg) !important;
+        color: var(--text-light);
+    }
+    
+    .alert-info {
+        background-color: rgba(13, 202, 240, 0.15);
+        border-color: rgba(13, 202, 240, 0.4);
+        color: var(--text-light);
+    }
+    
+    .alert-success {
+        background-color: rgba(25, 135, 84, 0.15);
+        border-color: rgba(25, 135, 84, 0.4);
+        color: var(--text-light);
+    }
+    
+    .form-check-label {
+        color: var(--text-light);
+    }
+    
+    .form-text {
+        color: var(--text-gray);
+    }
+    
+    .form-check-input:checked {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="mb-3"><i class="fas fa-list"></i> {{ playlist.name }} - Düzenle</h2>
+            <p class="text-muted">Bu playlist'teki medyaları düzenleyin</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('user.playlists') }}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-arrow-left"></i> Playlistlerim
+            </a>
+            <a href="{{ url_for('user.view_playlist', playlist_id=playlist.id|string) }}" class="btn btn-primary">
+                <i class="fas fa-eye"></i> Görüntüle
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-7">
+            <div class="card mb-4">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Playlist Bilgileri</h5>
+                    {% if playlist.is_public %}
+                    <span class="badge bg-success">Genel</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Özel</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('user.edit_playlist', playlist_id=playlist.id) }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Playlist Adı <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" required maxlength="100" 
+                                   value="{{ playlist.name }}" placeholder="Playlist adını girin">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Açıklama</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" 
+                                      placeholder="Playlist hakkında kısa bir açıklama yazın...">{{ playlist.description or '' }}</textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="1" id="is_public" name="is_public"
+                                       {% if playlist.is_public %}checked{% endif %}>
+                                <label class="form-check-label" for="is_public">
+                                    Genel Playlist
+                                </label>
+                                <div class="form-text">Bu playlist'i tüm kullanıcılar ile paylaş.</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3 d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Değişiklikleri Kaydet
+                            </button>
+                            
+                            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deletePlaylistModal">
+                                <i class="fas fa-trash me-1"></i> Playlist'i Sil
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card media-panel">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Playlist Medyaları</h5>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary save-order-btn d-none">
+                            <i class="fas fa-save me-1"></i> Sıralamayı Kaydet
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0 media-list">
+                    {% if playlist_media %}
+                    <ul class="list-group list-group-flush" id="playlist-media-list">
+                        {% for item in playlist_media %}
+                        <li class="list-group-item media-item" data-id="{{ item.media_id }}">
+                            <div class="d-flex align-items-center">
+                                <div class="media-handle me-2">
+                                    <i class="fas fa-grip-vertical"></i> {{ loop.index }}
+                                </div>
+                                
+                                <div class="me-3" style="width: 60px; height: 40px; overflow: hidden; border-radius: 3px;">
+                                    {% if item.get('media', {}).get('file_type') == 'image' %}
+                                    <img src="{{ url_for('static', filename='uploads/' + item.get('media', {}).get('filename', '')) }}" 
+                                         class="w-100 h-100" style="object-fit: cover;">
+                                    {% else %}
+                                    <div class="d-flex align-items-center justify-content-center h-100 bg-dark">
+                                        <i class="fas fa-film text-light"></i>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="flex-grow-1">
+                                    <div class="fw-medium">{{ item.get('media', {}).get('title', 'Medya bulunamadı') }}</div>
+                                    <div class="small text-muted">
+                                        {% if item.get('media', {}).get('file_type') == 'image' %}
+                                        <i class="fas fa-image me-1"></i> Resim
+                                        {% else %}
+                                        <i class="fas fa-video me-1"></i> Video
+                                        {% endif %}
+                                        {% if item.get('display_time') %}
+                                        | {{ item.get('display_time') }} saniye
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <form action="{{ url_for('user.remove_media_from_playlist', playlist_id=playlist.id) }}" method="POST" class="ms-auto">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="media_id" value="{{ item.media_id }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Kaldır">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="no-media-placeholder m-3">
+                        <i class="fas fa-photo-video fa-3x mb-3"></i>
+                        <h5>Henüz Medya Eklenmemiş</h5>
+                        <p class="text-center mb-0">Sağdaki panelden medya ekleyebilirsiniz</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-5">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Medya Ekle</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="nav nav-tabs mb-3" id="mediaTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="user-media-tab" data-bs-toggle="tab" data-bs-target="#user-media" type="button" role="tab">
+                                <i class="fas fa-user me-1"></i> Medyalarım
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="library-media-tab" data-bs-toggle="tab" data-bs-target="#library-media" type="button" role="tab">
+                                <i class="fas fa-book me-1"></i> Kütüphane
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content" id="mediaTabContent">
+                        <div class="tab-pane fade show active" id="user-media" role="tabpanel">
+                            <p class="text-muted small mb-2">Kendi medyalarınızdan playlist'e eklemek istediğinizi seçin</p>
+                            
+                            {% if available_user_media %}
+                            <div class="media-grid">
+                                {% for media in available_user_media %}
+                                <div class="add-media-item" data-id="{{ media._id }}" data-title="{{ media.title }}" data-type="{{ media.file_type }}">
+                                    <div class="media-preview">
+                                        {% if media.file_type == 'image' %}
+                                        <img src="{{ url_for('static', filename='uploads/' + media.filename) }}" alt="{{ media.title }}">
+                                        <span class="badge bg-primary media-type-badge">Resim</span>
+                                        {% else %}
+                                        <div class="d-flex align-items-center justify-content-center h-100 bg-dark">
+                                            <i class="fas fa-film text-light video-icon"></i>
+                                        </div>
+                                        <span class="badge bg-danger media-type-badge">Video</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="media-info">
+                                        <div class="media-title">{{ media.title }}</div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i> Eklenebilecek medyanız bulunmuyor.
+                                <a href="{{ url_for('user.upload_media') }}" class="alert-link">Yeni medya yükleyin</a>.
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="tab-pane fade" id="library-media" role="tabpanel">
+                            <p class="text-muted small mb-2">Kütüphaneden playlist'e eklemek istediğiniz medyayı seçin</p>
+                            
+                            {% if available_library_media %}
+                            <div class="media-grid">
+                                {% for media in available_library_media %}
+                                <div class="add-media-item" data-id="{{ media._id }}" data-title="{{ media.title }}" data-type="{{ media.file_type }}">
+                                    <div class="media-preview">
+                                        {% if media.file_type == 'image' %}
+                                        <img src="{{ url_for('static', filename='uploads/' + media.filename) }}" alt="{{ media.title }}">
+                                        <span class="badge bg-primary media-type-badge">Resim</span>
+                                        {% else %}
+                                        <div class="d-flex align-items-center justify-content-center h-100 bg-dark">
+                                            <i class="fas fa-film text-light video-icon"></i>
+                                        </div>
+                                        <span class="badge bg-danger media-type-badge">Video</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="media-info">
+                                        <div class="media-title">{{ media.title }}</div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i> Kütüphanede eklenebilecek medya bulunmuyor.
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div id="media-selection-form" class="mt-3 d-none">
+                        <hr>
+                        <h6 class="mb-3">Seçilen Medya: <span id="selected-media-title"></span></h6>
+                        
+                        <form action="{{ url_for('user.add_media_to_playlist', playlist_id=playlist.id) }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="media_id" id="selected-media-id">
+                            
+                            <div class="mb-3">
+                                <label for="display_time" class="form-label">Gösterim Süresi (saniye)</label>
+                                <input type="number" class="form-control" id="display_time" name="display_time" value="10" min="1" max="300">
+                                <div class="form-text">Boş bırakılırsa varsayılan süre kullanılır.</div>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-plus me-1"></i> Playlist'e Ekle
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Playlist Modal -->
+<div class="modal fade" id="deletePlaylistModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Playlist'i Sil</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>"{{ playlist.name }}"</strong> playlist'ini silmek istediğinizden emin misiniz?</p>
+                <p class="text-danger">Bu işlem geri alınamaz ve playlist'teki tüm medya ilişkileri silinecektir.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <form action="{{ url_for('user.delete_playlist', playlist_id=playlist.id) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">Playlist'i Sil</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Sortable liste
+    var mediaList = document.getElementById('playlist-media-list');
+    var saveOrderBtn = document.querySelector('.save-order-btn');
+    
+    if (mediaList) {
+        var sortable = new Sortable(mediaList, {
+            handle: '.media-handle',
+            animation: 150,
+            onStart: function() {
+                saveOrderBtn.classList.remove('d-none');
+            }
+        });
+        
+        // Sıralamayı kaydet
+        saveOrderBtn.addEventListener('click', function() {
+            var mediaItems = mediaList.querySelectorAll('.media-item');
+            var mediaOrder = [];
+            
+            mediaItems.forEach(function(item, index) {
+                mediaOrder.push({
+                    media_id: item.dataset.id,
+                    order: index
+                });
+                
+                // Sıra numarasını güncelle
+                item.querySelector('.media-handle').innerHTML = '<i class="fas fa-grip-vertical"></i> ' + (index + 1);
+            });
+            
+            // AJAX ile sıralamayı kaydet
+            fetch("{{ url_for('user.reorder_playlist_media', playlist_id=playlist.id) }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({media_order: mediaOrder})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    saveOrderBtn.classList.add('d-none');
+                    // Başarılı bildirim göster
+                    let alert = document.createElement('div');
+                    alert.className = 'alert alert-success alert-dismissible fade show';
+                    alert.innerHTML = `
+                        <i class="fas fa-check-circle me-2"></i> Sıralama başarıyla kaydedildi.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.querySelector('.media-panel').prepend(alert);
+                    
+                    // 3 saniye sonra bildirim kapat
+                    setTimeout(() => {
+                        alert.remove();
+                    }, 3000);
+                }
+            })
+            .catch(error => {
+                console.error('Sıralama kaydedilirken hata:', error);
+            });
+        });
+    }
+    
+    // Medya seçme
+    var mediaItems = document.querySelectorAll('.add-media-item');
+    var mediaSelectionForm = document.getElementById('media-selection-form');
+    var selectedMediaId = document.getElementById('selected-media-id');
+    var selectedMediaTitle = document.getElementById('selected-media-title');
+    var displayTimeInput = document.getElementById('display_time');
+    
+    console.log('Toplam seçilebilir medya sayısı:', mediaItems.length);
+    
+    mediaItems.forEach(function(item) {
+        item.addEventListener('click', function() {
+            // Debug bilgisi
+            console.log('Medya seçildi:', this.dataset);
+            
+            // Seçimi kaldır
+            mediaItems.forEach(function(i) {
+                i.classList.remove('selected');
+            });
+            
+            // Seçimi işaretle
+            this.classList.add('selected');
+            
+            // Form verilerini doldur
+            selectedMediaId.value = this.dataset.id;
+            selectedMediaTitle.textContent = this.dataset.title;
+            
+            console.log('Form verileri güncellendi:', {
+                'media_id': selectedMediaId.value,
+                'media_title': selectedMediaTitle.textContent
+            });
+            
+            // Medya tipine göre varsayılan süreyi ayarla
+            if (this.dataset.type === 'video') {
+                displayTimeInput.parentElement.style.display = 'none';
+            } else {
+                displayTimeInput.parentElement.style.display = 'block';
+            }
+            
+            // Formu göster
+            mediaSelectionForm.classList.remove('d-none');
+        });
+    });
+    
+    // Form submit kontrolü ekleyelim
+    const mediaForm = document.querySelector('form[action*="add_media_to_playlist"]');
+    if (mediaForm) {
+        mediaForm.addEventListener('submit', function(e) {
+            console.log('Form gönderiliyor:', {
+                'media_id': selectedMediaId.value,
+                'display_time': displayTimeInput.value
+            });
+            
+            // Media ID boşsa engelle
+            if (!selectedMediaId.value) {
+                e.preventDefault();
+                alert('Lütfen bir medya seçin!');
+                return false;
+            }
+        });
+    }
+});
+</script>
+{% endblock %} 

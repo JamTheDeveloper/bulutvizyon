@@ -1,0 +1,417 @@
+{% extends 'base.html' %}
+
+{% block title %}Profilim - BulutVizyon{% endblock %}
+
+{% block styles %}
+<style>
+    /* Genel UI Değişkenleri */
+    :root {
+        --card-border-radius: 0.85rem;
+        --section-spacing: 1.75rem;
+    }
+    
+    /* Profil Başlık Bölümü */
+    .profile-header {
+        background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+        border-radius: var(--card-border-radius);
+        padding: 2rem;
+        margin-bottom: var(--section-spacing);
+        border: none;
+        color: var(--text-light);
+        box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Avatar */
+    .profile-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #5061a8, #97a1fa);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
+        border: 4px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    /* İçerik Kart Stillerі */
+    .profile-section {
+        background-color: var(--dark-card);
+        border-radius: var(--card-border-radius);
+        padding: 1.75rem;
+        margin-bottom: var(--section-spacing);
+        box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--dark-border);
+        transition: all 0.3s ease;
+    }
+    
+    .profile-section:hover {
+        box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+    }
+    
+    /* İstatistik Kartları */
+    .profile-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    
+    .stat-item {
+        text-align: center;
+        padding: 1.25rem 1rem;
+        border-radius: var(--card-border-radius);
+        background-color: var(--dark-bg);
+        flex: 1;
+        min-width: calc(25% - 0.75rem);
+        border: 1px solid var(--dark-border);
+        transition: all 0.3s ease;
+    }
+    
+    .stat-item:hover {
+        background-color: rgba(151, 161, 250, 0.1);
+        transform: translateY(-3px);
+    }
+    
+    .stat-value {
+        font-size: 1.75rem;
+        font-weight: bold;
+        margin-bottom: 0.25rem;
+        background: linear-gradient(135deg, #5061a8, #97a1fa);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .stat-label {
+        font-size: 0.875rem;
+        color: var(--text-gray);
+        font-weight: 500;
+    }
+    
+    /* Form Elementi Stilleri */
+    .profile-form label {
+        font-weight: 500;
+        color: var(--text-light);
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control {
+        background-color: var(--dark-input);
+        color: var(--text-light);
+        border-color: var(--dark-border);
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 0.25rem rgba(151, 161, 250, 0.25);
+    }
+    
+    /* Paket Bilgileri */
+    .package-info {
+        background-color: var(--dark-bg);
+        border-radius: var(--card-border-radius);
+        padding: 1.5rem;
+        border: 1px solid var(--dark-border);
+    }
+    
+    .package-title {
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        color: var(--text-light);
+        font-size: 1.15rem;
+    }
+    
+    .package-feature {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        color: var(--text-light);
+    }
+    
+    .package-feature i {
+        color: #4CAF50;
+        margin-right: 0.75rem;
+        font-size: 1rem;
+    }
+    
+    /* Buton Stilleri */
+    .btn {
+        border-radius: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+        border: none;
+    }
+    
+    .btn-primary:hover {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        transform: translateY(-2px);
+        box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Yardımcı Sınıflar */
+    .text-muted {
+        color: var(--text-gray) !important;
+    }
+    
+    hr {
+        border-color: var(--dark-border);
+        opacity: 0.5;
+        margin: 1.25rem 0;
+    }
+    
+    h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+        color: var(--text-light);
+    }
+    
+    /* Responsive Ayarlar */
+    @media (max-width: 991.98px) {
+        .profile-stats {
+            gap: 0.5rem;
+        }
+        
+        .stat-item {
+            min-width: calc(50% - 0.5rem);
+            padding: 1rem;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+        }
+    }
+    
+    @media (max-width: 767.98px) {
+        .profile-header {
+            padding: 1.5rem;
+        }
+        
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            font-size: 2.5rem;
+        }
+        
+        .profile-section {
+            padding: 1.25rem;
+        }
+        
+        .package-info {
+            padding: 1.25rem;
+        }
+        
+        h2.h3 {
+            font-size: 1.35rem;
+        }
+    }
+    
+    @media (max-width: 575.98px) {
+        .profile-stats {
+            flex-direction: column;
+        }
+        
+        .stat-item {
+            min-width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h2 mb-2">
+                <i class="fas fa-user-circle me-2"></i> Profilim
+            </h1>
+            <p class="text-muted">Hesap bilgilerinizi ve ayarlarınızı yönetin</p>
+        </div>
+    </div>
+    
+    <!-- Profil Üst Bölüm -->
+    <div class="profile-header">
+        <div class="row align-items-center">
+            <div class="col-md-2 text-center text-md-start mb-4 mb-md-0">
+                <div class="profile-avatar mx-auto mx-md-0">
+                    {{ user.name[:1].upper() }}
+                </div>
+            </div>
+            <div class="col-md-10">
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <h2 class="h3 mb-1">{{ user.name }}</h2>
+                        <p class="text-muted mb-2">{{ user.email }}</p>
+                        <div class="mb-0">
+                            <span class="badge bg-primary me-2">{{ user.role.title() }}</span>
+                            <span class="badge {% if user.status == 'active' %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ 'Aktif' if user.status == 'active' else 'Pasif' }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <p class="mb-1"><span class="text-muted">Son giriş:</span> <strong>{{ user.last_login.strftime('%d.%m.%Y %H:%M') if user.last_login else 'Hiç giriş yapılmadı' }}</strong></p>
+                        <p class="mb-0"><span class="text-muted">Hesap oluşturulma:</span> <strong>{{ user.created_at.strftime('%d.%m.%Y') }}</strong></p>
+                    </div>
+                </div>
+                
+                <!-- İstatistik Kartları -->
+                <div class="profile-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">{{ stats.total_screens }}</div>
+                        <div class="stat-label">Ekranlarım</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ stats.total_media }}</div>
+                        <div class="stat-label">Medyalarım</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ stats.active_media }}</div>
+                        <div class="stat-label">Aktif Medya</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ stats.total_views }}</div>
+                        <div class="stat-label">Görüntülenme</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-6">
+            <!-- Profil Bilgilerim -->
+            <div class="profile-section">
+                <h3 class="h5 mb-3"><i class="fas fa-user me-2"></i> Hesap Bilgilerim</h3>
+                <hr>
+                
+                <form class="profile-form" action="{{ url_for('user.update_profile') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Ad Soyad</label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ user.name }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">E-posta Adresi</label>
+                        <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="phone" class="form-label">Telefon</label>
+                        <input type="tel" class="form-control" id="phone" name="phone" value="{{ user.phone }}">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Değişiklikleri Kaydet
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Şifre Değiştir -->
+            <div class="profile-section">
+                <h3 class="h5 mb-3"><i class="fas fa-lock me-2"></i> Şifre Değiştir</h3>
+                <hr>
+                
+                <form class="profile-form" action="{{ url_for('user.change_password') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="mb-3">
+                        <label for="current_password" class="form-label">Mevcut Şifre</label>
+                        <input type="password" class="form-control" id="current_password" name="current_password" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="new_password" class="form-label">Yeni Şifre</label>
+                        <input type="password" class="form-control" id="new_password" name="new_password" required>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="confirm_password" class="form-label">Yeni Şifre (Tekrar)</label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-key me-1"></i> Şifremi Değiştir
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <!-- Paket Bilgilerim -->
+            <div class="profile-section">
+                <h3 class="h5 mb-3"><i class="fas fa-cubes me-2"></i> Paket Bilgilerim</h3>
+                <hr>
+                
+                <div class="package-info">
+                    <h4 class="package-title">{{ user.package.name if user.package else 'Standart Paket' }}</h4>
+                    <p class="mb-3">{{ user.package.description if user.package else 'Temel dijital yayın özellikleri' }}</p>
+                    
+                    <h6 class="mb-2">Paket Özellikleri</h6>
+                    <div class="package-feature">
+                        <i class="fas fa-check"></i>
+                        <span>{{ user.package.max_screens if user.package else '3' }} Ekran Hakkı</span>
+                    </div>
+                    <div class="package-feature">
+                        <i class="fas fa-check"></i>
+                        <span>{{ user.package.storage if user.package else '1GB' }} Depolama Alanı</span>
+                    </div>
+                    <div class="package-feature">
+                        <i class="fas fa-check"></i>
+                        <span>{{ user.package.max_resolution if user.package else 'HD (1280x720)' }} Çözünürlük</span>
+                    </div>
+                    <div class="package-feature">
+                        <i class="fas fa-check"></i>
+                        <span>{{ '7/24' if user.package and user.package.name == 'Pro' else 'Mesai Saatleri' }} Teknik Destek</span>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <a href="#" class="btn btn-outline-primary w-100">Paketimi Yükselt</a>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h6 class="mb-2">Depolama Kullanımı</h6>
+                    <div class="progress mb-2" style="height: 10px;">
+                        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ storage_usage_percent }}%;" aria-valuenow="{{ storage_usage_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <small class="text-muted">{{ storage_usage }} / {{ storage_limit }} kullanılıyor ({{ storage_usage_percent }}%)</small>
+                </div>
+            </div>
+            
+            <!-- Abonelik Bilgileri (Örnek) -->
+            <div class="profile-section">
+                <h3 class="h5 mb-3"><i class="fas fa-credit-card me-2"></i> Abonelik Bilgileri</h3>
+                <hr>
+                
+                <div class="mb-3">
+                    <p class="mb-1">Abonelik Durumu: <span class="badge bg-success">Aktif</span></p>
+                    <p class="mb-1">Fatura Günü: <strong>Her ayın {{ user.billing_day|default(1) }}. günü</strong></p>
+                    <p class="mb-1">Sonraki Fatura: <strong>{{ next_billing_date.strftime('%d.%m.%Y') if next_billing_date else 'Belirtilmemiş' }}</strong></p>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+                    <a href="#" class="btn btn-outline-secondary">
+                        <i class="fas fa-history me-1"></i> Fatura Geçmişi
+                    </a>
+                    <a href="#" class="btn btn-outline-primary">
+                        <i class="fas fa-credit-card me-1"></i> Ödeme Yöntemi
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

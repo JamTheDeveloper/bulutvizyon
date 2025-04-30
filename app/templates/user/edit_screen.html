@@ -1,0 +1,272 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ screen.name }} - Düzenle{% endblock %}
+
+{% block styles %}
+<style>
+    .card {
+        background-color: var(--dark-card);
+        border-color: var(--dark-border);
+    }
+    
+    .card-header {
+        background-color: rgba(0, 0, 0, 0.2);
+        border-bottom: 1px solid var(--dark-border);
+        color: var(--text-light);
+    }
+    
+    .form-control, .form-select {
+        background-color: var(--dark-input);
+        color: var(--text-light);
+        border-color: var(--dark-border);
+    }
+    
+    .form-check-input {
+        background-color: var(--dark-input);
+        border-color: var(--dark-border);
+    }
+    
+    .form-check-label {
+        color: var(--text-light);
+    }
+    
+    .input-group-text {
+        background-color: var(--dark-card);
+        color: var(--text-light);
+        border-color: var(--dark-border);
+    }
+    
+    .form-text {
+        color: var(--text-gray);
+    }
+    
+    .text-muted {
+        color: var(--text-gray) !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="mb-3"><i class="fas fa-tv"></i> {{ screen.name }} - Düzenle</h2>
+            <p class="text-muted">Ekran bilgilerini ve ayarlarını güncelleyin</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <a href="{{ url_for('user.screens') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Ekranlara Dön
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Ekran Bilgileri</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{{ url_for('user.edit_screen', screen_id=screen.id|string) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <div class="mb-3">
+                            <label for="name" class="form-label fw-bold">Ekran Adı</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ screen.name }}" required>
+                            <div class="form-text">Ekranınızı kolayca tanımanızı sağlayacak bir isim girin</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label fw-bold">Açıklama</label>
+                            <textarea class="form-control" id="description" name="description" rows="3">{{ screen.description or '' }}</textarea>
+                            <div class="form-text">İsteğe bağlı olarak ekranınız hakkında kısa bir açıklama ekleyin</div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="location" class="form-label fw-bold">Konum</label>
+                                <input type="text" class="form-control" id="location" name="location" value="{{ screen.location or '' }}">
+                                <div class="form-text">Ekranın bulunduğu yer (örn. Giriş Alanı, Vitrin)</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="status" class="form-label fw-bold">Durum</label>
+                                <select class="form-select" id="status" name="status">
+                                    <option value="active" {% if screen.status == 'active' %}selected{% endif %}>Aktif</option>
+                                    <option value="inactive" {% if screen.status != 'active' %}selected{% endif %}>Pasif</option>
+                                </select>
+                                <div class="form-text">Ekranın çalışma durumu</div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="orientation" class="form-label fw-bold">Yön</label>
+                                <select class="form-select" id="orientation" name="orientation">
+                                    <option value="horizontal" {% if screen.orientation == 'horizontal' %}selected{% endif %}>Yatay</option>
+                                    <option value="vertical" {% if screen.orientation == 'vertical' %}selected{% endif %}>Dikey</option>
+                                </select>
+                                <div class="form-text">Ekranın fiziksel konumu</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="resolution" class="form-label fw-bold">Çözünürlük</label>
+                                <select class="form-select" id="resolution" name="resolution">
+                                    <option value="1920x1080" {% if screen.resolution == '1920x1080' %}selected{% endif %}>1920x1080 (Full HD)</option>
+                                    <option value="1280x720" {% if screen.resolution == '1280x720' %}selected{% endif %}>1280x720 (HD)</option>
+                                    <option value="3840x2160" {% if screen.resolution == '3840x2160' %}selected{% endif %}>3840x2160 (4K)</option>
+                                    <option value="720x1280" {% if screen.resolution == '720x1280' %}selected{% endif %}>720x1280 (Dikey HD)</option>
+                                    <option value="1080x1920" {% if screen.resolution == '1080x1920' %}selected{% endif %}>1080x1920 (Dikey Full HD)</option>
+                                </select>
+                                <div class="form-text">Ekran çözünürlüğü</div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="refresh_rate" class="form-label fw-bold">Yenileme Süresi (saniye)</label>
+                                <input type="number" class="form-control" id="refresh_rate" name="refresh_rate" value="{{ screen.refresh_rate or 15 }}" min="5" max="3600">
+                                <div class="form-text">İçeriğin yeniden yükleneceği süre (saniye)</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mt-4">
+                                    <input class="form-check-input" type="checkbox" id="show_clock" name="show_clock" value="1" {% if screen.show_clock %}checked{% endif %}>
+                                    <label class="form-check-label fw-bold" for="show_clock">
+                                        Saat Göster
+                                    </label>
+                                    <div class="form-text">Ekranda dijital saat gösterilsin mi?</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i> Değişiklikleri Kaydet
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Ekran Önizleme</h5>
+                </div>
+                <div class="card-body">
+                    <div class="position-relative mb-3" id="screenPreview" style="width: 100%; height: 200px; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; background-color: var(--dark-bg);">
+                        <div class="d-flex align-items-center justify-content-center h-100">
+                            {% if screen.orientation == 'horizontal' %}
+                            <i class="fas fa-desktop fa-3x text-muted"></i>
+                            {% else %}
+                            <i class="fas fa-mobile-alt fa-3x text-muted"></i>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <small class="d-block text-center text-muted mb-3" id="resolutionDisplay">{{ screen.resolution }}</small>
+                    
+                    <a href="{{ url_for('user.preview_screen', screen_id=screen.id|string) }}" class="btn btn-sm btn-primary d-block mb-2">
+                        <i class="fas fa-eye me-1"></i> Gerçek Önizleme
+                    </a>
+                    <a href="{{ url_for('user.manage_screen_content', screen_id=screen.id|string) }}" class="btn btn-sm btn-outline-primary d-block">
+                        <i class="fas fa-images me-1"></i> İçerik Yönetimi
+                    </a>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">API Bilgileri</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="api_key" class="form-label fw-bold">API Anahtarı</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control font-monospace" id="api_key" value="{{ screen.api_key }}" readonly>
+                            <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('api_key')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">Bu anahtarı ekran cihazlarınızda kullanın</div>
+                    </div>
+                    
+                    <form action="{{ url_for('user.regenerate_api_key', screen_id=screen.id|string) }}" method="post" class="mt-4">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-warning" onclick="confirmRegenerateKey(this)">
+                                <i class="fas fa-sync-alt me-1"></i> API Anahtarını Yenile
+                            </button>
+                        </div>
+                        <div class="form-text text-danger">
+                            <i class="fas fa-exclamation-triangle me-1"></i> Dikkat: Bu işlem tüm cihazlarda yeniden bağlantı yapılmasını gerektirir!
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Ekran önizleme oluştur
+        updateScreenPreview();
+        
+        // Yön ve çözünürlük değişiminde önizlemeyi güncelle
+        document.getElementById('orientation').addEventListener('change', updateScreenPreview);
+        document.getElementById('resolution').addEventListener('change', updateScreenPreview);
+        
+        function updateScreenPreview() {
+            const orientation = document.getElementById('orientation').value;
+            const resolution = document.getElementById('resolution').value;
+            const previewEl = document.getElementById('screenPreview');
+            const resolutionDisplay = document.getElementById('resolutionDisplay');
+            
+            // Yön güncelleme
+            if (orientation === 'vertical') {
+                previewEl.style.width = '60%';
+                previewEl.style.margin = '0 auto';
+                previewEl.querySelector('i').className = 'fas fa-mobile-alt fa-3x text-muted';
+            } else {
+                previewEl.style.width = '100%';
+                previewEl.style.margin = '0';
+                previewEl.querySelector('i').className = 'fas fa-desktop fa-3x text-muted';
+            }
+            
+            // Çözünürlük göster
+            resolutionDisplay.textContent = resolution;
+        }
+    });
+    
+    function copyToClipboard(elementId) {
+        var copyText = document.getElementById(elementId);
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(copyText.value);
+        
+        // Kopya bildirimini göster
+        const tooltip = document.createElement('div');
+        tooltip.style.position = 'fixed';
+        tooltip.style.top = '1rem';
+        tooltip.style.right = '1rem';
+        tooltip.style.background = 'rgba(0, 0, 0, 0.8)';
+        tooltip.style.color = 'white';
+        tooltip.style.padding = '0.5rem 1rem';
+        tooltip.style.borderRadius = '4px';
+        tooltip.style.zIndex = '9999';
+        tooltip.innerText = 'Kopyalandı!';
+        document.body.appendChild(tooltip);
+        
+        setTimeout(() => {
+            document.body.removeChild(tooltip);
+        }, 2000);
+    }
+    
+    function confirmRegenerateKey(button) {
+        if (confirm('API anahtarını yenilemek istediğinizden emin misiniz? Bu işlem tüm bağlı cihazların yeniden bağlanmasını gerektirecektir.')) {
+            button.closest('form').submit();
+        }
+    }
+</script>
+{% endblock %} 

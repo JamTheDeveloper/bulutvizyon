@@ -1,0 +1,420 @@
+{% extends 'base.html' %}
+
+{% block title %}Medya Yükle{% endblock %}
+
+{% block styles %}
+<style>
+    .preview-container {
+        max-width: 100%;
+        height: 200px;
+        border: 2px dashed #ccc;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        overflow: hidden;
+        background-color: #f8f9fa;
+    }
+    .preview-container img, .preview-container video {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+    .upload-icon {
+        font-size: 4rem;
+        color: #ccc;
+    }
+    #file-input-container {
+        position: relative;
+    }
+    #file {
+        cursor: pointer;
+    }
+    #file-name {
+        margin-top: 0.5rem;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h2 mb-0">Medya Yükle</h1>
+                <a href="{{ url_for('user.media') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> Medyalarıma Dön
+                </a>
+            </div>
+            
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <div class="alert alert-info mb-4">
+                        <div class="d-flex">
+                            <div class="me-3">
+                                <i class="fas fa-info-circle fa-2x"></i>
+                            </div>
+                            <div>
+                                <strong>Desteklenen Formatlar:</strong>
+                                <p class="mb-0 mt-1">
+                                    <i class="fas fa-image me-1"></i> Resim: JPG, PNG, GIF (max 5MB)<br>
+                                    <i class="fas fa-video me-1"></i> Video: MP4, WebM (max 50MB)
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form action="{{ url_for('user.upload_media') }}" method="POST" enctype="multipart/form-data" id="uploadForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="mb-4">
+                            <div class="upload-area d-flex flex-column align-items-center justify-content-center p-4 rounded border border-dashed position-relative" 
+                                 style="border-style: dashed; min-height: 200px; background-color: #f8f9fa;" id="dropzone">
+                                <input type="file" name="file" id="fileInput" class="position-absolute" style="opacity: 0; width: 100%; height: 100%; cursor: pointer;" required accept=".jpg,.jpeg,.png,.gif,.mp4,.webm">
+                                <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+                                <h5 class="mb-2">Dosya Seçin veya Buraya Sürükleyin</h5>
+                                <p class="text-muted text-center mb-0 small">
+                                    Yüklemek istediğiniz dosyayı seçin veya bu alana sürükleyip bırakın
+                                </p>
+                            </div>
+                            <div id="filePreview" class="mt-3 d-none">
+                                <div class="card">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-3 preview-thumbnail" style="width: 80px; height: 80px; overflow: hidden; border-radius: 5px;">
+                                                <!-- Önizleme buraya gelecek -->
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1 file-name">dosya.jpg</h6>
+                                                <p class="mb-0 small text-muted file-info">0.0 MB</p>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" id="removeFile">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="title" class="form-label">Başlık <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="title" name="title" required placeholder="Medya başlığı">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="category" class="form-label">Kategori</label>
+                                <select class="form-select" id="category" name="category">
+                                    <option value="">Kategori Seçin</option>
+                                    <option value="promotion">Tanıtım/Reklam</option>
+                                    <option value="information">Bilgilendirme</option>
+                                    <option value="entertainment">Eğlence</option>
+                                    <option value="announcement">Duyuru</option>
+                                    <option value="other">Diğer</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Açıklama</label>
+                            <textarea class="form-control" id="description" name="description" rows="2" placeholder="Medya hakkında kısa açıklama..."></textarea>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="display_time" class="form-label">Gösterim Süresi (sn) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="display_time" name="display_time" value="10" min="1" max="300">
+                                <div class="form-text">Resimler için ekranda kalma süresi (saniye)</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="status" class="form-label">Durum</label>
+                                <select class="form-select" id="status" name="status">
+                                    <option value="active" selected>Aktif</option>
+                                    <option value="inactive">Pasif</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="1" id="is_public" name="is_public">
+                                <label class="form-check-label" for="is_public">
+                                    Kütüphanede Paylaş
+                                </label>
+                                <div class="form-text">Bu medya diğer kullanıcılar için de kütüphanede görünür olacak</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Etiketler</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="tag" placeholder="Etiket ekle">
+                                <button class="btn btn-outline-secondary" type="button" id="addTag">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">Enter tuşu ile veya + butonuna tıklayarak etiket ekleyebilirsiniz</div>
+                            
+                            <div class="d-flex flex-wrap gap-2 mt-2" id="tagContainer">
+                                <!-- Etiketler buraya eklenecek -->
+                            </div>
+                            <input type="hidden" id="tags" name="tags" value="">
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary" id="submitButton" disabled>
+                                <i class="fas fa-upload me-2"></i> Yükle
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('fileInput');
+        const filePreview = document.getElementById('filePreview');
+        const previewThumbnail = document.querySelector('.preview-thumbnail');
+        const fileName = document.querySelector('.file-name');
+        const fileInfo = document.querySelector('.file-info');
+        const removeFileBtn = document.getElementById('removeFile');
+        const submitButton = document.getElementById('submitButton');
+        
+        // Dosya yükleme formunun durumunu kontrol et
+        function updateFormState() {
+            if (fileInput.files.length > 0 && document.getElementById('title').value.trim() !== '') {
+                submitButton.disabled = false;
+            } else {
+                submitButton.disabled = true;
+            }
+        }
+        
+        // İnput alanlarını dinle
+        document.getElementById('title').addEventListener('input', updateFormState);
+        
+        // Dosya seçildiğinde
+        fileInput.addEventListener('change', function(e) {
+            handleFileSelection(this.files[0]);
+        });
+        
+        // Sürükle bırak işlemleri
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            dropzone.classList.add('border-primary');
+        }
+        
+        function unhighlight() {
+            dropzone.classList.remove('border-primary');
+        }
+        
+        dropzone.addEventListener('drop', function(e) {
+            const dt = e.dataTransfer;
+            const file = dt.files[0];
+            
+            if (file) {
+                fileInput.files = dt.files;
+                handleFileSelection(file);
+            }
+        });
+        
+        // Dosya seçildiğinde önizleme oluştur
+        function handleFileSelection(file) {
+            if (!file) return;
+            
+            // Dosya boyutu kontrol
+            const maxSizeImage = 5 * 1024 * 1024; // 5MB
+            const maxSizeVideo = 50 * 1024 * 1024; // 50MB
+            
+            const isImage = file.type.match('image.*');
+            const isVideo = file.type.match('video.*');
+            
+            if (isImage && file.size > maxSizeImage) {
+                alert('Resim dosyası 5MB\'den küçük olmalıdır.');
+                resetFileInput();
+                return;
+            }
+            
+            if (isVideo && file.size > maxSizeVideo) {
+                alert('Video dosyası 50MB\'den küçük olmalıdır.');
+                resetFileInput();
+                return;
+            }
+            
+            if (!isImage && !isVideo) {
+                alert('Lütfen desteklenen bir dosya formatı seçin (JPG, PNG, GIF, MP4, WebM).');
+                resetFileInput();
+                return;
+            }
+            
+            // Önizleme oluştur
+            previewThumbnail.innerHTML = '';
+            
+            if (isImage) {
+                const img = document.createElement('img');
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'cover';
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+                
+                previewThumbnail.appendChild(img);
+                
+                // Resim başlık önerisi
+                if (document.getElementById('title').value === '') {
+                    document.getElementById('title').value = file.name.split('.')[0];
+                }
+                
+                // Resimler için gösterim süresi inputu
+                document.getElementById('display_time').parentElement.style.display = 'block';
+            }
+            
+            if (isVideo) {
+                const video = document.createElement('video');
+                video.style.width = '100%';
+                video.style.height = '100%';
+                video.style.objectFit = 'cover';
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    video.src = e.target.result;
+                    
+                    // Video süresini al
+                    video.onloadedmetadata = function() {
+                        const duration = Math.round(video.duration);
+                        document.getElementById('display_time').value = duration;
+                    };
+                };
+                reader.readAsDataURL(file);
+                
+                previewThumbnail.appendChild(video);
+                
+                // Video başlık önerisi
+                if (document.getElementById('title').value === '') {
+                    document.getElementById('title').value = file.name.split('.')[0];
+                }
+                
+                // Videolar için gösterim süresi inputu gizle (video süresini kullanır)
+                document.getElementById('display_time').parentElement.style.display = 'none';
+            }
+            
+            // Dosya bilgilerini göster
+            fileName.textContent = file.name;
+            fileInfo.textContent = formatFileSize(file.size) + (isImage ? ' - Resim' : ' - Video');
+            
+            // Önizleme alanını göster
+            filePreview.classList.remove('d-none');
+            
+            // Form durumunu güncelle
+            updateFormState();
+        }
+        
+        // Dosya kaldırma
+        removeFileBtn.addEventListener('click', function() {
+            resetFileInput();
+        });
+        
+        function resetFileInput() {
+            fileInput.value = '';
+            filePreview.classList.add('d-none');
+            previewThumbnail.innerHTML = '';
+            updateFormState();
+        }
+        
+        // Dosya boyutu formatla
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // Etiket sistemi
+        const tagInput = document.getElementById('tag');
+        const addTagBtn = document.getElementById('addTag');
+        const tagContainer = document.getElementById('tagContainer');
+        const tagsInput = document.getElementById('tags');
+        let tags = [];
+        
+        function addTag(text) {
+            if (!text || tags.includes(text)) return;
+            
+            tags.push(text);
+            updateTagsInput();
+            
+            const tag = document.createElement('span');
+            tag.className = 'badge bg-light text-dark border py-2 px-3';
+            tag.innerHTML = `${text} <i class="fas fa-times ms-1 remove-tag" data-tag="${text}" style="cursor: pointer;"></i>`;
+            tagContainer.appendChild(tag);
+            
+            // Etiket silme
+            tag.querySelector('.remove-tag').addEventListener('click', function() {
+                const tagText = this.getAttribute('data-tag');
+                removeTag(tagText);
+                tag.remove();
+            });
+        }
+        
+        function removeTag(text) {
+            tags = tags.filter(tag => tag !== text);
+            updateTagsInput();
+        }
+        
+        function updateTagsInput() {
+            tagsInput.value = JSON.stringify(tags);
+        }
+        
+        // Etiket ekleme butonu
+        addTagBtn.addEventListener('click', function() {
+            const text = tagInput.value.trim();
+            if (text) {
+                addTag(text);
+                tagInput.value = '';
+            }
+        });
+        
+        // Enter ile etiket ekleme
+        tagInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const text = this.value.trim();
+                if (text) {
+                    addTag(text);
+                    this.value = '';
+                }
+            }
+        });
+    });
+</script>
+{% endblock %} 

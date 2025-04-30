@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+
+{% block title %}Yeni Ekran Oluştur{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h2 mb-0">Yeni Ekran Oluştur</h1>
+                <a href="{{ url_for('user.screens') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> Ekranlara Dön
+                </a>
+            </div>
+            
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <div class="alert alert-info mb-4">
+                        <div class="d-flex">
+                            <div class="me-3">
+                                <i class="fas fa-info-circle fa-2x"></i>
+                            </div>
+                            <div>
+                                <strong>Bilgi:</strong> Ekran oluşturduktan sonra içerik ekleyebileceksiniz.
+                                <p class="mb-0 mt-1">Ekran Limiti: {{ screen_count }} / {{ allowed_screen_count }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form action="{{ url_for('user.create_screen') }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Ekran Adı <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" required placeholder="Örn: Mağaza Vitrin Ekranı" autofocus>
+                            <div class="form-text">Ekranınızı tanımlayan kısa bir isim</div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="orientation" class="form-label">Ekran Yönü <span class="text-danger">*</span></label>
+                                <select class="form-select" id="orientation" name="orientation" required>
+                                    <option value="horizontal" selected>Yatay (Landscape)</option>
+                                    <option value="vertical">Dikey (Portrait)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="resolution" class="form-label">Çözünürlük <span class="text-danger">*</span></label>
+                                <select class="form-select" id="resolution" name="resolution" required>
+                                    <option value="1920x1080" selected>1920x1080 (Full HD)</option>
+                                    <option value="1280x720">1280x720 (HD)</option>
+                                    <option value="3840x2160">3840x2160 (4K UHD)</option>
+                                    <option value="720x1280">720x1280 (HD Dikey)</option>
+                                    <option value="1080x1920">1080x1920 (Full HD Dikey)</option>
+                                    <option value="custom">Özel Çözünürlük</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3" id="customResolution" style="display: none;">
+                            <div class="col-md-6">
+                                <label for="width" class="form-label">Genişlik (pixel) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="width" name="width" placeholder="Örn: 1920" min="100" max="8000">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="height" class="form-label">Yükseklik (pixel) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="height" name="height" placeholder="Örn: 1080" min="100" max="8000">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="location" class="form-label">Konum</label>
+                            <input type="text" class="form-control" id="location" name="location" placeholder="Örn: Ana Mağaza, Giriş Katı">
+                            <div class="form-text">Ekranın bulunduğu fiziksel konum</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Açıklama</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Ekran hakkında detaylı bilgi..."></textarea>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="refresh_rate" class="form-label">Yenileme Süresi (saniye)</label>
+                                <input type="number" class="form-control" id="refresh_rate" name="refresh_rate" value="15" min="5" max="300">
+                                <div class="form-text">İçerik kontrol edilme sıklığı</div>
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" value="1" id="show_clock" name="show_clock" checked>
+                                    <label class="form-check-label" for="show_clock">
+                                        Saat Göster
+                                    </label>
+                                    <div class="form-text">Ekranda saat ve tarih gösterilsin mi?</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="status" name="status" checked>
+                                <label class="form-check-label" for="status">Ekran Aktif</label>
+                                <div class="form-text">Pasif ekranlar içerik göstermez</div>
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i> Ekranı Oluştur
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Özel çözünürlük seçildiğinde input alanlarını göster
+        const resolutionSelect = document.getElementById('resolution');
+        const customResolutionDiv = document.getElementById('customResolution');
+        const widthInput = document.getElementById('width');
+        const heightInput = document.getElementById('height');
+        
+        // Yön değiştiğinde çözünürlük opsiyonlarını güncelle
+        const orientationSelect = document.getElementById('orientation');
+        
+        resolutionSelect.addEventListener('change', function() {
+            if (this.value === 'custom') {
+                customResolutionDiv.style.display = 'flex';
+                widthInput.required = true;
+                heightInput.required = true;
+            } else {
+                customResolutionDiv.style.display = 'none';
+                widthInput.required = false;
+                heightInput.required = false;
+            }
+        });
+        
+        orientationSelect.addEventListener('change', function() {
+            const isVertical = this.value === 'vertical';
+            
+            // Varsayılan değere geri döndür
+            resolutionSelect.innerHTML = '';
+            
+            if (isVertical) {
+                // Dikey opsiyonlar
+                addOption(resolutionSelect, '1080x1920', '1080x1920 (Full HD Dikey)');
+                addOption(resolutionSelect, '720x1280', '720x1280 (HD Dikey)');
+                addOption(resolutionSelect, '1440x2560', '1440x2560 (QHD Dikey)');
+                addOption(resolutionSelect, '2160x3840', '2160x3840 (4K Dikey)');
+            } else {
+                // Yatay opsiyonlar
+                addOption(resolutionSelect, '1920x1080', '1920x1080 (Full HD)');
+                addOption(resolutionSelect, '1280x720', '1280x720 (HD)');
+                addOption(resolutionSelect, '2560x1440', '2560x1440 (QHD)');
+                addOption(resolutionSelect, '3840x2160', '3840x2160 (4K UHD)');
+            }
+            
+            // Özel çözünürlük opsiyonu
+            addOption(resolutionSelect, 'custom', 'Özel Çözünürlük');
+            
+            // İlk opsiyonu seç
+            resolutionSelect.selectedIndex = 0;
+            
+            // Özel çözünürlük div'ini gizle
+            customResolutionDiv.style.display = 'none';
+            widthInput.required = false;
+            heightInput.required = false;
+        });
+        
+        function addOption(selectElement, value, text) {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = text;
+            selectElement.appendChild(option);
+        }
+    });
+</script>
+{% endblock %} 

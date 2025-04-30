@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Playlistler{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Tüm Playlistler</h1>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Playlist Adı</th>
+                            <th>Oluşturan</th>
+                            <th>Medya Sayısı</th>
+                            <th>Atanmış Ekran Sayısı</th>
+                            <th>Oluşturma Tarihi</th>
+                            <th>Durum</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if playlists %}
+                            {% for playlist in playlists %}
+                                <tr>
+                                    <td>{{ playlist.id }}</td>
+                                    <td>{{ playlist.name }}</td>
+                                    <td>{{ playlist.user_name }}</td>
+                                    <td>{{ playlist.media_count }}</td>
+                                    <td>{{ playlist.screen_count }}</td>
+                                    <td>{{ playlist.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                                    <td>
+                                        {% if playlist.status == 'active' %}
+                                            <span class="badge bg-success">Aktif</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Pasif</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('admin.view_playlist', playlist_id=playlist.id) }}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i> Görüntüle
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="8" class="text-center">Henüz playlist bulunmuyor.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

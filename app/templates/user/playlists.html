@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+
+{% block title %}Playlistlerim - BulutVizyon{% endblock %}
+
+{% block styles %}
+<style>
+    .playlist-card {
+        transition: all 0.2s;
+        height: 100%;
+        background-color: var(--dark-card);
+        border-color: var(--dark-border);
+    }
+    .playlist-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.3);
+    }
+    .playlist-header {
+        height: 120px;
+        background-color: var(--dark-bg);
+        background-image: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        color: white;
+        position: relative;
+        border-top-left-radius: calc(0.375rem - 1px);
+        border-top-right-radius: calc(0.375rem - 1px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .playlist-icon {
+        font-size: 3rem;
+        opacity: 0.8;
+    }
+    .playlist-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+    .media-count {
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        font-size: 0.75rem;
+        padding: 3px 10px;
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+    }
+    .playlist-name {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .playlist-description {
+        font-size: 0.85rem;
+        color: var(--text-gray);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        min-height: 40px;
+    }
+    .playlist-actions {
+        margin-top: auto;
+    }
+    .no-playlists {
+        background-color: var(--dark-card);
+        border-radius: 0.5rem;
+        padding: 3rem;
+        text-align: center;
+    }
+    .nav-tabs {
+        border-bottom-color: var(--dark-border);
+    }
+    .nav-tabs .nav-link {
+        color: var(--text-gray);
+    }
+    .nav-tabs .nav-link.active {
+        background-color: var(--dark-card);
+        color: var(--text-light);
+        border-color: var(--dark-border);
+        border-bottom-color: var(--dark-card);
+    }
+    .card-footer {
+        border-top-color: var(--dark-border);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2 mb-0">Playlistlerim</h1>
+        <a href="{{ url_for('user.create_playlist') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Yeni Playlist
+        </a>
+    </div>
+    
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link active" id="my-playlists-tab" data-bs-toggle="tab" href="#my-playlists">
+                <i class="fas fa-list me-1"></i> Playlistlerim
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="public-playlists-tab" data-bs-toggle="tab" href="#public-playlists">
+                <i class="fas fa-globe me-1"></i> Genel Playlistler
+            </a>
+        </li>
+    </ul>
+    
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="my-playlists">
+            {% if user_playlists %}
+            <div class="row g-4">
+                {% for playlist in user_playlists %}
+                <div class="col-md-4 col-lg-3">
+                    <div class="card playlist-card h-100">
+                        <div class="playlist-header">
+                            <i class="fas fa-list playlist-icon"></i>
+                            {% if playlist.is_public %}
+                            <span class="badge bg-success playlist-badge">Genel</span>
+                            {% endif %}
+                            <span class="media-count">{{ playlist.media_count }} medya</span>
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="playlist-name">{{ playlist.name }}</h5>
+                            <p class="playlist-description">{{ playlist.description or 'Açıklama yok' }}</p>
+                            
+                            <div class="playlist-actions mt-3">
+                                <div class="btn-group w-100">
+                                    <a href="{{ url_for('user.view_playlist', playlist_id=playlist.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i> Görüntüle
+                                    </a>
+                                    <a href="{{ url_for('user.edit_playlist', playlist_id=playlist.id) }}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-edit"></i> Düzenle
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent text-muted">
+                            <small>Oluşturulma: {{ playlist.created_at.strftime('%d.%m.%Y') }}</small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="no-playlists">
+                <i class="fas fa-list fa-3x mb-4 text-muted"></i>
+                <h4>Henüz playlist oluşturmadınız</h4>
+                <p class="text-muted mb-4">Medyalarınızı gruplara ayırmak ve ekranlarınıza kolayca atamak için playlist oluşturun</p>
+                <a href="{{ url_for('user.create_playlist') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i> İlk Playlist'i Oluştur
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="tab-pane fade" id="public-playlists">
+            {% if public_playlists %}
+            <div class="row g-4">
+                {% for playlist in public_playlists %}
+                <div class="col-md-4 col-lg-3">
+                    <div class="card playlist-card h-100">
+                        <div class="playlist-header">
+                            <i class="fas fa-globe playlist-icon"></i>
+                            <span class="badge bg-success playlist-badge">Genel</span>
+                            <span class="media-count">{{ playlist.media_count }} medya</span>
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="playlist-name">{{ playlist.name }}</h5>
+                            <p class="playlist-description">{{ playlist.description or 'Açıklama yok' }}</p>
+                            
+                            <div class="playlist-actions mt-3">
+                                <a href="{{ url_for('user.view_playlist', playlist_id=playlist.id) }}" class="btn btn-sm btn-outline-primary w-100">
+                                    <i class="fas fa-eye"></i> Görüntüle
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="no-playlists">
+                <i class="fas fa-globe fa-3x mb-4 text-muted"></i>
+                <h4>Kullanılabilir genel playlist bulunamadı</h4>
+                <p class="text-muted">Diğer kullanıcıların paylaştığı playlistler burada görünecek</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

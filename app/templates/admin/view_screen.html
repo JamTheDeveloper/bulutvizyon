@@ -1,0 +1,681 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ screen.name }} - BulutVizyon{% endblock %}
+
+{% block styles %}
+<style>
+    .screen-details {
+        margin-bottom: 2rem;
+    }
+    .screen-properties {
+        background-color: var(--dark-card);
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .media-list {
+        margin-top: 2rem;
+    }
+    .media-item {
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 0.5rem;
+        background-color: var(--dark-card);
+        position: relative;
+    }
+    .media-item:hover {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
+    }
+    .media-thumbnail {
+        width: 100%;
+        max-height: 150px;
+        object-fit: cover;
+        border-radius: 0.25rem;
+        margin-bottom: 0.5rem;
+    }
+    .media-actions {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+    }
+    .order-handle {
+        cursor: move;
+        padding: 0.25rem 0.5rem;
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.25rem;
+        margin-right: 0.5rem;
+    }
+    .assigned-media-header {
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .action-buttons {
+        margin-bottom: 1.5rem;
+    }
+    .screen-status {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        border-radius: 0.25rem;
+    }
+    .status-active {
+        background-color: rgba(13, 110, 253, 0.2);
+        color: #0d6efd;
+    }
+    .status-inactive {
+        background-color: rgba(220, 53, 69, 0.2);
+        color: #dc3545;
+    }
+    .status-pending {
+        background-color: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+    }
+    .media-assign-form {
+        margin-top: 1.5rem;
+        padding: 1.5rem;
+        background-color: var(--dark-card);
+        border-radius: 0.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .stats-card {
+        background-color: var(--dark-card);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
+        border-left: 4px solid var(--primary-color);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .stats-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: var(--text-light);
+    }
+    .playlist-info {
+        background-color: rgba(13, 110, 253, 0.05);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid rgba(13, 110, 253, 0.2);
+    }
+    .activity-timeline {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+    .activity-timeline::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 1rem;
+        width: 2px;
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    .timeline-item {
+        position: relative;
+        padding-left: 2.5rem;
+        padding-bottom: 1.5rem;
+    }
+    .timeline-icon {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        background-color: var(--primary-color);
+        color: var(--text-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1;
+    }
+    .timeline-content {
+        background-color: var(--dark-card);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .media-view-stats {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 4px;
+        padding: 0.25rem 0.5rem;
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h2 mb-0">
+                <i class="fas fa-desktop me-2"></i> {{ screen.name }}
+            </h1>
+            <p class="text-muted">Ekran ID: {{ screen.id }}</p>
+        </div>
+    </div>
+    
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="action-buttons">
+                <a href="{{ url_for('admin.screens') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Ekranlara Dön
+                </a>
+                <a href="#" class="btn btn-primary">
+                    <i class="fas fa-edit me-1"></i> Düzenle
+                </a>
+                
+                <button type="button" 
+                        class="btn {% if screen.status == 'active' %}btn-warning{% else %}btn-success{% endif %}" 
+                        onclick="confirmStatusChange('{{ screen.id }}', '{{ screen.name }}', '{{ screen.status }}')">
+                    {% if screen.status == 'active' %}
+                        <i class="fas fa-pause-circle me-1"></i> Devre Dışı Bırak
+                    {% else %}
+                        <i class="fas fa-play-circle me-1"></i> Etkinleştir
+                    {% endif %}
+                </button>
+                
+                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteScreenModal">
+                    <i class="fas fa-trash me-1"></i> Sil
+                </button>
+                
+                <form id="status-form" 
+                        action="{{ url_for('admin.toggle_screen_status', screen_id=screen.id) }}" 
+                        method="post" 
+                        class="d-none">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Genel Bilgiler ve İstatistikler -->
+        <div class="col-md-4">
+            <!-- Ekran Bilgileri -->
+            <div class="screen-properties mb-4">
+                <h5><i class="fas fa-info-circle me-2"></i>Ekran Bilgileri</h5>
+                <hr>
+                
+                <div class="row mb-2">
+                    <div class="col-5 fw-bold">Durum:</div>
+                    <div class="col-7">
+                        {% if screen.status == 'active' %}
+                        <span class="screen-status status-active">Aktif</span>
+                        {% elif screen.status == 'inactive' %}
+                        <span class="screen-status status-inactive">Devre Dışı</span>
+                        {% elif screen.status == 'pending' %}
+                        <span class="screen-status status-pending">Onay Bekliyor</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row mb-2">
+                    <div class="col-5 fw-bold">Sahip:</div>
+                    <div class="col-7">
+                        <a href="{{ url_for('admin.edit_user', user_id=user.id) }}">{{ user.name }}</a>
+                    </div>
+                </div>
+                
+                <div class="row mb-2">
+                    <div class="col-5 fw-bold">Konum:</div>
+                    <div class="col-7">{{ screen.location or 'Belirtilmemiş' }}</div>
+                </div>
+                
+                <div class="row mb-2">
+                    <div class="col-5 fw-bold">Açıklama:</div>
+                    <div class="col-7">{{ screen.description or 'Açıklama yok' }}</div>
+                </div>
+                
+                <div class="row mb-2">
+                    <div class="col-5 fw-bold">API Kodu:</div>
+                    <div class="col-7">
+                        <code id="api-key">{{ screen.api_key }}</code>
+                        <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyApiKey()">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="row mb-2">
+                    <div class="col-5 fw-bold">Çözünürlük:</div>
+                    <div class="col-7">{{ screen.resolution or 'Belirtilmemiş' }}</div>
+                </div>
+                
+                <div class="row mb-2">
+                    <div class="col-5 fw-bold">Yönelim:</div>
+                    <div class="col-7">{{ screen.orientation or 'Belirtilmemiş' }}</div>
+                </div>
+                
+                <div class="row mb-2">
+                    <div class="col-5 fw-bold">Son Erişim:</div>
+                    <div class="col-7">{{ screen.last_access.strftime('%d.%m.%Y %H:%M') if screen.last_access else 'Hiç erişim yok' }}</div>
+                </div>
+                
+                <div class="row mb-2">
+                    <div class="col-5 fw-bold">Kayıt Tarihi:</div>
+                    <div class="col-7">{{ screen.created_at.strftime('%d.%m.%Y %H:%M') }}</div>
+                </div>
+            </div>
+            
+            <!-- Playlist Bilgisi -->
+            {% if playlist %}
+            <div class="playlist-info">
+                <h5 class="d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-list-alt me-2"></i> Atanmış Playlist</span>
+                    <a href="{{ url_for('user.view_playlist', playlist_id=playlist.id) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-eye"></i> Görüntüle
+                    </a>
+                </h5>
+                <hr>
+                    
+                <div class="row mb-2">
+                    <div class="col-5 fw-bold">Playlist Adı:</div>
+                    <div class="col-7">{{ playlist.name }}</div>
+                </div>
+                
+                <div class="row mb-2">
+                    <div class="col-5 fw-bold">Medya Sayısı:</div>
+                    <div class="col-7">{{ playlist_media|length }} öğe</div>
+                </div>
+                
+                <div class="row mb-2">
+                    <div class="col-5 fw-bold">Açıklama:</div>
+                    <div class="col-7">{{ playlist.description or 'Açıklama yok' }}</div>
+                </div>
+                
+                <div class="row mb-2">
+                    <div class="col-5 fw-bold">Durum:</div>
+                    <div class="col-7">
+                        {% if playlist.status == 'active' %}
+                        <span class="screen-status status-active">Aktif</span>
+                        {% else %}
+                        <span class="screen-status status-inactive">Pasif</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- İstatistik Kartları -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="stats-card">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="text-muted">Toplam Gösterim</div>
+                            <i class="fas fa-eye text-primary"></i>
+                        </div>
+                        <div class="stats-value">{{ screen.total_views or 0 }}</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="stats-card" style="border-left-color: #198754;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="text-muted">Aktif Süre</div>
+                            <i class="fas fa-clock text-success"></i>
+                        </div>
+                        <div class="stats-value">{{ screen.active_hours or 0 }} saat</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="stats-card" style="border-left-color: #dc3545;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="text-muted">Günlük Gösterim</div>
+                            <i class="fas fa-chart-line text-danger"></i>
+                        </div>
+                        <div class="stats-value">{{ screen.daily_views or 0 }}</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="stats-card" style="border-left-color: #fd7e14;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="text-muted">Medya Sayısı</div>
+                            <i class="fas fa-photo-video text-warning"></i>
+                        </div>
+                        <div class="stats-value">{{ assigned_media|length }}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Aktivite Zaman Çizelgesi -->
+            <div class="activity-timeline mt-4">
+                <h5><i class="fas fa-history me-2"></i>Son Aktiviteler</h5>
+                <hr>
+                
+                {% if screen.activity_logs %}
+                {% for log in screen.activity_logs %}
+                <div class="timeline-item">
+                    <div class="timeline-icon" style="background-color: var(--primary-color)">
+                        <i class="fas {{ log.icon }}"></i>
+                    </div>
+                    <div class="timeline-content">
+                        <div class="d-flex justify-content-between mb-1">
+                            <h6 class="mb-0">{{ log.title }}</h6>
+                            <small class="text-muted">{{ log.time.strftime('%d.%m.%Y %H:%M') }}</small>
+                        </div>
+                        <p class="mb-0 small">{{ log.description }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> Henüz aktivite kaydı bulunmuyor.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            {% if playlist %}
+            <!-- Playliste Atanmış Medyalar -->
+            <div class="assigned-media-header">
+                <h5><i class="fas fa-list-alt me-2"></i>Playlist İçeriği ({{ playlist_media|length }})</h5>
+            </div>
+            
+            {% if playlist_media %}
+            <div id="playlist-media-list" class="media-list">
+                {% for media in playlist_media %}
+                <div class="media-item">
+                    <div class="row">
+                        <div class="col-auto">
+                            <span class="order-badge" title="Sıralama">
+                                <i class="fas fa-sort-numeric-down"></i> {{ loop.index }}
+                            </span>
+                        </div>
+                        <div class="col-md-3">
+                            {% if media.type == 'image' %}
+                            <img src="{{ media.url }}" alt="{{ media.title }}" class="media-thumbnail">
+                            {% else %}
+                            <div class="media-thumbnail d-flex align-items-center justify-content-center bg-dark text-white">
+                                <i class="fas fa-video fa-3x"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-8">
+                            <h6>{{ media.title }}</h6>
+                            <p class="mb-1 text-muted small">
+                                <span class="me-2">
+                                    <i class="fas {{ 'fa-video' if media.type == 'video' else 'fa-image' }} me-1"></i>
+                                    {{ 'Video' if media.type == 'video' else 'Görsel' }}
+                                </span>
+                                {% if media.duration %}
+                                <span class="me-2">
+                                    <i class="fas fa-clock me-1"></i> {{ media.duration }} saniye
+                                </span>
+                                {% endif %}
+                            </p>
+                            
+                            <div class="media-view-stats">
+                                <div class="row">
+                                    <div class="col-6">
+                                    <i class="fas fa-eye me-1"></i> {{ media.views or 0 }} görüntülenme
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-2">
+                                <span class="text-muted me-2">Gösterim süresi:</span>
+                                <span class="fw-bold">{{ media.display_time or 'Varsayılan' }} saniye</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i> Bu playlist'e henüz medya eklenmemiş.
+            </div>
+            {% endif %}
+            
+            <hr class="my-4">
+            {% endif %}
+        
+            <!-- Gelişmiş Playlist Detayları -->
+            {% if enhanced_details and enhanced_details.playlists %}
+            <div class="card bg-dark border-primary mt-0">
+                <div class="card-header bg-primary bg-opacity-25 text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-photo-video me-2"></i> Atanmış Medyalar
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for playlist in enhanced_details.playlists %}
+                    <div class="playlist-info">
+                        <h5 class="text-primary">
+                            <i class="fas fa-list-alt me-2"></i> {{ playlist.playlist_adi }}
+                        </h5>
+                        
+                        <p class="text-muted mb-0">
+                            {% if playlist.aciklama %}{{ playlist.aciklama }}{% else %}Açıklama yok{% endif %}
+                        </p>
+                        
+                        <div class="d-flex justify-content-between align-items-center my-2">
+                            <span>
+                                <i class="fas fa-photo-video me-1"></i> {{ playlist.media_count }} Medya
+                            </span>
+                            <span class="screen-status status-{{ playlist.durum }}">
+                                {{ {'active': 'Aktif', 'inactive': 'Devre Dışı', 'pending': 'Onay Bekliyor'}.get(playlist.durum, playlist.durum) }}
+                            </span>
+                        </div>
+                        
+                        {% if playlist.media_listesi %}
+                        <div class="enhanced-media-list mt-3">
+                            <h6><i class="fas fa-th-list me-2"></i> Medya İçeriği</h6>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-dark table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Medya</th>
+                                            <th scope="col" style="width: 110px">Tür</th>
+                                            <th scope="col" style="width: 110px">Süre (sn)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for media in playlist.media_listesi %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ media.media_adi }}</strong><br>
+                                                <small class="text-muted">{{ media.dosya_adi }}</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge {{ 'bg-danger' if media.dosya_turu == 'video' else 'bg-info' }}">
+                                                    <i class="fas {{ 'fa-video' if media.dosya_turu == 'video' else 'fa-image' }} me-1"></i>
+                                                    {{ 'Video' if media.dosya_turu == 'video' else 'Görsel' }}
+                                                </span>
+                                            </td>
+                                            <td>{{ media.gosterim_suresi }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle me-2"></i> Bu playlist'e henüz medya eklenmemiş.
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Ekran Silme Modal -->
+<div class="modal fade" id="deleteScreenModal" tabindex="-1" aria-labelledby="deleteScreenModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteScreenModalLabel">Ekranı Sil</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i> <strong>{{ screen.name }}</strong> ekranını silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+                </div>
+                <p>Bu ekranla ilişkili tüm medya bağlantıları kaldırılacaktır.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <form action="{{ url_for('user.delete_screen', screen_id=screen.id) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">Ekranı Sil</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Durum Değiştirme Onay Modalı -->
+<div class="modal fade" id="statusChangeModal" tabindex="-1" aria-labelledby="statusChangeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="statusChangeModalLabel">Ekran Durumunu Değiştir</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <div class="modal-body">
+                <div id="modal-message"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" id="confirmStatusBtn" class="btn btn-primary">Onayla</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sıralama için JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Medya sıralama
+    var mediaList = document.getElementById('assigned-media-list');
+    var saveOrderBtn = document.querySelector('.save-order-btn');
+    
+    if (mediaList) {
+        var sortable = new Sortable(mediaList, {
+            handle: '.order-handle',
+            animation: 150,
+            onStart: function() {
+                saveOrderBtn.classList.remove('d-none');
+            }
+        });
+        
+        // Sıralamayı kaydet
+        saveOrderBtn.addEventListener('click', function() {
+            var mediaItems = mediaList.querySelectorAll('.media-item');
+            var mediaOrder = [];
+            
+            mediaItems.forEach(function(item, index) {
+                mediaOrder.push({
+                    media_id: item.dataset.id,
+                    order: index
+                });
+                
+                // Sıra numarasını güncelle
+                item.querySelector('.order-handle').innerHTML = '<i class="fas fa-grip-vertical"></i> ' + (index + 1);
+            });
+            
+            // AJAX ile sıralamayı kaydet
+            fetch("{{ url_for('admin.reorder_screen_media', screen_id=screen.id) }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({media_order: mediaOrder})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    saveOrderBtn.classList.add('d-none');
+                    
+                    // Başarılı mesajı göster
+                    var alert = document.createElement('div');
+                    alert.className = 'alert alert-success alert-dismissible fade show';
+                    alert.innerHTML = '<i class="fas fa-check-circle me-2"></i> Sıralama başarıyla kaydedildi. <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>';
+                    
+                    var header = document.querySelector('.assigned-media-header');
+                    header.parentNode.insertBefore(alert, header.nextSibling);
+                    
+                    // 3 saniye sonra uyarıyı otomatik kapat
+                    setTimeout(function() {
+                        var bsAlert = new bootstrap.Alert(alert);
+                        bsAlert.close();
+                    }, 3000);
+                } else {
+                    alert('Hata: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Sıralama kaydedilirken bir hata oluştu.');
+            });
+        });
+    }
+    
+    // API anahtarını kopyala
+    window.copyApiKey = function() {
+        var apiKey = document.getElementById('api-key').textContent;
+        navigator.clipboard.writeText(apiKey).then(function() {
+            alert('API anahtarı panoya kopyalandı!');
+        }).catch(function() {
+            alert('Kopyalama işlemi başarısız oldu.');
+        });
+    };
+    
+    // Durum değiştirme onay modalı
+    window.confirmStatusChange = function(screenId, screenName, currentStatus) {
+        // Modal içeriğini ayarla
+        let message;
+        let btnClass;
+        
+        if (currentStatus === 'active') {
+            message = `<div class="alert alert-warning">
+                          <i class="fas fa-exclamation-triangle me-2"></i>
+                          <strong>${screenName}</strong> ekranını devre dışı bırakmak istediğinize emin misiniz?
+                       </div>
+                       <p>Devre dışı bırakıldığında ekranda içerik gösterilmeyecektir.</p>`;
+            btnClass = 'btn-danger';
+        } else {
+            message = `<div class="alert alert-info">
+                         <i class="fas fa-info-circle me-2"></i>
+                         <strong>${screenName}</strong> ekranını etkinleştirmek istediğinize emin misiniz?
+                       </div>
+                       <p>Etkinleştirildiğinde ekranda atanmış içerikler gösterilecektir.</p>`;
+            btnClass = 'btn-success';
+        }
+        
+        document.getElementById('modal-message').innerHTML = message;
+        
+        const confirmBtn = document.getElementById('confirmStatusBtn');
+        confirmBtn.className = `btn ${btnClass}`;
+        confirmBtn.textContent = currentStatus === 'active' ? 'Devre Dışı Bırak' : 'Etkinleştir';
+        
+        // Onay butonuna olay dinleyici ekle
+        confirmBtn.onclick = function() {
+            document.getElementById('status-form').submit();
+        };
+        
+        // Modalı göster
+        const modal = new bootstrap.Modal(document.getElementById('statusChangeModal'));
+        modal.show();
+    };
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ screen.name }} Detayları{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="mb-0"><i class="fas fa-tv me-2"></i>{{ screen.name }}</h2>
+            <p class="text-muted">{{ screen.description }}</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <div class="btn-group">
+                <a href="{{ url_for('user.screens') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Ekranlara Dön
+                </a>
+                <a href="{{ url_for('user.edit_screen', screen_id=screen.id|string) }}" class="btn btn-primary">
+                    <i class="fas fa-edit me-1"></i> Düzenle
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Ekran Detayları</h5>
+                    <span class="badge {% if screen.status == 'active' %}bg-success{% else %}bg-danger{% endif %}">
+                        {{ 'Aktif' if screen.status == 'active' else 'Pasif' }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl>
+                                <dt><i class="fas fa-map-marker-alt me-2"></i>Konum</dt>
+                                <dd class="mb-3">{{ screen.location or 'Belirtilmemiş' }}</dd>
+                                
+                                <dt><i class="fas fa-arrows-alt me-2"></i>Yön</dt>
+                                <dd class="mb-3">{{ "Yatay" if screen.orientation == 'horizontal' else "Dikey" }}</dd>
+                                
+                                <dt><i class="fas fa-clock me-2"></i>Yenileme Süresi</dt>
+                                <dd class="mb-3">{{ screen.refresh_rate or 15 }} saniye</dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl>
+                                <dt><i class="fas fa-desktop me-2"></i>Çözünürlük</dt>
+                                <dd class="mb-3">{{ screen.resolution or '1920x1080' }}</dd>
+                                
+                                <dt><i class="fas fa-stopwatch me-2"></i>Son Bağlantı</dt>
+                                <dd class="mb-3">
+                                    {% if screen.last_ping %}
+                                        {{ screen.last_ping.strftime('%d.%m.%Y %H:%M') }}
+                                    {% else %}
+                                        Hiç bağlanmadı
+                                    {% endif %}
+                                </dd>
+                                
+                                <dt><i class="fas fa-toggle-on me-2"></i>Saat Gösterimi</dt>
+                                <dd>{{ 'Açık' if screen.show_clock else 'Kapalı' }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4 border-secondary">
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0"><i class="fas fa-layer-group me-2"></i>Aktif İçerik</h5>
+                        <a href="{{ url_for('user.manage_screen_content', screen_id=screen.id|string) }}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-edit me-1"></i> İçerik Yönetimi
+                        </a>
+                    </div>
+                    
+                    {% if active_playlist %}
+                        <div class="d-flex align-items-center p-3 border border-secondary rounded bg-dark-lighter mb-3">
+                            <i class="fas fa-play-circle fa-2x me-3 text-primary"></i>
+                            <div>
+                                <h6 class="mb-1">{{ active_playlist.name }}</h6>
+                                <p class="mb-0 small text-muted">{{ active_playlist.media_count }} medya öğesi</p>
+                            </div>
+                            <a href="{{ url_for('user.edit_playlist', playlist_id=active_playlist.id) }}" class="btn btn-sm btn-outline-secondary ms-auto">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i> Bu ekran için atanmış aktif içerik bulunmuyor.
+                            <a href="{{ url_for('user.manage_screen_content', screen_id=screen.id|string) }}" class="alert-link">Şimdi içerik atayın</a>.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark">
+                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>Aktivite Geçmişi</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if screen_logs %}
+                        <div class="table-responsive">
+                            <table class="table table-dark-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Tarih</th>
+                                        <th>Olay</th>
+                                        <th>Detay</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for log in screen_logs %}
+                                    <tr>
+                                        <td class="text-nowrap">{{ log.timestamp.strftime('%d.%m.%Y %H:%M') }}</td>
+                                        <td>
+                                            {% if log.event_type == 'status_change' %}
+                                                <span class="badge bg-info">Durum Değişikliği</span>
+                                            {% elif log.event_type == 'content_change' %}
+                                                <span class="badge bg-success">İçerik Değişikliği</span>
+                                            {% elif log.event_type == 'connection' %}
+                                                <span class="badge bg-primary">Bağlantı</span>
+                                            {% elif log.event_type == 'error' %}
+                                                <span class="badge bg-danger">Hata</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ log.event_type }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ log.details }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="p-4 text-center text-muted">
+                            <i class="fas fa-info-circle me-2"></i>Bu ekran için henüz aktivite kaydı bulunmuyor.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark">
+                    <h5 class="mb-0"><i class="fas fa-desktop me-2"></i>Ekran Önizleme</h5>
+                </div>
+                <div class="card-body">
+                    <div class="position-relative mb-3" id="screenPreview" style="width: 100%; height: 200px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; overflow: hidden; background-color: var(--dark-bg);">
+                        <div class="d-flex align-items-center justify-content-center h-100">
+                            {% if screen.orientation == 'horizontal' %}
+                            <i class="fas fa-desktop fa-3x text-muted"></i>
+                            {% else %}
+                            <i class="fas fa-mobile-alt fa-3x text-muted"></i>
+                            {% endif %}
+                        </div>
+                        
+                        {% if screen.show_clock %}
+                        <div class="position-absolute p-2" style="top: 0; right: 0; background: rgba(0,0,0,0.5); color: white; font-size: 14px;">
+                            <i class="fas fa-clock me-1"></i> <span id="previewClock">12:34</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <small class="d-block text-center text-muted mb-3">{{ screen.resolution }}</small>
+                    
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('user.preview_screen', screen_id=screen.id|string) }}" class="btn btn-primary">
+                            <i class="fas fa-play me-1"></i> Gerçek Önizleme
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark">
+                    <h5 class="mb-0"><i class="fas fa-qrcode me-2"></i>Hızlı Erişim</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3" id="qrcode"></div>
+                    
+                    <div class="input-group mb-3">
+                        <input type="text" id="screenUrl" class="form-control" value="{{ url_for('public.view_screen', api_key=screen.api_key, _external=True) }}" readonly>
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('screenUrl')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <a href="{{ url_for('public.view_screen', api_key=screen.api_key) }}" target="_blank" class="btn btn-outline-primary">
+                            <i class="fas fa-external-link-alt me-1"></i> Ekran Görünümünü Aç
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark">
+                    <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>API Bilgileri</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="api_key" class="form-label fw-bold">API Anahtarı</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control font-monospace" id="api_key" value="{{ screen.api_key }}" readonly>
+                            <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('api_key')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">Bu anahtarı ekran cihazlarınızda kullanın</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/qrcode.js@1.0.0/qrcode.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // QR kod oluştur
+        const screenUrl = document.getElementById('screenUrl').value;
+        new QRCode(document.getElementById("qrcode"), {
+            text: screenUrl,
+            width: 160,
+            height: 160,
+            colorDark : "#007bff",
+            colorLight : "#222", // Koyu tema için QR kod arka planını değiştirdim
+            correctLevel : QRCode.CorrectLevel.H
+        });
+        
+        // Saat gösterimi varsa güncelleme
+        if (document.getElementById('previewClock')) {
+            updateClock();
+            setInterval(updateClock, 1000);
+        }
+        
+        function updateClock() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            document.getElementById('previewClock').textContent = `${hours}:${minutes}`;
+        }
+    });
+    
+    function copyToClipboard(elementId) {
+        var copyText = document.getElementById(elementId);
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(copyText.value);
+        
+        // Kopya bildirimini göster
+        const tooltip = document.createElement('div');
+        tooltip.style.position = 'fixed';
+        tooltip.style.top = '1rem';
+        tooltip.style.right = '1rem';
+        tooltip.style.background = 'rgba(0, 0, 0, 0.8)';
+        tooltip.style.color = 'white';
+        tooltip.style.padding = '0.5rem 1rem';
+        tooltip.style.borderRadius = '4px';
+        tooltip.style.zIndex = '9999';
+        tooltip.innerText = 'Kopyalandı!';
+        document.body.appendChild(tooltip);
+        
+        setTimeout(() => {
+            document.body.removeChild(tooltip);
+        }, 2000);
+    }
+</script>
+{% endblock %} 

@@ -1,0 +1,880 @@
+{% extends 'base.html' %}
+
+{% block title %}İçerik Yönetimi: {{ screen.name }}{% endblock %}
+
+{% block styles %}
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<style>
+    .screen-preview {
+        position: relative;
+        width: 100%;
+        min-height: 200px;
+        background-color: var(--dark-bg);
+        border: 1px solid var(--dark-border);
+        border-radius: 5px;
+        overflow: hidden;
+    }
+    
+    .content-item {
+        border: 1px solid var(--dark-border);
+        margin-bottom: 8px;
+        border-radius: 5px;
+        background-color: var(--dark-card);
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    
+    .content-item:hover {
+        border-color: var(--primary-color);
+    }
+    
+    .content-item.active {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.25rem rgba(116, 41, 198, 0.25);
+    }
+    
+    .content-handle {
+        cursor: move;
+        padding: 10px;
+        color: var(--text-gray);
+    }
+    
+    .content-handle:hover {
+        color: var(--text-light);
+    }
+    
+    .media-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 15px;
+    }
+    
+    .media-item {
+        position: relative;
+        border-radius: 5px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 2px solid transparent;
+        background-color: var(--dark-card);
+    }
+    
+    .media-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    
+    .media-item.selected {
+        border-color: var(--primary-color);
+    }
+    
+    .media-item-preview {
+        width: 100%;
+        height: 100px;
+        overflow: hidden;
+        background-color: var(--dark-bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .media-item-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .media-item-preview .video-icon {
+        font-size: 2rem;
+        color: var(--text-gray);
+    }
+    
+    .media-item-info {
+        padding: 8px;
+        background-color: var(--dark-card);
+        color: var(--text-light);
+    }
+    
+    .media-item-title {
+        font-size: 0.85rem;
+        margin-bottom: 4px;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--text-light);
+    }
+    
+    .media-type-badge {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        font-size: 0.7rem;
+        padding: 2px 5px;
+    }
+    
+    .no-content-placeholder {
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-gray);
+        background-color: var(--dark-card);
+        border-radius: 5px;
+        border: 1px dashed var(--dark-border);
+    }
+    
+    .content-item {
+        border-left: 3px solid var(--primary-color);
+        margin-bottom: 10px;
+        padding: 10px;
+        background-color: var(--dark-card);
+        border-radius: 5px;
+        color: var(--text-light);
+    }
+    
+    .content-controls {
+        display: flex;
+        gap: 5px;
+    }
+    
+    .media-img-preview {
+        max-width: 150px;
+        max-height: 100px;
+        object-fit: contain;
+    }
+    
+    .search-results {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .media-list-item {
+        cursor: pointer;
+        padding: 10px;
+        border-bottom: 1px solid var(--dark-border);
+        color: var(--text-light);
+        background-color: var(--dark-card);
+    }
+    
+    .media-list-item:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    .playlist-container {
+        margin-bottom: 15px;
+        border: 1px solid var(--dark-border);
+        border-radius: 5px;
+        background-color: var(--dark-card);
+    }
+    
+    .playlist-header {
+        padding: 10px 15px;
+        background-color: var(--dark-bg);
+        border-bottom: 1px solid var(--dark-border);
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--text-light);
+    }
+    
+    .playlist-header:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    .playlist-content {
+        padding: 0 15px;
+    }
+    
+    .playlist-media-item {
+        padding: 8px;
+        margin: 5px 0;
+        border-bottom: 1px solid var(--dark-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--text-light);
+    }
+    
+    .playlist-media-item:last-child {
+        border-bottom: none;
+    }
+    
+    .collapsed .playlist-content {
+        display: none;
+    }
+
+    .card {
+        background-color: var(--dark-card);
+        border-color: var(--dark-border);
+    }
+    
+    .card-header {
+        background-color: var(--dark-card);
+        border-bottom: 1px solid var(--dark-border);
+        color: var(--text-light);
+    }
+    
+    .nav-tabs {
+        border-bottom-color: var(--dark-border);
+    }
+    
+    .nav-tabs .nav-link {
+        color: var(--text-gray);
+    }
+    
+    .nav-tabs .nav-link.active {
+        background-color: var(--dark-card);
+        color: var(--text-light);
+        border-color: var(--dark-border);
+        border-bottom-color: var(--dark-card);
+    }
+
+    .form-control, .form-select {
+        background-color: var(--dark-input);
+        color: var(--text-light);
+        border-color: var(--dark-border);
+    }
+
+    .modal-content {
+        background-color: var(--dark-card);
+        color: var(--text-light);
+        border-color: var(--dark-border);
+    }
+
+    .modal-header, .modal-footer {
+        border-color: var(--dark-border);
+    }
+    
+    .text-muted {
+        color: var(--text-gray) !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="mb-3"><i class="fas fa-tv"></i> {{ screen.name }} - İçerik Yönetimi</h2>
+            <p class="text-muted">Bu ekranda gösterilecek içerikleri yönetin</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('user.screens') }}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-arrow-left"></i> Ekranlar
+            </a>
+            <a href="{{ url_for('user.preview_screen', screen_id=screen.id|string) }}" class="btn btn-primary">
+                <i class="fas fa-eye"></i> Önizle
+            </a>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <nav aria-label="breadcrumb" class="mb-3">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('user.screens') }}">Ekranlarım</a></li>
+                    <li class="breadcrumb-item active">{{ screen.name }}</li>
+                </ol>
+            </nav>
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h2 mb-0">İçerik Yönetimi</h1>
+                <div class="btn-group">
+                    <a href="{{ url_for('user.preview_screen', screen_id=screen.id|string) }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                        <i class="fas fa-eye me-1"></i> Önizle
+                    </a>
+                    <a href="{{ url_for('user.edit_screen', screen_id=screen.id|string) }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-cog me-1"></i> Ayarlar
+                    </a>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{{ screen.name }}</h5>
+                    <span class="badge {{ 'bg-success' if screen.status == 'active' else 'bg-secondary' }}">
+                        {{ 'Aktif' if screen.status == 'active' else 'Pasif' }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <small class="d-block text-muted">Çözünürlük</small>
+                            <span class="fw-bold">{{ screen.resolution }}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="d-block text-muted">Yön</small>
+                            <span class="fw-bold">
+                                {% if screen.orientation == 'horizontal' %}
+                                <i class="fas fa-desktop me-1"></i> Yatay
+                                {% else %}
+                                <i class="fas fa-mobile-alt me-1"></i> Dikey
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="d-block text-muted">Yenileme Süresi</small>
+                            <span class="fw-bold">{{ screen.refresh_rate }} saniye</span>
+                        </div>
+                    </div>
+                    
+                    {% if assigned_playlist %}
+                    <div class="alert alert-success mb-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-1"><i class="fas fa-list-alt me-2"></i> Atanmış Playlist</h5>
+                                <p class="mb-0">{{ assigned_playlist.name }}</p>
+                            </div>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="confirmRemovePlaylist('{{ screen.id|string }}')">
+                                <i class="fas fa-trash me-1"></i> Playlist'i Kaldır
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <p class="fw-bold mb-2">Ekran İçerikleri</p>
+                    
+                    {% if not screen_content %}
+                    <div class="no-content-placeholder mb-3">
+                        <i class="fas fa-photo-video fa-3x mb-3"></i>
+                        <h5>İçerik Bulunamadı</h5>
+                        <p class="text-center mb-0">Medya sekmesinden içerik ekleyebilirsiniz</p>
+                    </div>
+                    {% else %}
+                    <form id="content-order-form" action="{{ url_for('user.save_screen_content_order', screen_id=screen.id|string) }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div id="content-list" class="mb-3">
+                            {% if assigned_playlist %}
+                            <div class="playlist-container mb-3">
+                                <div class="playlist-header" onclick="togglePlaylist(this)">
+                                    <div>
+                                        <i class="fas fa-list-alt me-2"></i>
+                                        <strong>{{ assigned_playlist.name }}</strong>
+                                        <span class="toggle-icon"></span>
+                                    </div>
+                                    <div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary me-1" 
+                                            onclick="editPlaylist('{{ assigned_playlist.id }}')">
+                                            <i class="fas fa-edit"></i> Düzenle
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                            onclick="confirmRemovePlaylist('{{ screen.id|string }}')">
+                                            <i class="fas fa-trash"></i> Sil
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="playlist-content">
+                                    {% for content in screen_content %}
+                                    <div class="content-item d-flex align-items-center mb-2" data-id="{{ content._id }}">
+                                        <div class="content-handle ps-3">
+                                            <i class="fas fa-grip-vertical"></i>
+                                        </div>
+                                        <div class="flex-grow-1 p-2">
+                                            <div class="d-flex align-items-center mb-1">
+                                                <div class="me-2">
+                                                    {% if content.media.file_type == 'image' %}
+                                                    <span class="badge bg-info"><i class="fas fa-image me-1"></i> Resim</span>
+                                                    {% else %}
+                                                    <span class="badge bg-danger"><i class="fas fa-video me-1"></i> Video</span>
+                                                    {% endif %}
+                                                </div>
+                                                <h6 class="mb-0 text-truncate" style="max-width: 200px;">{{ content.media.title }}</h6>
+                                            </div>
+                                            <small class="text-muted">
+                                                Gösterim Süresi: 
+                                                {% if content.media.file_type == 'video' %}
+                                                    {{ content.media.duration or '00:00' }} (Video Süresi)
+                                                {% else %}
+                                                    {{ content.display_time or content.media.display_time }} saniye
+                                                {% endif %}
+                                            </small>
+                                            <input type="hidden" name="content_ids[]" value="{{ content._id }}">
+                                        </div>
+                                        <div class="d-flex p-2">
+                                            <button type="button" class="btn btn-sm btn-outline-primary me-2" 
+                                                onclick="previewMedia('{{ content.media._id }}', '{{ content.media.file_type }}')">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            {% if content.media.file_type == 'image' %}
+                                            <button type="button" class="btn btn-sm btn-outline-primary me-2 edit-content-btn" 
+                                                data-bs-toggle="modal" data-bs-target="#editContentModal"
+                                                data-content-id="{{ content._id }}"
+                                                data-display-time="{{ content.display_time or content.media.display_time }}">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            {% endif %}
+                                            <button type="button" class="btn btn-sm btn-outline-danger delete-content-btn" 
+                                                onclick="deleteContent('{{ content._id }}')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% else %}
+                                {% for content in screen_content %}
+                                <div class="content-item d-flex align-items-center" data-id="{{ content._id }}">
+                                    <div class="content-handle">
+                                        <i class="fas fa-grip-vertical"></i>
+                                    </div>
+                                    <div class="flex-grow-1 p-2">
+                                        <div class="d-flex align-items-center mb-1">
+                                            <div class="me-2">
+                                                {% if content.media.file_type == 'image' %}
+                                                <span class="badge bg-info"><i class="fas fa-image me-1"></i> Resim</span>
+                                                {% else %}
+                                                <span class="badge bg-danger"><i class="fas fa-video me-1"></i> Video</span>
+                                                {% endif %}
+                                            </div>
+                                            <h6 class="mb-0 text-truncate" style="max-width: 200px;">{{ content.media.title }}</h6>
+                                        </div>
+                                        <small class="text-muted">
+                                            Gösterim Süresi: 
+                                            {% if content.media.file_type == 'video' %}
+                                                {{ content.media.duration or '00:00' }} (Video Süresi)
+                                            {% else %}
+                                                {{ content.display_time or content.media.display_time }} saniye
+                                            {% endif %}
+                                        </small>
+                                        <input type="hidden" name="content_ids[]" value="{{ content._id }}">
+                                    </div>
+                                    <div class="d-flex p-2">
+                                        <button type="button" class="btn btn-sm btn-outline-primary me-2" 
+                                            onclick="previewMedia('{{ content.media._id }}', '{{ content.media.file_type }}')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        {% if content.media.file_type == 'image' %}
+                                        <button type="button" class="btn btn-sm btn-outline-primary me-2 edit-content-btn" 
+                                            data-bs-toggle="modal" data-bs-target="#editContentModal"
+                                            data-content-id="{{ content._id }}"
+                                            data-display-time="{{ content.display_time or content.media.display_time }}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        {% endif %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger delete-content-btn" 
+                                            onclick="deleteContent('{{ content._id }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        <div class="d-grid">
+                            <button type="button" id="saveOrderBtn" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i> Sıralamayı Kaydet
+                            </button>
+                        </div>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="position-sticky" style="top: 20px;">
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-list"></i> Playlist Atama</h5>
+                        <p class="small text-muted">Ekrana bir playlist atayarak içerikleri tek seferde ekleyebilirsiniz.</p>
+                        <div class="d-grid">
+                            <a href="{{ url_for('user.assign_playlist_to_screen', screen_id=screen.id|string) }}" class="btn btn-primary">
+                                <i class="fas fa-plus-circle me-1"></i> Playlist Ata
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs card-header-tabs" id="mediaTabList" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="my-media-tab" data-bs-toggle="tab" data-bs-target="#my-media" 
+                                      type="button" role="tab" aria-controls="my-media" aria-selected="true">
+                                    Medyalarım
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="library-tab" data-bs-toggle="tab" data-bs-target="#library" 
+                                      type="button" role="tab" aria-controls="library" aria-selected="false">
+                                    Kütüphane
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" id="mediaTabContent">
+                            <div class="tab-pane fade show active" id="my-media" role="tabpanel" aria-labelledby="my-media-tab">
+                                <div class="mb-3">
+                                    <input type="text" class="form-control" id="my-media-search" placeholder="Medya ara...">
+                                </div>
+                                
+                                {% if not user_media %}
+                                <div class="text-center py-4">
+                                    <i class="fas fa-photo-video fa-3x mb-3 text-muted"></i>
+                                    <p class="mb-3">Henüz yüklediğiniz medya yok</p>
+                                    <a href="{{ url_for('user.upload_media') }}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-upload me-1"></i> Medya Yükle
+                                    </a>
+                                </div>
+                                {% else %}
+                                <div class="media-grid">
+                                    {% for media in user_media %}
+                                    <div class="media-item" data-id="{{ media.id }}" data-title="{{ media.title }}" 
+                                        data-display-time="{{ media.display_time }}" data-type="{{ media.file_type }}">
+                                        <div class="media-item-preview">
+                                            {% if media.file_type == 'image' %}
+                                            <img src="{{ media.get_file_url() }}" alt="{{ media.title }}">
+                                            <span class="media-type-badge badge bg-info">Resim</span>
+                                            {% else %}
+                                            <div class="video-icon">
+                                                <i class="fas fa-play-circle"></i>
+                                            </div>
+                                            <span class="media-type-badge badge bg-danger">Video</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="media-item-info">
+                                            <div class="media-item-title">{{ media.title }}</div>
+                                            <small class="text-muted d-block">{{ media.display_time }} san</small>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="tab-pane fade" id="library" role="tabpanel" aria-labelledby="library-tab">
+                                <div class="mb-3">
+                                    <input type="text" class="form-control" id="library-search" placeholder="Kütüphane ara...">
+                                </div>
+                                
+                                {% if not library_media %}
+                                <div class="text-center py-4">
+                                    <i class="fas fa-photo-video fa-3x mb-3 text-muted"></i>
+                                    <p>Kütüphanede medya bulunamadı</p>
+                                </div>
+                                {% else %}
+                                <div class="media-grid">
+                                    {% for media in library_media %}
+                                    <div class="media-item" data-id="{{ media.id }}" data-title="{{ media.title }}" 
+                                        data-display-time="{{ media.display_time }}" data-type="{{ media.file_type }}">
+                                        <div class="media-item-preview">
+                                            {% if media.file_type == 'image' %}
+                                            <img src="{{ media.get_file_url() }}" alt="{{ media.title }}">
+                                            <span class="media-type-badge badge bg-info">Resim</span>
+                                            {% else %}
+                                            <div class="video-icon">
+                                                <i class="fas fa-play-circle"></i>
+                                            </div>
+                                            <span class="media-type-badge badge bg-danger">Video</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="media-item-info">
+                                            <div class="media-item-title">{{ media.title }}</div>
+                                            <small class="text-muted d-block">{{ media.display_time }} san</small>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div id="selectedMediaContainer" class="mb-3" style="display: none;">
+                            <p class="fw-bold mb-2">Seçilen Medya</p>
+                            <div class="selected-media-preview d-flex align-items-center p-2 border rounded">
+                                <div class="flex-grow-1">
+                                    <div class="selected-media-title fw-bold"></div>
+                                    <div class="selected-media-type small"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group mt-3">
+                                <label for="display_time" class="form-label">Gösterim Süresi (saniye)</label>
+                                <input type="number" class="form-control" id="display_time" min="1" max="300" value="10">
+                                <div class="form-text">Bu medyanın ekranda kalacağı süre</div>
+                            </div>
+                            
+                            <div class="d-grid mt-3">
+                                <button type="button" id="addContentBtn" class="btn btn-success" disabled>
+                                    <i class="fas fa-plus-circle me-2"></i> İçeriğe Ekle
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <p class="mt-3 mb-0">
+                            <a href="{{ url_for('user.upload_media') }}" class="btn btn-sm btn-outline-primary w-100">
+                                <i class="fas fa-upload me-1"></i> Yeni Medya Yükle
+                            </a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Medya Düzenleme Modal -->
+<div class="modal fade" id="editContentModal" tabindex="-1" aria-labelledby="editContentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editContentModalLabel">Gösterim Süresini Düzenle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <form action="" method="POST" id="editContentForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body">
+                    <input type="hidden" name="content_id" id="edit_content_id">
+                    
+                    <div class="mb-3">
+                        <label for="edit_display_time" class="form-label">Gösterim Süresi (saniye)</label>
+                        <input type="number" class="form-control" id="edit_display_time" name="display_time" min="1" max="300" value="10">
+                        <div class="form-text">Bu medyanın ekranda kalacağı süre</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Medya Önizleme Modal -->
+<div class="modal fade" id="previewMediaModal" tabindex="-1" role="dialog" aria-labelledby="previewMediaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previewMediaModalLabel">Medya Önizleme</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="mediaPreviewContainer"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Playlist Kaldırma Onay Modal -->
+<div class="modal fade" id="removePlaylistModal" tabindex="-1" aria-labelledby="removePlaylistModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="removePlaylistModalLabel">Playlist Kaldırma Onayı</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+      </div>
+      <div class="modal-body">
+        <p><strong>DİKKAT:</strong> Bu işlem ekrandan playlist'i kaldıracak ve playlist ile ilişkili tüm içerikleri silecektir.</p>
+        <p>Bu işlemi gerçekleştirmek istediğinize emin misiniz?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+        <button type="button" class="btn btn-danger" id="confirmRemovePlaylistBtn">Playlist'i Kaldır</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Sayfa yüklendiğinde tüm playlist'leri genişlet
+        $('.playlist-container').each(function() {
+            $(this).removeClass('collapsed');
+        });
+        
+        // İçerik sıralama özelliği için
+        new Sortable(document.getElementById('content-list'), {
+            handle: '.content-handle',
+            animation: 150
+        });
+        
+        // Sıralama kaydetme
+        $('#saveOrderBtn').click(function() {
+            const contentItems = document.querySelectorAll('.content-item');
+            const contentOrder = [];
+            
+            contentItems.forEach(item => {
+                contentOrder.push(item.dataset.id);
+            });
+            
+            $.ajax({
+                url: '{{ url_for("user.save_screen_content_order", screen_id=screen.id|string) }}',
+                method: 'POST',
+                data: $('#content-order-form').serialize(),
+                success: function(response) {
+                    alert('Sıralama başarıyla kaydedildi.');
+                    location.reload();
+                },
+                error: function(xhr, status, error) {
+                    alert('Sıralama kaydedilirken bir hata oluştu: ' + error);
+                }
+            });
+        });
+        
+        // Medya öğelerini seçme işlemi
+        $('.media-item').click(function() {
+            $('.media-item').removeClass('selected');
+            $(this).addClass('selected');
+            
+            // Seçilen medya bilgilerini göster
+            const mediaId = $(this).data('id');
+            const mediaTitle = $(this).data('title');
+            const mediaType = $(this).data('type');
+            const displayTime = $(this).data('display-time');
+            
+            $('#selectedMediaContainer').show();
+            $('.selected-media-title').text(mediaTitle);
+            $('.selected-media-type').text(mediaType === 'image' ? 'Resim' : 'Video');
+            $('#display_time').val(displayTime);
+            
+            // Ekleme butonunu aktifleştir
+            $('#addContentBtn').prop('disabled', false).data('media-id', mediaId);
+        });
+        
+        // İçerik ekleme
+        $('#addContentBtn').click(function() {
+            const mediaId = $(this).data('media-id');
+            const displayTime = $('#display_time').val();
+            
+            if (!mediaId) return;
+            
+            $.ajax({
+                url: '{{ url_for("user.add_screen_content", screen_id=screen.id|string) }}',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ 
+                    media_id: mediaId, 
+                    display_time: parseInt(displayTime) 
+                }),
+                success: function(response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert('Hata: ' + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert('İşlem sırasında bir hata oluştu: ' + error);
+                }
+            });
+        });
+    });
+    
+    function togglePlaylist(element) {
+        const container = $(element).closest('.playlist-container');
+        container.toggleClass('collapsed');
+    }
+    
+    function editPlaylist(playlistId) {
+        // Playlist düzenleme sayfasına yönlendir
+        window.location.href = '/user/playlists/' + playlistId + '/edit';
+    }
+    
+    function previewMedia(mediaId, mediaType) {
+        const container = $("#mediaPreviewContainer");
+        container.empty();
+        
+        if (mediaType === 'image') {
+            const img = $("<img>").attr({
+                "src": `/api/media/${mediaId}`,
+                "class": "img-fluid",
+                "alt": "Medya Önizleme"
+            });
+            container.append(img);
+        } else if (mediaType === 'video') {
+            const video = $("<video>").attr({
+                "src": `/api/media/${mediaId}`,
+                "class": "img-fluid",
+                "controls": true,
+                "autoplay": true
+            });
+            container.append(video);
+        } else {
+            container.append("<p>Bu medya türü önizlenemiyor.</p>");
+        }
+        
+        $("#previewMediaModal").modal("show");
+    }
+    
+    function editContent(contentId, displayTime) {
+        $("#edit_content_id").val(contentId);
+        $("#edit_display_time").val(displayTime);
+        $("#editContentModal").modal("show");
+    }
+    
+    function deleteContent(contentId) {
+        if (confirm("Bu içeriği silmek istediğinizden emin misiniz?")) {
+            $.ajax({
+                url: "{{ url_for('user.remove_screen_content', screen_id=screen.id|string) }}",
+                method: "POST",
+                data: JSON.stringify({ content_id: contentId }),
+                contentType: "application/json",
+                success: function(response) {
+                    if (response.success) {
+                        // Silinen içeriği sayfadan kaldır
+                        $(".content-item[data-id='" + contentId + "']").remove();
+                        
+                        // Eğer playlist altında hiç içerik kalmadıysa sayfayı yenile
+                        if ($(".playlist-content .content-item").length === 0) {
+                            location.reload();
+                        }
+                    } else {
+                        alert("Hata: " + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert("İşlem sırasında bir hata oluştu: " + error);
+                }
+            });
+        }
+    }
+    
+    function confirmRemovePlaylist(screenId) {
+        // Modal'ı göster
+        const removePlaylistModal = new bootstrap.Modal(document.getElementById('removePlaylistModal'));
+        removePlaylistModal.show();
+        
+        // Onay butonuna tıklandığında işlemi gerçekleştir
+        document.getElementById('confirmRemovePlaylistBtn').onclick = function() {
+            // CSRF token'ı al (Flask-WTF için)
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            
+            $.ajax({
+                url: '/user/screens/' + screenId + '/remove_playlist',
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
+                success: function(response) {
+                    console.log('Başarılı yanıt:', response);
+                    if (response.success) {
+                        // İşlem başarılı ise sayfayı yenile
+                        window.location.reload();
+                    } else {
+                        alert('Hata: ' + (response.message || 'Bilinmeyen bir hata oluştu'));
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX hatası:', xhr, status, error);
+                    alert('İşlem sırasında bir hata oluştu: ' + error);
+                }
+            });
+            
+            removePlaylistModal.hide();
+        };
+    }
+</script>
+{% endblock %} 
