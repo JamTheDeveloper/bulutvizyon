@@ -202,7 +202,7 @@
                      hideLoading();
                 } else {
                     console.error('No content found or API error:', data.message || 'Unknown error');
-                    showLoading('İçerik bulunamadı. Tekrar deneniyor...');
+                    showLoading('Ekranda gösterilecek içerik bulunamadı. Tekrar deneniyor...');
                     scheduleApiCheck(30000); // 30 saniye sonra tekrar dene
                 }
             } catch (error) {
@@ -218,8 +218,16 @@
                     scheduleApiCheck(60000); // 1 dakika sonra tekrar dene
                 } else {
                      // Gerçek bir hata veya ilk yüklemede çevrimdışı olma durumu
-                     showLoading(isOffline ? 'Çevrimdışı. Önbellek kontrol ediliyor...' : 'Bağlantı hatası. Tekrar deneniyor...');
-                     scheduleApiCheck(isOffline ? 30000 : 5000); // Çevrimdışı ise 30sn, değilse 5sn
+                     if (isOffline) {
+                         showLoading('Çevrimdışı. Önbellek kontrol ediliyor...');
+                         scheduleApiCheck(30000); // 30 saniye sonra tekrar kontrol et
+                     } else if (error.message && error.message.includes('404')) {
+                         showLoading('Bu ekran için playlist oluşturulmamış. Lütfen içerik ekleyin.');
+                         scheduleApiCheck(15000); // 15 saniye sonra tekrar kontrol et
+                     } else {
+                         showLoading('Sunucu bağlantı hatası. Tekrar deneniyor...');
+                         scheduleApiCheck(5000); // 5 saniye sonra tekrar dene
+                     }
                 }
             }
         }
@@ -604,7 +612,7 @@
                 showSlide(currentIndex);
                 scheduleApiCheck(); // API kontrolünü başlat/zamanla
              } else {
-                showLoading('Başlatılacak içerik yok.');
+                showLoading('Playlist boş veya içerik yok. Lütfen içerik ekleyin.');
                 mediaContainer.innerHTML = ''; // İçerik yoksa alanı temizle
                 scheduleApiCheck(5000);
              }
