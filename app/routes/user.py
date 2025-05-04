@@ -1171,47 +1171,53 @@ def manage_screen_content(screen_id):
         user_media = Media.find_by_user(session['user_id'], status=Media.STATUS_ACTIVE)
         library_media = Media.find_public()
         
-        # Sözlükleri Media nesnelerine dönüştür
+        # Medya nesnelerini işle
         user_media_objects = []
         for media in user_media:
             media_obj = Media(
-                _id=media['_id'],
-                user_id=media.get('user_id'),
-                title=media.get('title', ''),
-                filename=media.get('filename', ''),
-                file_type=media.get('file_type', ''),
-                file_size=media.get('file_size', 0),
-                status=media.get('status', Media.STATUS_ACTIVE),
-                category=media.get('category'),
-                description=media.get('description'),
-                duration=media.get('duration'),
-                display_time=media.get('display_time', 10),
-                is_public=media.get('is_public', False),
-                views=media.get('views', 0),
-                created_at=media.get('created_at'),
-                updated_at=media.get('updated_at')
+                _id=media.id if hasattr(media, 'id') else media['_id'],
+                user_id=media.user_id if hasattr(media, 'user_id') else media.get('user_id'),
+                title=media.title if hasattr(media, 'title') else media.get('title', ''),
+                filename=media.filename if hasattr(media, 'filename') else media.get('filename', ''),
+                file_type=media.file_type if hasattr(media, 'file_type') else media.get('file_type', ''),
+                file_size=media.file_size if hasattr(media, 'file_size') else media.get('file_size', 0),
+                status=media.status if hasattr(media, 'status') else media.get('status', Media.STATUS_ACTIVE),
+                category=media.category if hasattr(media, 'category') else media.get('category'),
+                description=media.description if hasattr(media, 'description') else media.get('description'),
+                duration=media.duration if hasattr(media, 'duration') else media.get('duration'),
+                display_time=media.display_time if hasattr(media, 'display_time') else media.get('display_time', 10),
+                is_public=media.is_public if hasattr(media, 'is_public') else media.get('is_public', False),
+                views=media.views if hasattr(media, 'views') else media.get('views', 0),
+                created_at=media.created_at if hasattr(media, 'created_at') else media.get('created_at'),
+                updated_at=media.updated_at if hasattr(media, 'updated_at') else media.get('updated_at')
             )
             user_media_objects.append(media_obj)
         
         library_media_objects = []
         for media in library_media:
-            media_obj = Media(
-                _id=media['_id'],
-                user_id=media.get('user_id'),
-                title=media.get('title', ''),
-                filename=media.get('filename', ''),
-                file_type=media.get('file_type', ''),
-                file_size=media.get('file_size', 0),
-                status=media.get('status', Media.STATUS_ACTIVE),
-                category=media.get('category'),
-                description=media.get('description'),
-                duration=media.get('duration'),
-                display_time=media.get('display_time', 10),
-                is_public=media.get('is_public', False),
-                views=media.get('views', 0),
-                created_at=media.get('created_at'),
-                updated_at=media.get('updated_at')
-            )
+            # Eğer media bir sözlük ise
+            if isinstance(media, dict):
+                media_obj = Media(
+                    _id=media['_id'],
+                    user_id=media.get('user_id'),
+                    title=media.get('title', ''),
+                    filename=media.get('filename', ''),
+                    file_type=media.get('file_type', ''),
+                    file_size=media.get('file_size', 0),
+                    status=media.get('status', Media.STATUS_ACTIVE),
+                    category=media.get('category'),
+                    description=media.get('description'),
+                    duration=media.get('duration'),
+                    display_time=media.get('display_time', 10),
+                    is_public=media.get('is_public', False),
+                    views=media.get('views', 0),
+                    created_at=media.get('created_at'),
+                    updated_at=media.get('updated_at')
+                )
+            else:
+                # Zaten Media nesnesi ise
+                media_obj = media
+            
             library_media_objects.append(media_obj)
         
         return render_template('user/manage_screen_content.html',
@@ -1243,8 +1249,20 @@ def add_screen_content(screen_id):
     if not media:
         return jsonify({'success': False, 'message': 'Medya bulunamadı.'}), 404
     
-    # Medya sahibi kontrolü
-    if media.get('user_id') != session['user_id'] and not media.get('public'):
+    # Medya sahibi kontrolü - nesne veya sözlük olma durumuna göre kontrol et
+    user_id_from_media = None
+    if hasattr(media, 'user_id'):
+        user_id_from_media = media.user_id
+    elif isinstance(media, dict):
+        user_id_from_media = media.get('user_id')
+    
+    is_public_media = False
+    if hasattr(media, 'is_public'):
+        is_public_media = media.is_public
+    elif isinstance(media, dict):
+        is_public_media = media.get('is_public', False)
+    
+    if str(user_id_from_media) != str(session['user_id']) and not is_public_media:
         return jsonify({'success': False, 'message': 'Bu medyaya erişim izniniz yok.'}), 403
     
     # İçerik ekle
@@ -1255,7 +1273,10 @@ def add_screen_content(screen_id):
         display_time=display_time
     )
     
-    return jsonify({'success': True, 'content_id': content.get('_id')})
+    # Oluşturulan içeriğin ID'sini döndür
+    content_id = str(content.get('_id') if isinstance(content, dict) else content.id if hasattr(content, 'id') else None)
+    
+    return jsonify({'success': True, 'content_id': content_id})
 
 @bp.route('/screens/<screen_id>/content/remove', methods=['POST'])
 @user_required
@@ -1271,7 +1292,15 @@ def remove_screen_content(screen_id):
     
     from app.models.screen_content import ScreenContent
     content = ScreenContent.find_by_id(content_id)
-    if not content or content.get('screen_id') != screen_id:
+    
+    # Content nesnesinden screen_id alırken kontrol
+    content_screen_id = None
+    if hasattr(content, 'screen_id'):
+        content_screen_id = content.screen_id
+    elif isinstance(content, dict):
+        content_screen_id = content.get('screen_id')
+    
+    if not content or str(content_screen_id) != str(screen_id):
         return jsonify({'success': False, 'message': 'İçerik bulunamadı.'}), 404
     
     # İçeriği sil
@@ -1294,7 +1323,15 @@ def update_screen_content(screen_id):
     
     from app.models.screen_content import ScreenContent
     content = ScreenContent.find_by_id(content_id)
-    if not content or content.get('screen_id') != screen_id:
+    
+    # Content nesnesinden screen_id alırken kontrol
+    content_screen_id = None
+    if hasattr(content, 'screen_id'):
+        content_screen_id = content.screen_id
+    elif isinstance(content, dict):
+        content_screen_id = content.get('screen_id')
+    
+    if not content or str(content_screen_id) != str(screen_id):
         flash('İçerik bulunamadı.', 'danger')
         return redirect(url_for('user.manage_screen_content', screen_id=screen_id))
     
@@ -1504,7 +1541,15 @@ def add_to_screens():
     for screen_id in screen_ids:
         # Önce ekranın kullanıcıya ait olduğunu doğrula
         screen = Screen.find_by_id(screen_id)
-        if not screen or str(screen.get('user_id')) != str(current_user.id):
+        
+        # Screen nesnesinden user_id almak için kontrol
+        screen_user_id = None
+        if hasattr(screen, 'user_id'):
+            screen_user_id = screen.user_id
+        elif isinstance(screen, dict):
+            screen_user_id = screen.get('user_id')
+            
+        if not screen or str(screen_user_id) != str(session['user_id']):
             continue
         
         # Ekrana medyayı ekle
@@ -1514,10 +1559,17 @@ def add_to_screens():
     if success_count > 0:
         flash(f'Medya {success_count} ekranınıza başarıyla eklendi.', 'success')
         # Log ekle
-        Log.create(
-            user_id=current_user.id,
+        media_title = ''
+        if hasattr(media, 'title'):
+            media_title = media.title
+        elif isinstance(media, dict):
+            media_title = media.get('title', '')
+            
+        Log.log_action(
             action=Log.TYPE_CONTENT_ADD,
-            details=f"Medya ({media.get('title')}) {success_count} ekrana eklendi"
+            user_id=session['user_id'],
+            ip_address=request.remote_addr,
+            details={"media_title": media_title, "screen_count": success_count}
         )
     else:
         flash('Medya ekranlara eklenirken bir hata oluştu.', 'danger')
