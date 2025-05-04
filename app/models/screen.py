@@ -116,36 +116,27 @@ class Screen:
         try:
             # MongoDB bağlantısını doğrudan oluştur - Flask-PyMongo yerine
             try:
-                mongo_user = os.environ.get('MONGO_USER', 'elektrobil_admin')
-                mongo_pass = os.environ.get('MONGO_PASS', 'Eb@2254097*')
-                mongo_host = os.environ.get('MONGO_HOST', 'localhost')
-                mongo_port = os.environ.get('MONGO_PORT', '27017')
-                mongo_db = os.environ.get('MONGO_DB', 'bulutvizyondb')
-                
-                encoded_password = quote_plus(mongo_pass)
-                
-                # MongoDB bağlantısı oluştur
-                mongo_uri = f"mongodb://{mongo_user}:{encoded_password}@{mongo_host}:{mongo_port}/{mongo_db}?authSource=admin"
-                client = MongoClient(mongo_uri)
-                db = client[mongo_db]
-            
-                # user_id'yi doğru ObjectId'ye dönüştür
+                # user_id'yi doğru şekilde dönüştür
                 if isinstance(user_id, str):
                     try:
-                        user_id = ObjectId(user_id)
+                        user_id_obj = ObjectId(user_id)
                     except Exception as e:
                         print(f"ObjectId dönüşüm hatası: {str(e)}")
+                        user_id_obj = user_id
+                else:
+                    user_id_obj = user_id
                 
-                query = {'user_id': user_id}
+                # İki şekilde de sorgula (String veya ObjectId)
+                query = {'$or': [{'user_id': user_id}, {'user_id': user_id_obj}]}
                 
                 if status:
                     query['status'] = status
                 
                 screen_list = []
-                for screen_data in db.screens.find(query).sort('created_at', -1).skip(skip).limit(limit):
+                for screen_data in mongo.db.screens.find(query).sort('created_at', -1).skip(skip).limit(limit):
                     screen_list.append(cls(**screen_data))
                 
-                print(f"Kullanıcıya ait {len(screen_list)} ekran bulundu")
+                print(f"Kullanıcıya ait {len(screen_list)} ekran bulundu - user_id: {user_id}")
                 return screen_list
             except Exception as e:
                 print(f"MongoDB işlemleri hatası: {str(e)}")
@@ -221,12 +212,29 @@ class Screen:
         """
         Kullanıcının ekran sayısını döndür
         """
-        query = {'user_id': user_id}
-        
-        if status:
-            query['status'] = status
-        
-        return mongo.db.screens.count_documents(query)
+        try:
+            # user_id'yi doğru şekilde dönüştür
+            if isinstance(user_id, str):
+                try:
+                    user_id_obj = ObjectId(user_id)
+                except Exception as e:
+                    print(f"ObjectId dönüşüm hatası: {str(e)}")
+                    user_id_obj = user_id
+            else:
+                user_id_obj = user_id
+            
+            # İki şekilde de sorgula (String veya ObjectId)
+            query = {'$or': [{'user_id': user_id}, {'user_id': user_id_obj}]}
+            
+            if status:
+                query['status'] = status
+            
+            count = mongo.db.screens.count_documents(query)
+            print(f"Kullanıcıya ait ekran sayısı: {count} - user_id: {user_id}")
+            return count
+        except Exception as e:
+            print(f"Ekran sayısı sayılırken hata: {str(e)}")
+            return 0
     
     @staticmethod
     def generate_api_key(length=32):
