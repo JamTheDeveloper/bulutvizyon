@@ -1722,8 +1722,34 @@ def edit_playlist(playlist_id):
     
     # Playlist'te olmayan medyaları filtrele
     assigned_media_ids = [item['media_id'] for item in playlist_media]
-    available_user_media = [m for m in user_media if str(m.get('_id')) not in [str(id) for id in assigned_media_ids]]
-    available_library_media = [m for m in library_media if str(m.get('_id')) not in [str(id) for id in assigned_media_ids]]
+    
+    # Media nesnelerine erişim kontrolü
+    available_user_media = []
+    for m in user_media:
+        media_id = None
+        if hasattr(m, 'id'):
+            media_id = m.id
+        elif hasattr(m, '_id'):
+            media_id = m._id
+        elif isinstance(m, dict) and '_id' in m:
+            media_id = m['_id']
+        
+        if media_id and str(media_id) not in [str(id) for id in assigned_media_ids]:
+            available_user_media.append(m)
+    
+    # Kütüphane medyaları için de aynı kontrolü yap
+    available_library_media = []
+    for m in library_media:
+        media_id = None
+        if hasattr(m, 'id'):
+            media_id = m.id
+        elif hasattr(m, '_id'):
+            media_id = m._id
+        elif isinstance(m, dict) and '_id' in m:
+            media_id = m['_id']
+        
+        if media_id and str(media_id) not in [str(id) for id in assigned_media_ids]:
+            available_library_media.append(m)
     
     return render_template('user/edit_playlist.html',
                           playlist=playlist,
@@ -1812,8 +1838,21 @@ def add_media_to_playlist(playlist_id):
             return redirect(url_for('user.edit_playlist', playlist_id=playlist_id))
         
         # Medya erişim kontrolü - kullanıcının kendi medyası veya public medya olmalı
-        if str(media.get('user_id')) != str(session['user_id']) and not media.get('is_public'):
-            print(f"DEBUG - Medya erişim hatası: media.user_id: {media.get('user_id')}, session.user_id: {session['user_id']}")
+        # Nesne veya sözlük olma durumuna göre kontrol et
+        user_id_from_media = None
+        if hasattr(media, 'user_id'):
+            user_id_from_media = media.user_id
+        elif isinstance(media, dict):
+            user_id_from_media = media.get('user_id')
+        
+        is_public_media = False
+        if hasattr(media, 'is_public'):
+            is_public_media = media.is_public
+        elif isinstance(media, dict):
+            is_public_media = media.get('is_public', False)
+        
+        if str(user_id_from_media) != str(session['user_id']) and not is_public_media:
+            print(f"DEBUG - Medya erişim hatası: media user_id: {user_id_from_media}, session.user_id: {session['user_id']}")
             flash('Bu medyaya erişim yetkiniz yok.', 'danger')
             return redirect(url_for('user.edit_playlist', playlist_id=playlist_id))
         
@@ -1986,19 +2025,52 @@ def assign_playlist_to_screen(screen_id):
             
             created_contents = []
             for index, item in enumerate(playlist_media):
-                media = item.get('media')
+                # Media nesnesine erişim
+                media = None
+                if hasattr(item, 'media'):
+                    media = item.media
+                elif isinstance(item, dict):
+                    media = item.get('media')
+                
                 if media:
-                    print(f"DEBUG - Ekrana ekleniyor: Media ID: {media.get('_id')}, Sıra: {index}, Gösterim süresi: {item.get('display_time')}")
+                    # Media ID'si alırken önce nesne olarak, sonra dict olarak kontrol et
+                    media_id = None
+                    if hasattr(media, 'id'):
+                        media_id = media.id
+                    elif hasattr(media, '_id'):
+                        media_id = media._id
+                    elif isinstance(media, dict) and '_id' in media:
+                        media_id = media['_id']
+                    
+                    # Display time kontrolü
+                    display_time = None
+                    if hasattr(item, 'display_time'):
+                        display_time = item.display_time
+                    elif isinstance(item, dict):
+                        display_time = item.get('display_time')
+                    
+                    print(f"DEBUG - Ekrana ekleniyor: Media ID: {media_id}, Sıra: {index}, Gösterim süresi: {display_time}")
+                    
                     # ScreenContent oluştur
                     content_data = {
                         'screen_id': screen_id,
-                        'media_id': str(media.get('_id')),
+                        'media_id': str(media_id),
                         'order': index,
-                        'display_time': item.get('display_time')
+                        'display_time': display_time
                     }
                     try:
                         content = ScreenContent.create(content_data)
-                        print(f"DEBUG - Ekran içeriği oluşturuldu: {content.get('_id')}")
+                        
+                        # Content ID kontrolü
+                        content_id = None
+                        if hasattr(content, 'id'):
+                            content_id = content.id
+                        elif hasattr(content, '_id'):
+                            content_id = content._id
+                        elif isinstance(content, dict) and '_id' in content:
+                            content_id = content['_id']
+                            
+                        print(f"DEBUG - Ekran içeriği oluşturuldu: {content_id}")
                         created_contents.append(content)
                     except Exception as e:
                         print(f"DEBUG - Ekran içeriği oluşturma hatası: {str(e)}")
@@ -2115,7 +2187,30 @@ def add_to_playlists():
             flash('Seçilen medya bulunamadı.', 'danger')
             return redirect(url_for('user.public_library'))
         
-        print(f"DEBUG - Medya bulundu: id={media.get('_id')}, title={media.get('title')}")
+        # Media nesnesinin ID ve başlığını al
+        media_obj_id = None
+        media_title = "Bilinmeyen Medya"
+        
+        if hasattr(media, 'id'):
+            media_obj_id = media.id
+        elif hasattr(media, '_id'):
+            media_obj_id = media._id
+        elif isinstance(media, dict) and '_id' in media:
+            media_obj_id = media['_id']
+            
+        if hasattr(media, 'title'):
+            media_title = media.title
+        elif isinstance(media, dict):
+            media_title = media.get('title', 'Bilinmeyen Medya')
+            
+        print(f"DEBUG - Medya bulundu: id={media_obj_id}, title={media_title}")
+        
+        # Display time kontrolü
+        display_time = 10  # Varsayılan değer
+        if hasattr(media, 'display_time'):
+            display_time = media.display_time
+        elif isinstance(media, dict):
+            display_time = media.get('display_time', 10)
         
         # Her playlist için ekleme işlemini yapacağız
         from app.models.playlist import Playlist
@@ -2165,7 +2260,7 @@ def add_to_playlists():
                     'playlist_id': playlist_id,
                     'media_id': media_id,
                     'order': order,
-                    'display_time': media.get('display_time', 10),
+                    'display_time': display_time,
                     'created_at': datetime.datetime.utcnow()
                 }
                 
@@ -2190,7 +2285,7 @@ def add_to_playlists():
                         details={
                             "playlist_id": playlist_id,
                             "media_id": media_id,
-                            "media_title": media.get('title', '')
+                            "media_title": media_title
                         }
                     )
                 else:
