@@ -178,7 +178,11 @@
             try {
                 const response = await fetch(API_URL);
                 if (!response.ok) {
-                    throw new Error(`HTTP error: ${response.status}`);
+                    if (response.status === 403) {
+                        throw new Error(`403 Forbidden: Erişim reddedildi`);
+                    } else {
+                        throw new Error(`HTTP error: ${response.status}`);
+                    }
                 }
                 const data = await response.json();
 
@@ -220,6 +224,9 @@
                      // Gerçek bir hata veya ilk yüklemede çevrimdışı olma durumu
                      if (isOffline) {
                          showLoading('Çevrimdışı. Önbellek kontrol ediliyor...');
+                         scheduleApiCheck(30000); // 30 saniye sonra tekrar kontrol et
+                     } else if (error.message && error.message.includes('403')) {
+                         showLoading('Ekran Erişim Hatası: Bu ekran devre dışı bırakılmış. Lütfen ekranı aktifleştirmek için kontrol panelini kullanın.');
                          scheduleApiCheck(30000); // 30 saniye sonra tekrar kontrol et
                      } else if (error.message && error.message.includes('404')) {
                          showLoading('Bu ekran için playlist oluşturulmamış. Lütfen içerik ekleyin.');
