@@ -1,0 +1,148 @@
+"""
+Paket Modeli: Kullanıcı paketleri ve özellikleri
+"""
+import uuid
+from datetime import datetime
+from bson.objectid import ObjectId
+from app import mongo
+
+class Package:
+    """Paket modeli sınıfı"""
+    
+    # Paket durumları
+    STATUS_ACTIVE = 'active'
+    STATUS_INACTIVE = 'inactive'
+    
+    def __init__(self, _id=None, name=None, display_name=None, description=None, 
+                 screen_limit=3, price=0, features=None, is_active=True, 
+                 created_at=None, updated_at=None, **kwargs):
+        """Paket nesnesi başlatma"""
+        self.id = str(_id) if _id else None
+        self.name = name  # Sistem adı (standard, pro, enterprise)
+        self.display_name = display_name or name  # Gösterim adı
+        self.description = description or ""
+        self.screen_limit = screen_limit  # -1 sınırsız için
+        self.price = price
+        self.features = features or {}
+        self.is_active = is_active
+        self.created_at = created_at or datetime.now()
+        self.updated_at = updated_at or datetime.now()
+        
+        # Ek özellikleri ekle
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+    
+    @classmethod
+    def create(cls, name, display_name, description="", screen_limit=3, 
+               price=0, features=None, is_active=True):
+        """Yeni paket oluştur"""
+        package_data = {
+            "name": name,
+            "display_name": display_name,
+            "description": description,
+            "screen_limit": screen_limit,
+            "price": price,
+            "features": features or {},
+            "is_active": is_active,
+            "created_at": datetime.now(),
+            "updated_at": datetime.now()
+        }
+        
+        result = mongo.db.packages.insert_one(package_data)
+        package_data['_id'] = result.inserted_id
+        return cls(**package_data)
+    
+    @classmethod
+    def find_by_id(cls, package_id):
+        """ID'ye göre paket bul"""
+        if not package_id:
+            return None
+            
+        try:
+            # ObjectId kontrolü
+            if isinstance(package_id, str):
+                package_id = ObjectId(package_id)
+                
+            package_data = mongo.db.packages.find_one({"_id": package_id})
+            if package_data:
+                return cls(**package_data)
+        except:
+            return None
+            
+        return None
+    
+    @classmethod
+    def find_by_name(cls, name):
+        """Paket adına göre bul"""
+        if not name:
+            return None
+            
+        package_data = mongo.db.packages.find_one({"name": name})
+        if package_data:
+            return cls(**package_data)
+            
+        return None
+    
+    @classmethod
+    def find_all(cls, is_active=None):
+        """Tüm paketleri getir"""
+        query = {}
+        
+        if is_active is not None:
+            query["is_active"] = is_active
+            
+        packages_data = mongo.db.packages.find(query).sort("price", 1)
+        return [cls(**package) for package in packages_data]
+    
+    def update(self, **kwargs):
+        """Paket bilgilerini güncelle"""
+        if not self.id:
+            return False
+            
+        # Güncelleme alanlarını hazırla
+        update_data = {}
+        
+        # Sınıf özelliklerini güncelle
+        for key, value in kwargs.items():
+            if hasattr(self, key) and key != 'id':
+                setattr(self, key, value)
+                update_data[key] = value
+        
+        # Her zaman updated_at güncelle
+        self.updated_at = datetime.now()
+        update_data["updated_at"] = self.updated_at
+        
+        try:
+            result = mongo.db.packages.update_one(
+                {"_id": ObjectId(self.id)},
+                {"$set": update_data}
+            )
+            return result.modified_count > 0
+        except:
+            return False
+    
+    def delete(self):
+        """Paketi sil"""
+        if not self.id:
+            return False
+            
+        try:
+            result = mongo.db.packages.delete_one({"_id": ObjectId(self.id)})
+            return result.deleted_count > 0
+        except:
+            return False
+    
+    def to_dict(self):
+        """Paket bilgilerini sözlük olarak döndür"""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "display_name": self.display_name,
+            "description": self.description,
+            "screen_limit": self.screen_limit,
+            "price": self.price,
+            "features": self.features,
+            "is_active": self.is_active,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at
+        } 

@@ -8,6 +8,9 @@ from bson.objectid import ObjectId
 from flask import current_app
 from app import mongo
 import uuid
+import os
+from pymongo import MongoClient
+from urllib.parse import quote_plus
 
 class Screen:
     """
@@ -110,16 +113,47 @@ class Screen:
         """
         Kullanıcı ID'sine göre ekranları bul
         """
-        query = {'user_id': user_id}
-        
-        if status:
-            query['status'] = status
-        
-        screen_list = []
-        for screen_data in mongo.db.screens.find(query).sort('created_at', -1).skip(skip).limit(limit):
-            screen_list.append(cls(**screen_data))
-        
-        return screen_list
+        try:
+            # MongoDB bağlantısını doğrudan oluştur - Flask-PyMongo yerine
+            try:
+                mongo_user = os.environ.get('MONGO_USER', 'elektrobil_admin')
+                mongo_pass = os.environ.get('MONGO_PASS', 'Eb@2254097*')
+                mongo_host = os.environ.get('MONGO_HOST', 'localhost')
+                mongo_port = os.environ.get('MONGO_PORT', '27017')
+                mongo_db = os.environ.get('MONGO_DB', 'bulutvizyondb')
+                
+                encoded_password = quote_plus(mongo_pass)
+                
+                # MongoDB bağlantısı oluştur
+                mongo_uri = f"mongodb://{mongo_user}:{encoded_password}@{mongo_host}:{mongo_port}/{mongo_db}?authSource=admin"
+                client = MongoClient(mongo_uri)
+                db = client[mongo_db]
+            
+                # user_id'yi doğru ObjectId'ye dönüştür
+                if isinstance(user_id, str):
+                    try:
+                        user_id = ObjectId(user_id)
+                    except Exception as e:
+                        print(f"ObjectId dönüşüm hatası: {str(e)}")
+                
+                query = {'user_id': user_id}
+                
+                if status:
+                    query['status'] = status
+                
+                screen_list = []
+                for screen_data in db.screens.find(query).sort('created_at', -1).skip(skip).limit(limit):
+                    screen_list.append(cls(**screen_data))
+                
+                print(f"Kullanıcıya ait {len(screen_list)} ekran bulundu")
+                return screen_list
+            except Exception as e:
+                print(f"MongoDB işlemleri hatası: {str(e)}")
+                return []
+                
+        except Exception as e:
+            print(f"Ekranlar getirilirken hata: {str(e)}")
+            return []
     
     @classmethod
     def find_all(cls, limit=100, skip=0, sort_by='created_at', sort_dir=-1):

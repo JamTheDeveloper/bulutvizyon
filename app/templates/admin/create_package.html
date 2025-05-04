@@ -1,0 +1,179 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Yeni Paket Oluştur - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0"><i class="fas fa-plus-circle me-2"></i>Yeni Paket Oluştur</h1>
+        <a href="{{ url_for('admin.packages') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Paketlere Dön
+        </a>
+    </div>
+
+    {% include 'includes/flash.html' %}
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Paket Bilgileri</h6>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('admin.create_package') }}" method="POST">
+                <div class="row mb-3">
+                    <!-- Paket Adı -->
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="name" class="form-label">Paket Adı *</label>
+                            <input type="text" class="form-control" id="name" name="name" required 
+                                placeholder="paket-adi" pattern="[a-z0-9_\-]+" 
+                                title="Sadece küçük harfler, rakamlar, tire ve alt çizgi kullanabilirsiniz">
+                            <div class="form-text text-muted">
+                                Sistemde kullanılacak benzersiz tanımlayıcı (örn. standard, pro, enterprise)
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Görünür Adı -->
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="display_name" class="form-label">Görünür Adı *</label>
+                            <input type="text" class="form-control" id="display_name" name="display_name" required 
+                                placeholder="Standart Paket">
+                            <div class="form-text text-muted">
+                                Kullanıcıların göreceği paket ismi
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <!-- Açıklama -->
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label for="description" class="form-label">Açıklama</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" 
+                                placeholder="Bu paket hakkında kısa bir açıklama..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <!-- Ekran Limiti -->
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="screen_limit" class="form-label">Ekran Limiti</label>
+                            <input type="number" class="form-control" id="screen_limit" name="screen_limit" min="-1" value="3">
+                            <div class="form-text text-muted">
+                                Kullanıcının oluşturabileceği maksimum ekran sayısı. Sınırsız için -1 girin.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Fiyat -->
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="price" class="form-label">Fiyat (TL)</label>
+                            <input type="number" class="form-control" id="price" name="price" min="0" step="0.01" value="0">
+                            <div class="form-text text-muted">
+                                Paketin aylık fiyatı (0 girilirse ücretsiz olarak gösterilir)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Özellikler -->
+                <div class="card mb-4">
+                    <div class="card-header py-2">
+                        <h6 class="m-0 font-weight-bold text-primary">Paket Özellikleri</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i> Paket için ekstra özellikleri buradan tanımlayabilirsiniz.
+                        </div>
+                        
+                        <div id="features-container">
+                            <div class="row mb-2 feature-row">
+                                <div class="col-md-5">
+                                    <input type="text" class="form-control" name="feature_key_1" placeholder="Özellik Adı (örn. storage_limit)">
+                                </div>
+                                <div class="col-md-5">
+                                    <input type="text" class="form-control" name="feature_value_1" placeholder="Değer (örn. 1GB)">
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="button" class="btn btn-danger remove-feature" disabled>
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="button" id="add-feature" class="btn btn-sm btn-info mt-2">
+                            <i class="fas fa-plus-circle me-1"></i> Özellik Ekle
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Düğmeler -->
+                <div class="d-flex justify-content-end">
+                    <a href="{{ url_for('admin.packages') }}" class="btn btn-secondary me-2">İptal</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Paketi Oluştur
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Özellik ekleme
+        let featureCount = 1;
+        
+        $('#add-feature').click(function() {
+            featureCount++;
+            
+            const newRow = `
+                <div class="row mb-2 feature-row">
+                    <div class="col-md-5">
+                        <input type="text" class="form-control" name="feature_key_${featureCount}" placeholder="Özellik Adı">
+                    </div>
+                    <div class="col-md-5">
+                        <input type="text" class="form-control" name="feature_value_${featureCount}" placeholder="Değer">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-danger remove-feature">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            $('#features-container').append(newRow);
+            
+            // İlk satırın silme butonunu aktifleştir
+            if (featureCount === 2) {
+                $('.remove-feature').prop('disabled', false);
+            }
+        });
+        
+        // Özellik silme (dinamik eklenen elementler için delegate)
+        $('#features-container').on('click', '.remove-feature', function() {
+            $(this).closest('.feature-row').remove();
+            featureCount--;
+            
+            // Eğer tek satır kaldıysa silme butonunu devre dışı bırak
+            if (featureCount === 1) {
+                $('.remove-feature').prop('disabled', true);
+            }
+        });
+        
+        // Paket adı formatlaması
+        $('#name').on('input', function() {
+            $(this).val($(this).val().toLowerCase().replace(/[^a-z0-9_\-]/g, ''));
+        });
+    });
+</script>
+{% endblock %} 

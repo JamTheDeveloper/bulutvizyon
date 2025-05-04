@@ -7,6 +7,9 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from bson.objectid import ObjectId
 from app import mongo
+import os
+from pymongo import MongoClient
+from urllib.parse import quote_plus
 
 class User(UserMixin):
     """Kullanıcı modeli sınıfı"""
@@ -57,14 +60,41 @@ class User(UserMixin):
     def find_by_id(cls, user_id):
         """ID'ye göre kullanıcı bul"""
         try:
-            # Eğer string olarak geldiyse ObjectId'ye çevir
-            if isinstance(user_id, str):
-                obj_id = ObjectId(user_id)
-            else:
-                obj_id = user_id
+            # Doğrudan MongoDB bağlantısı oluştur
+            try:
+                mongo_user = os.environ.get('MONGO_USER', 'elektrobil_admin')
+                mongo_pass = os.environ.get('MONGO_PASS', 'Eb@2254097*')
+                mongo_host = os.environ.get('MONGO_HOST', 'localhost')
+                mongo_port = os.environ.get('MONGO_PORT', '27017')
+                mongo_db = os.environ.get('MONGO_DB', 'bulutvizyondb')
                 
-            user_data = mongo.db.users.find_one({"_id": obj_id})
-            return cls(**user_data) if user_data else None
+                encoded_password = quote_plus(mongo_pass)
+                
+                # MongoDB bağlantısı oluştur
+                mongo_uri = f"mongodb://{mongo_user}:{encoded_password}@{mongo_host}:{mongo_port}/{mongo_db}?authSource=admin"
+                client = MongoClient(mongo_uri)
+                db = client[mongo_db]
+                
+                # Eğer string olarak geldiyse ObjectId'ye çevir
+                if isinstance(user_id, str):
+                    try:
+                        obj_id = ObjectId(user_id)
+                    except Exception as e:
+                        print(f"ObjectId dönüşüm hatası: {str(e)}")
+                        return None
+                else:
+                    obj_id = user_id
+                
+                user_data = db.users.find_one({"_id": obj_id})
+                
+                if not user_data:
+                    print(f"Kullanıcı bulunamadı: {user_id}")
+                    return None
+                    
+                return cls(**user_data)
+            except Exception as e:
+                print(f"MongoDB bağlantı hatası: {str(e)}")
+                return None
         except Exception as e:
             print(f"Kullanıcı bulunamadı. Hata: {str(e)}, ID: {user_id}")
             return None

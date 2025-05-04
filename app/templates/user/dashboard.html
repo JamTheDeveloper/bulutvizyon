@@ -182,14 +182,14 @@
         </div>
     </div>
     
-    <!-- Playlist Sayısı -->
+    <!-- Paket Sayısı -->
     <div class="col-sm-6 col-md-6 col-lg-3 mb-3">
         <div class="card h-100 dashboard-card card-info text-white shadow">
             <div class="card-body">
                 <div class="row">
                     <div class="col">
                         <h5 class="card-title">Paketim</h5>
-                        <h2 class="display-4">{{ user.package|title }}</h2>
+                        <h2 class="display-4">{{ user_package.display_name if user_package else 'Standart' }}</h2>
                     </div>
                     <div class="col-auto align-self-center">
                         <i class="fas fa-cubes stat-icon"></i>
@@ -197,12 +197,16 @@
                 </div>
                 <div class="mt-2">
                     <small>
-                        {% if user.package == 'standard' %}
-                            Standart paket (3 ekran)
-                        {% elif user.package == 'pro' %}
-                            Pro paket (10 ekran)
-                        {% elif user.package == 'enterprise' %}
-                            Enterprise paket (sınırsız)
+                        {% if user_package %}
+                            {{ user_package.description }}
+                        {% else %}
+                            {% if user.package == 'standard' %}
+                                Standart paket (3 ekran)
+                            {% elif user.package == 'pro' %}
+                                Pro paket (10 ekran)
+                            {% elif user.package == 'enterprise' %}
+                                Enterprise paket (sınırsız)
+                            {% endif %}
                         {% endif %}
                     </small>
                 </div>
@@ -338,6 +342,79 @@
                                         <p class="text-muted mb-0">Henüz medya yüklemediniz.</p>
                                         <a href="{{ url_for('user.upload_media') }}" class="btn btn-sm btn-primary mt-2">
                                             <i class="fas fa-upload me-1"></i> Medya Yükle
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Playlist Listesi -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+                <h5 class="mb-0"><i class="fas fa-list me-2"></i> Playlistlerim</h5>
+                <div class="d-flex gap-2 mt-2 mt-sm-0">
+                    <a href="{{ url_for('user.create_playlist') }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus me-1"></i> Playlist Oluştur
+                    </a>
+                    <a href="{{ url_for('user.playlists') }}" class="btn btn-sm btn-secondary">
+                        <i class="fas fa-edit me-1"></i> Playlistleri Düzenle
+                    </a>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-header-dark">
+                            <tr>
+                                <th>Playlist Adı</th>
+                                <th>Medya Sayısı</th>
+                                <th>Durum</th>
+                                <th>Oluşturulma Tarihi</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if playlists %}
+                                {% for playlist in playlists %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('user.view_playlist', playlist_id=playlist.id) }}">
+                                            {{ playlist.name }}
+                                        </a>
+                                    </td>
+                                    <td>{{ playlist.media_count }}</td>
+                                    <td>
+                                        {% if playlist.status == 'active' %}
+                                        <span class="badge bg-success">Aktif</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Pasif</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ playlist.created_at.strftime('%d.%m.%Y') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('user.view_playlist', playlist_id=playlist.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i> Görüntüle
+                                        </a>
+                                        <a href="{{ url_for('user.edit_playlist', playlist_id=playlist.id) }}" class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-edit"></i> Düzenle
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-3">
+                                        <p class="text-muted mb-0">Henüz playlist oluşturmadınız.</p>
+                                        <a href="{{ url_for('user.create_playlist') }}" class="btn btn-sm btn-primary mt-2">
+                                            <i class="fas fa-plus me-1"></i> Playlist Oluştur
                                         </a>
                                     </td>
                                 </tr>

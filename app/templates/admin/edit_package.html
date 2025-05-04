@@ -1,0 +1,261 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Paket Düzenle - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0"><i class="fas fa-edit me-2"></i>Paket Düzenle: {{ package.display_name }}</h1>
+        <a href="{{ url_for('admin.packages') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Paketlere Dön
+        </a>
+    </div>
+
+    {% include 'includes/flash.html' %}
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Paket Bilgileri</h6>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('admin.edit_package', package_id=package.id) }}" method="POST">
+                        <div class="row mb-3">
+                            <!-- Paket Adı (düzenlenemez) -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="name" class="form-label">Paket Adı</label>
+                                    <input type="text" class="form-control" id="name" value="{{ package.name }}" readonly>
+                                    <div class="form-text text-muted">
+                                        Sistem adı değiştirilemez
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Görünür Adı -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="display_name" class="form-label">Görünür Adı *</label>
+                                    <input type="text" class="form-control" id="display_name" name="display_name" required 
+                                        placeholder="Standart Paket" value="{{ package.display_name }}">
+                                    <div class="form-text text-muted">
+                                        Kullanıcıların göreceği paket ismi
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <!-- Açıklama -->
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label for="description" class="form-label">Açıklama</label>
+                                    <textarea class="form-control" id="description" name="description" rows="3" 
+                                        placeholder="Bu paket hakkında kısa bir açıklama...">{{ package.description }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <!-- Ekran Limiti -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="screen_limit" class="form-label">Ekran Limiti</label>
+                                    <input type="number" class="form-control" id="screen_limit" name="screen_limit" min="-1" 
+                                        value="{{ package.screen_limit }}">
+                                    <div class="form-text text-muted">
+                                        Kullanıcının oluşturabileceği maksimum ekran sayısı. Sınırsız için -1 girin.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Fiyat -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="price" class="form-label">Fiyat (TL)</label>
+                                    <input type="number" class="form-control" id="price" name="price" min="0" step="0.01" 
+                                        value="{{ package.price }}">
+                                    <div class="form-text text-muted">
+                                        Paketin aylık fiyatı (0 girilirse ücretsiz olarak gösterilir)
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Aktif/Pasif -->
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
+                                {% if package.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="is_active">
+                                Aktif
+                            </label>
+                            <div class="form-text text-muted">
+                                Bu paket kullanıcılar tarafından seçilebilir
+                            </div>
+                        </div>
+                        
+                        <!-- Özellikler -->
+                        <div class="card mb-4">
+                            <div class="card-header py-2">
+                                <h6 class="m-0 font-weight-bold text-primary">Paket Özellikleri</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i> Paket için ekstra özellikleri buradan tanımlayabilirsiniz.
+                                </div>
+                                
+                                <div id="features-container">
+                                    {% if package.features %}
+                                        {% for key, value in package.features.items() %}
+                                            <div class="row mb-2 feature-row">
+                                                <div class="col-md-5">
+                                                    <input type="text" class="form-control" name="feature_key_{{ loop.index }}" 
+                                                        value="{{ key }}" placeholder="Özellik Adı">
+                                                </div>
+                                                <div class="col-md-5">
+                                                    <input type="text" class="form-control" name="feature_value_{{ loop.index }}" 
+                                                        value="{{ value }}" placeholder="Değer">
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <button type="button" class="btn btn-danger remove-feature" 
+                                                        {% if loop.index == 1 and loop.length == 1 %}disabled{% endif %}>
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="row mb-2 feature-row">
+                                            <div class="col-md-5">
+                                                <input type="text" class="form-control" name="feature_key_1" 
+                                                    placeholder="Özellik Adı">
+                                            </div>
+                                            <div class="col-md-5">
+                                                <input type="text" class="form-control" name="feature_value_1" 
+                                                    placeholder="Değer">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <button type="button" class="btn btn-danger remove-feature" disabled>
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <button type="button" id="add-feature" class="btn btn-sm btn-info mt-2">
+                                    <i class="fas fa-plus-circle me-1"></i> Özellik Ekle
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Düğmeler -->
+                        <div class="d-flex justify-content-end">
+                            <a href="{{ url_for('admin.packages') }}" class="btn btn-secondary me-2">İptal</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> Değişiklikleri Kaydet
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Paket Kullanımı -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Paket Kullanımı</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-users fa-2x text-primary me-3"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">{{ user_count }} Kullanıcı</h5>
+                            <div class="text-muted">bu paketi kullanıyor</div>
+                        </div>
+                    </div>
+                    
+                    {% if user_count > 0 %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i> Bu paket kullanıcılar tarafından kullanılıyor. Değişiklikler dikkatli yapılmalıdır.
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i> Bu paket henüz hiçbir kullanıcı tarafından kullanılmıyor.
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Sistem bilgisi -->
+                    <div class="mt-4">
+                        <h6 class="font-weight-bold">Sistem Bilgisi</h6>
+                        <div class="mb-2">
+                            <span class="text-muted">Oluşturulma:</span> 
+                            <span>{{ package.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="text-muted">Son Güncelleme:</span> 
+                            <span>{{ package.updated_at.strftime('%d.%m.%Y %H:%M') }}</span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="text-muted">Sistem ID:</span> 
+                            <span class="text-monospace small">{{ package.id }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // Feature Count başlangıcı
+        let featureCount = {{ package.features|length if package.features else 1 }};
+        
+        // Özellik ekleme
+        $('#add-feature').click(function() {
+            featureCount++;
+            
+            const newRow = `
+                <div class="row mb-2 feature-row">
+                    <div class="col-md-5">
+                        <input type="text" class="form-control" name="feature_key_${featureCount}" placeholder="Özellik Adı">
+                    </div>
+                    <div class="col-md-5">
+                        <input type="text" class="form-control" name="feature_value_${featureCount}" placeholder="Değer">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-danger remove-feature">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            $('#features-container').append(newRow);
+            
+            // İlk satırın silme butonunu aktifleştir
+            if (featureCount === 2) {
+                $('.remove-feature').prop('disabled', false);
+            }
+        });
+        
+        // Özellik silme (dinamik eklenen elementler için delegate)
+        $('#features-container').on('click', '.remove-feature', function() {
+            $(this).closest('.feature-row').remove();
+            featureCount--;
+            
+            // Eğer tek satır kaldıysa silme butonunu devre dışı bırak
+            if (featureCount === 1) {
+                $('.remove-feature').prop('disabled', true);
+            }
+        });
+    });
+</script>
+{% endblock %}

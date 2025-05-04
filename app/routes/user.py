@@ -54,8 +54,8 @@ def dashboard():
     # Görüntülenecek istatistikler
     media_count = len(media_items)
     screen_count = len(screens)
-    pending_media_count = sum(1 for m in media_items if m.get('status') == Media.STATUS_PENDING)
-    active_media_count = sum(1 for m in media_items if m.get('status') == Media.STATUS_ACTIVE)
+    pending_media_count = sum(1 for m in media_items if hasattr(m, 'status') and m.status == Media.STATUS_PENDING)
+    active_media_count = sum(1 for m in media_items if hasattr(m, 'status') and m.status == Media.STATUS_ACTIVE)
     
     # Kullanıcının paket bilgisine göre izin verilen ekran sayısı
     allowed_screen_count = 3  # Varsayılan olarak (Standart paket)
@@ -68,13 +68,23 @@ def dashboard():
         elif package == 'enterprise':
             allowed_screen_count = 999  # Sınırsız temsili
     
+    # Kullanıcının paket bilgisini getir
+    # NOT: Paket modeli kaldırıldı, paket bilgisi doğrudan kullanıcı nesnesinden alınıyor
+    user_package = {
+        "display_name": user.package.capitalize() if hasattr(user, 'package') and user.package else "Standart",
+        "description": f"{user.package.capitalize() if hasattr(user, 'package') and user.package else 'Standart'} paket ile {allowed_screen_count} ekran kullanabilirsiniz."
+    }
+    
     # Son eklenen medyalar (en fazla 5 adet)
-    recent_media = sorted(media_items, key=lambda x: x.get('created_at', datetime.datetime.now()), reverse=True)[:5]
+    recent_media = sorted(media_items, key=lambda x: x.created_at if hasattr(x, 'created_at') else datetime.datetime.now(), reverse=True)[:5]
     
     # Kullanıcının toplam görüntülenme sayısı
     total_views = 0
     for media in media_items:
-        total_views += media.get('views', 0)  # Doğru anahtar adı 'views'
+        total_views += media.views if hasattr(media, 'views') and media.views else 0
+    
+    # Aktif ekran sayısı
+    active_screens_count = sum(1 for screen in screens if hasattr(screen, 'status') and screen.status == Screen.STATUS_ACTIVE)
     
     return render_template('user/dashboard.html', 
                           user=user,
@@ -86,7 +96,7 @@ def dashboard():
                           active_media_count=active_media_count,
                           allowed_screen_count=allowed_screen_count,
                           total_views=total_views,
-                          active_screens_count=sum(1 for s in screens if s.status == 'active'))
+                          active_screens_count=active_screens_count)
 
 @bp.route('/profile')
 @user_required
@@ -104,12 +114,12 @@ def profile():
         total_screens = len(Screen.find_by_user(user_id))
         media_items = Media.find_by_user(user_id)
         total_media = len(media_items)
-        active_media = sum(1 for m in media_items if m.get('status') == Media.STATUS_ACTIVE)
+        active_media = sum(1 for m in media_items if hasattr(m, 'status') and m.status == Media.STATUS_ACTIVE)
         
         # Görüntülenme sayısı
         total_views = 0
         for media in media_items:
-            total_views += media.get('view_count', 0)
+            total_views += media.views if hasattr(media, 'views') and media.views else 0
         
         stats = {
             'total_screens': total_screens,
@@ -138,9 +148,8 @@ def profile():
         # Depolama kullanımı
         storage_used = 0
         for media in media_items:
-            file_size = media.get('file_size', 0)
-            if file_size:
-                storage_used += file_size
+            file_size = media.file_size if hasattr(media, 'file_size') and media.file_size else 0
+            storage_used += file_size
         
         # MB cinsinden depolama
         storage_used_mb = storage_used / (1024 * 1024)

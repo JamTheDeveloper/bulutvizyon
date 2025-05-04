@@ -2,6 +2,85 @@
 
 {% block title %}Yeni Ekran Oluştur{% endblock %}
 
+{% block styles %}
+<style>
+    .card {
+        background-color: var(--dark-card);
+        border-color: var(--dark-border);
+    }
+    
+    .card-header {
+        background-color: rgba(0, 0, 0, 0.2);
+        border-bottom: 1px solid var(--dark-border);
+        color: var(--text-light);
+    }
+    
+    .form-control, .form-select {
+        background-color: var(--dark-input);
+        color: var(--text-light);
+        border-color: var(--dark-border);
+    }
+    
+    .form-check-input {
+        background-color: var(--dark-input);
+        border-color: var(--dark-border);
+    }
+    
+    .form-check-label {
+        color: var(--text-light);
+    }
+    
+    .input-group-text {
+        background-color: var(--dark-card);
+        color: var(--text-light);
+        border-color: var(--dark-border);
+    }
+    
+    .form-text {
+        color: var(--text-gray);
+    }
+    
+    .text-muted {
+        color: var(--text-gray) !important;
+    }
+    
+    /* Hesaplanan değerler için geliştirilmiş stil */
+    .calculation-card {
+        background-color: var(--dark-card) !important;
+        border: 1px solid var(--dark-border);
+        border-radius: 0.25rem;
+        color: var(--text-light);
+    }
+    
+    .calculation-card .card-body {
+        padding: 0.75rem;
+    }
+    
+    .calculation-card p {
+        margin-bottom: 0;
+    }
+    
+    .calculation-card strong {
+        color: #00b3ff;
+        font-weight: 600;
+    }
+    
+    .calculation-card span {
+        color: #fff;
+        font-weight: 500;
+    }
+    
+    .resolution-value {
+        font-family: monospace;
+        padding: 2px 6px;
+        background-color: rgba(0,0,0,0.2);
+        border-radius: 3px;
+        display: inline-block;
+        margin-left: 5px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-5">
     <div class="row">
@@ -14,93 +93,147 @@
             </div>
             
             <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Ekran Bilgileri</h5>
+                </div>
                 <div class="card-body p-4">
+                    {% if user_package %}
                     <div class="alert alert-info mb-4">
-                        <div class="d-flex">
+                        <div class="d-flex align-items-center">
                             <div class="me-3">
                                 <i class="fas fa-info-circle fa-2x"></i>
                             </div>
                             <div>
-                                <strong>Bilgi:</strong> Ekran oluşturduktan sonra içerik ekleyebileceksiniz.
-                                <p class="mb-0 mt-1">Ekran Limiti: {{ screen_count }} / {{ allowed_screen_count }}</p>
+                                <strong>{{ user_package.display_name }} Paket:</strong> {{ screen_count }} / {{ allowed_screen_count }} ekran
+                                <p class="mb-0 mt-1">{{ user_package.description }}</p>
                             </div>
                         </div>
                     </div>
+                    {% else %}
+                    <div class="alert alert-info mb-4">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="fas fa-info-circle fa-2x"></i>
+                            </div>
+                            <div>
+                                <strong>Ekran Limiti:</strong> {{ screen_count }} / {{ allowed_screen_count }}
+                                {% if screen_count >= allowed_screen_count %}
+                                <p class="mb-0 mt-1">Maksimum ekran sayısına ulaştınız. Daha fazla ekran eklemek için paketinizi yükseltin.</p>
+                                {% else %}
+                                <p class="mb-0 mt-1">{{ allowed_screen_count - screen_count }} ekran daha oluşturabilirsiniz.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                     
                     <form action="{{ url_for('user.create_screen') }}" method="POST">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <div class="mb-3">
-                            <label for="name" class="form-label">Ekran Adı <span class="text-danger">*</span></label>
+                            <label for="name" class="form-label fw-bold">Ekran Adı <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="name" name="name" required placeholder="Örn: Mağaza Vitrin Ekranı" autofocus>
                             <div class="form-text">Ekranınızı tanımlayan kısa bir isim</div>
                         </div>
                         
-                        <div class="row mb-3">
+                        <div class="mb-3">
+                            <label for="screen_type" class="form-label fw-bold">Ekran Türü <span class="text-danger">*</span></label>
+                            <select class="form-select" id="screen_type" name="screen_type" required>
+                                <option value="" selected disabled>Seçiniz</option>
+                                <option value="led">Led Ekran</option>
+                                <option value="monitor">Monitör</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3" id="panel_type_container" style="display: none;">
+                            <label for="panel_type" class="form-label fw-bold">Panel Türü <span class="text-danger">*</span></label>
+                            <select class="form-select" id="panel_type" name="panel_type">
+                                <option value="p2.5">P2.5</option>
+                                <option value="p3">P3</option>
+                                <option value="p4">P4</option>
+                                <option value="p5">P5</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Led ekranlar için boyut girişi -->
+                        <div class="row mb-3" id="led_dimensions_container" style="display: none;">
                             <div class="col-md-6">
-                                <label for="orientation" class="form-label">Ekran Yönü <span class="text-danger">*</span></label>
-                                <select class="form-select" id="orientation" name="orientation" required>
-                                    <option value="horizontal" selected>Yatay (Landscape)</option>
-                                    <option value="vertical">Dikey (Portrait)</option>
-                                </select>
+                                <label for="width_cm" class="form-label fw-bold">Genişlik (cm) <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="width_cm" name="width_cm" placeholder="Örn: 64" min="1" step="0.1">
+                                    <span class="input-group-text">cm</span>
+                                </div>
                             </div>
                             <div class="col-md-6">
-                                <label for="resolution" class="form-label">Çözünürlük <span class="text-danger">*</span></label>
-                                <select class="form-select" id="resolution" name="resolution" required>
-                                    <option value="1920x1080" selected>1920x1080 (Full HD)</option>
-                                    <option value="1280x720">1280x720 (HD)</option>
-                                    <option value="3840x2160">3840x2160 (4K UHD)</option>
-                                    <option value="720x1280">720x1280 (HD Dikey)</option>
-                                    <option value="1080x1920">1080x1920 (Full HD Dikey)</option>
-                                    <option value="custom">Özel Çözünürlük</option>
-                                </select>
+                                <label for="height_cm" class="form-label fw-bold">Yükseklik (cm) <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="height_cm" name="height_cm" placeholder="Örn: 128" min="1" step="0.1">
+                                    <span class="input-group-text">cm</span>
+                                </div>
                             </div>
                         </div>
                         
-                        <div class="row mb-3" id="customResolution" style="display: none;">
-                            <div class="col-md-6">
-                                <label for="width" class="form-label">Genişlik (pixel) <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control" id="width" name="width" placeholder="Örn: 1920" min="100" max="8000">
+                        <!-- Monitörler için çözünürlük seçimi -->
+                        <div class="mb-3" id="monitor_resolution_container" style="display: none;">
+                            <label for="monitor_resolution" class="form-label fw-bold">Çözünürlük <span class="text-danger">*</span></label>
+                            <select class="form-select" id="monitor_resolution" name="monitor_resolution">
+                                <option value="">Seçiniz</option>
+                                <optgroup label="Yatay (Landscape)">
+                                    <option value="1366x768">1366x768 (HD)</option>
+                                    <option value="1600x900">1600x900 (HD+)</option>
+                                    <option value="1920x1080" selected>1920x1080 (Full HD)</option>
+                                    <option value="2560x1440">2560x1440 (QHD)</option>
+                                    <option value="3840x2160">3840x2160 (4K UHD)</option>
+                                </optgroup>
+                                <optgroup label="Dikey (Portrait)">
+                                    <option value="768x1366">768x1366 (HD Dikey)</option>
+                                    <option value="900x1600">900x1600 (HD+ Dikey)</option>
+                                    <option value="1080x1920">1080x1920 (Full HD Dikey)</option>
+                                    <option value="1440x2560">1440x2560 (QHD Dikey)</option>
+                                    <option value="2160x3840">2160x3840 (4K UHD Dikey)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        
+                        <!-- Hesaplanan değerleri göstermek için (sadece bilgi amaçlı) -->
+                        <div class="row mb-4" id="calculated_values" style="display: none;">
+                            <div class="col-md-6 mb-2 mb-md-0">
+                                <div class="calculation-card">
+                                    <div class="card-body py-2">
+                                        <p class="mb-1"><strong>Hesaplanan Yön:</strong> <span id="calculated_orientation" class="resolution-value">-</span></p>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-6">
-                                <label for="height" class="form-label">Yükseklik (pixel) <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control" id="height" name="height" placeholder="Örn: 1080" min="100" max="8000">
+                                <div class="calculation-card">
+                                    <div class="card-body py-2">
+                                        <p class="mb-1"><strong>Hesaplanan Çözünürlük:</strong> <span id="calculated_resolution" class="resolution-value">-</span></p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                        
+                        <!-- Gizli alanlar - form gönderiminde kullanılacak -->
+                        <input type="hidden" id="orientation" name="orientation" value="horizontal">
+                        <input type="hidden" id="resolution" name="resolution" value="">
                         
                         <div class="mb-3">
-                            <label for="location" class="form-label">Konum</label>
+                            <label for="location" class="form-label fw-bold">Konum</label>
                             <input type="text" class="form-control" id="location" name="location" placeholder="Örn: Ana Mağaza, Giriş Katı">
                             <div class="form-text">Ekranın bulunduğu fiziksel konum</div>
                         </div>
                         
                         <div class="mb-3">
-                            <label for="description" class="form-label">Açıklama</label>
+                            <label for="description" class="form-label fw-bold">Açıklama</label>
                             <textarea class="form-control" id="description" name="description" rows="3" placeholder="Ekran hakkında detaylı bilgi..."></textarea>
                         </div>
                         
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="refresh_rate" class="form-label">Yenileme Süresi (saniye)</label>
-                                <input type="number" class="form-control" id="refresh_rate" name="refresh_rate" value="15" min="5" max="300">
-                                <div class="form-text">İçerik kontrol edilme sıklığı</div>
-                            </div>
-                            <div class="col-md-6 d-flex align-items-end">
-                                <div class="form-check mb-3">
-                                    <input class="form-check-input" type="checkbox" value="1" id="show_clock" name="show_clock" checked>
-                                    <label class="form-check-label" for="show_clock">
-                                        Saat Göster
-                                    </label>
-                                    <div class="form-text">Ekranda saat ve tarih gösterilsin mi?</div>
-                                </div>
-                            </div>
-                        </div>
-                        
                         <div class="mb-3">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="status" name="status" checked>
-                                <label class="form-check-label" for="status">Ekran Aktif</label>
-                                <div class="form-text">Pasif ekranlar içerik göstermez</div>
+                            <label for="refresh_rate" class="form-label fw-bold">Yenileme Süresi (saniye)</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="refresh_rate" name="refresh_rate" value="300" min="5" max="3600">
+                                <span class="input-group-text">saniye</span>
                             </div>
+                            <div class="form-text">İçerik kontrol edilme sıklığı (5-3600 saniye arası)</div>
                         </div>
                         
                         <hr class="my-4">
@@ -121,64 +254,204 @@
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Özel çözünürlük seçildiğinde input alanlarını göster
-        const resolutionSelect = document.getElementById('resolution');
-        const customResolutionDiv = document.getElementById('customResolution');
-        const widthInput = document.getElementById('width');
-        const heightInput = document.getElementById('height');
+        const screenTypeSelect = document.getElementById('screen_type');
+        const panelTypeContainer = document.getElementById('panel_type_container');
+        const panelTypeSelect = document.getElementById('panel_type');
+        const widthCmInput = document.getElementById('width_cm');
+        const heightCmInput = document.getElementById('height_cm');
+        const orientationInput = document.getElementById('orientation');
+        const resolutionInput = document.getElementById('resolution');
+        const calculatedValues = document.getElementById('calculated_values');
+        const calculatedOrientation = document.getElementById('calculated_orientation');
+        const calculatedResolution = document.getElementById('calculated_resolution');
         
-        // Yön değiştiğinde çözünürlük opsiyonlarını güncelle
-        const orientationSelect = document.getElementById('orientation');
+        // Panel çözünürlük değerleri
+        const panelResolutions = {
+            'p2.5': { width: 64, height: 128 },
+            'p3': { width: 52, height: 104 },
+            'p4': { width: 40, height: 80 },
+            'p5': { width: 32, height: 64 }
+        };
         
-        resolutionSelect.addEventListener('change', function() {
-            if (this.value === 'custom') {
-                customResolutionDiv.style.display = 'flex';
-                widthInput.required = true;
-                heightInput.required = true;
-            } else {
-                customResolutionDiv.style.display = 'none';
-                widthInput.required = false;
-                heightInput.required = false;
+        // Panel boyutları (cm)
+        const panelSize = { width: 16, height: 32 };
+        
+        // Ekran türü değiştiğinde
+        screenTypeSelect.addEventListener('change', function() {
+            const ledDimensionsContainer = document.getElementById('led_dimensions_container');
+            const monitorResolutionContainer = document.getElementById('monitor_resolution_container');
+            const monitorResolutionSelect = document.getElementById('monitor_resolution');
+            
+            // Tüm alanları sıfırla ve gizle
+            panelTypeContainer.style.display = 'none';
+            panelTypeSelect.required = false;
+            ledDimensionsContainer.style.display = 'none';
+            widthCmInput.required = false;
+            heightCmInput.required = false;
+            monitorResolutionContainer.style.display = 'none';
+            monitorResolutionSelect.required = false;
+            
+            if (this.value === 'led') {
+                // Led ekran seçildiğinde
+                panelTypeContainer.style.display = 'block';
+                panelTypeSelect.required = true;
+                ledDimensionsContainer.style.display = 'flex';
+                widthCmInput.required = true;
+                heightCmInput.required = true;
+                calculateResolution();
+            } else if (this.value === 'monitor') {
+                // Monitör seçildiğinde
+                monitorResolutionContainer.style.display = 'block';
+                monitorResolutionSelect.required = true;
+                updateMonitorResolution();
             }
         });
         
-        orientationSelect.addEventListener('change', function() {
-            const isVertical = this.value === 'vertical';
+        // Monitör çözünürlük değişimi
+        const monitorResolutionSelect = document.getElementById('monitor_resolution');
+        monitorResolutionSelect.addEventListener('change', updateMonitorResolution);
+        
+        function updateMonitorResolution() {
+            if (screenTypeSelect.value !== 'monitor') return;
             
-            // Varsayılan değere geri döndür
-            resolutionSelect.innerHTML = '';
-            
-            if (isVertical) {
-                // Dikey opsiyonlar
-                addOption(resolutionSelect, '1080x1920', '1080x1920 (Full HD Dikey)');
-                addOption(resolutionSelect, '720x1280', '720x1280 (HD Dikey)');
-                addOption(resolutionSelect, '1440x2560', '1440x2560 (QHD Dikey)');
-                addOption(resolutionSelect, '2160x3840', '2160x3840 (4K Dikey)');
-            } else {
-                // Yatay opsiyonlar
-                addOption(resolutionSelect, '1920x1080', '1920x1080 (Full HD)');
-                addOption(resolutionSelect, '1280x720', '1280x720 (HD)');
-                addOption(resolutionSelect, '2560x1440', '2560x1440 (QHD)');
-                addOption(resolutionSelect, '3840x2160', '3840x2160 (4K UHD)');
+            const resolution = monitorResolutionSelect.value;
+            if (!resolution) {
+                calculatedValues.style.display = 'none';
+                return;
             }
             
-            // Özel çözünürlük opsiyonu
-            addOption(resolutionSelect, 'custom', 'Özel Çözünürlük');
+            // Çözünürlük değerini al ve yönü belirle
+            const [width, height] = resolution.split('x').map(Number);
+            const isHorizontal = width > height;
             
-            // İlk opsiyonu seç
-            resolutionSelect.selectedIndex = 0;
+            // Gizli alanlara değerleri ata
+            orientationInput.value = isHorizontal ? 'horizontal' : 'vertical';
+            resolutionInput.value = resolution;
             
-            // Özel çözünürlük div'ini gizle
-            customResolutionDiv.style.display = 'none';
-            widthInput.required = false;
-            heightInput.required = false;
+            // Hesaplanan değerleri göster
+            calculatedOrientation.textContent = isHorizontal ? 'Yatay' : 'Dikey';
+            calculatedResolution.textContent = resolution;
+            calculatedValues.style.display = 'flex';
+        }
+        
+        // Boyutlar veya panel türü değiştiğinde çözünürlük hesapla
+        [widthCmInput, heightCmInput, panelTypeSelect].forEach(input => {
+            input.addEventListener('change', calculateResolution);
+            input.addEventListener('input', calculateResolution);
         });
         
-        function addOption(selectElement, value, text) {
-            const option = document.createElement('option');
-            option.value = value;
-            option.textContent = text;
-            selectElement.appendChild(option);
+        function calculateResolution() {
+            const width = parseFloat(widthCmInput.value) || 0;
+            const height = parseFloat(heightCmInput.value) || 0;
+            
+            if (width <= 0 || height <= 0) {
+                calculatedValues.style.display = 'none';
+                return;
+            }
+            
+            // Ekran yönünü belirle
+            const isHorizontal = width >= height;
+            orientationInput.value = isHorizontal ? 'horizontal' : 'vertical';
+            calculatedOrientation.textContent = isHorizontal ? 'Yatay' : 'Dikey';
+            
+            // Ekran türüne göre çözünürlük hesapla
+            if (screenTypeSelect.value === 'led') {
+                const panelType = panelTypeSelect.value;
+                if (!panelType) return;
+                
+                // Panel sayısını hesapla
+                const widthPanelCount = Math.ceil(width / panelSize.width);
+                const heightPanelCount = Math.ceil(height / panelSize.height);
+                
+                // Toplam çözünürlüğü hesapla
+                const totalWidth = widthPanelCount * panelResolutions[panelType].width;
+                const totalHeight = heightPanelCount * panelResolutions[panelType].height;
+                
+                resolutionInput.value = `${totalWidth}x${totalHeight}`;
+                calculatedResolution.textContent = `${totalWidth}x${totalHeight}`;
+                calculatedValues.style.display = 'flex';
+            } else if (screenTypeSelect.value === 'monitor') {
+                // Monitör için varsayılan çözünürlükler
+                if (isHorizontal) {
+                    resolutionInput.value = '1920x1080';
+                    calculatedResolution.textContent = '1920x1080';
+                } else {
+                    resolutionInput.value = '1080x1920';
+                    calculatedResolution.textContent = '1080x1920';
+                }
+                calculatedValues.style.display = 'flex';
+            } else {
+                calculatedValues.style.display = 'none';
+            }
+        }
+        
+        // Sayfa yüklendiğinde form validasyonunu güçlendir
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(event) {
+            const screenType = screenTypeSelect.value;
+            let hasError = false;
+            
+            // Ekran türü kontrolü
+            if (!screenType) {
+                showInputError(screenTypeSelect, 'Lütfen bir ekran türü seçin');
+                hasError = true;
+            }
+            
+            if (screenType === 'led') {
+                // Panel tipi kontrolü
+                if (!panelTypeSelect.value) {
+                    showInputError(panelTypeSelect, 'Lütfen bir panel türü seçin');
+                    hasError = true;
+                }
+                
+                // Boyut kontrolü
+                const width = parseFloat(widthCmInput.value) || 0;
+                const height = parseFloat(heightCmInput.value) || 0;
+                
+                if (width <= 0) {
+                    showInputError(widthCmInput, 'Genişlik değeri sıfırdan büyük olmalıdır');
+                    hasError = true;
+                }
+                
+                if (height <= 0) {
+                    showInputError(heightCmInput, 'Yükseklik değeri sıfırdan büyük olmalıdır');
+                    hasError = true;
+                }
+            } else if (screenType === 'monitor') {
+                // Monitör çözünürlüğü kontrolü
+                if (!monitorResolutionSelect.value) {
+                    showInputError(monitorResolutionSelect, 'Lütfen bir çözünürlük seçin');
+                    hasError = true;
+                }
+            }
+            
+            if (hasError) {
+                event.preventDefault();
+            }
+        });
+        
+        function showInputError(inputElement, message) {
+            // Mevcut hata mesajını temizle
+            const existingFeedback = inputElement.nextElementSibling;
+            if (existingFeedback && existingFeedback.classList.contains('invalid-feedback')) {
+                existingFeedback.remove();
+            }
+            
+            // Hata stilini ekle
+            inputElement.classList.add('is-invalid');
+            
+            // Hata mesajını ekle
+            const feedback = document.createElement('div');
+            feedback.classList.add('invalid-feedback');
+            feedback.textContent = message;
+            
+            // Input bir grup içinde olabilir
+            const parent = inputElement.parentElement;
+            if (parent.classList.contains('input-group')) {
+                parent.after(feedback);
+            } else {
+                inputElement.after(feedback);
+            }
         }
     });
 </script>

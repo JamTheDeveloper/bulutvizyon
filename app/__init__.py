@@ -17,6 +17,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from bson import ObjectId
 from werkzeug.middleware.proxy_fix import ProxyFix
+from urllib.parse import quote_plus
 
 # ObjectId için özel JSON encoder
 class MongoJSONEncoder(json.JSONEncoder):
@@ -48,10 +49,31 @@ def create_app(test_config=None):
     # Proxy işleme ekle
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
     
+    # MongoDB bağlantı bilgilerini al ve URI oluştur - yapılandırmadan önce ayarla
+    mongo_user = os.environ.get('MONGO_USER', 'elektrobil_admin')
+    mongo_pass = os.environ.get('MONGO_PASS', 'Eb@2254097*')
+    mongo_host = os.environ.get('MONGO_HOST', 'localhost')
+    mongo_port = os.environ.get('MONGO_PORT', '27017')
+    mongo_db = os.environ.get('MONGO_DB', 'bulutvizyondb')
+    
+    # Şifreyi URL-encode et
+    encoded_password = quote_plus(mongo_pass)
+    
+    # MongoDB URI oluştur ve doğrudan os.environ'a ata - PyMongo bu değeri okuyacak
+    mongo_uri = f"mongodb://{mongo_user}:{encoded_password}@{mongo_host}:{mongo_port}/{mongo_db}?authSource=admin"
+    os.environ['MONGO_URI'] = mongo_uri
+    
+    try:
+        app.logger.info(f"MongoDB URI oluşturuldu: {mongo_uri}")
+    except:
+        print(f"MongoDB URI oluşturuldu: {mongo_uri}")
+    
     # Varsayılan konfigürasyon
     app.config.from_object(active_config)
     app.config.from_mapping(
-        UPLOAD_FOLDER=os.path.join(app.root_path, 'static', 'uploads')
+        UPLOAD_FOLDER=os.path.join(app.root_path, 'static', 'uploads'),
+        SECRET_KEY=os.environ.get('SECRET_KEY', 'dev'),
+        MONGO_URI=mongo_uri
     )
 
     # Test konfigürasyonu
@@ -85,7 +107,6 @@ def create_app(test_config=None):
     CORS(app)
     
     # CSRF koruması
-    app.config['SECRET_KEY'] = 'dev-key-replace-in-production'
     app.config['WTF_CSRF_ENABLED'] = True
     csrf.init_app(app)
     

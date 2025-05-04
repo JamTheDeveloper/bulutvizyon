@@ -11,6 +11,8 @@ import uuid
 from PIL import Image
 import mimetypes
 import urllib.parse
+from pymongo import MongoClient
+from urllib.parse import quote_plus
 
 from app.models.logs import Log
 
@@ -219,58 +221,93 @@ class Media:
         Returns:
             Medya öğelerinin listesi
         """
-        from bson import ObjectId
-        
-        # user_id string ise ObjectId'ye dönüştür
-        if isinstance(user_id, str):
-            user_id = ObjectId(user_id)
-        
-        # Kullanıcının sahip olduğu medyayı bul
-        query = {"user_id": user_id}
-        
-        # Duruma göre filtrele
-        if status is not None:
-            query["status"] = status
-        
-        # Kullanıcının kendi medyasını bul
-        owned_media = list(mongo.db.media.find(query).skip(skip).limit(limit))
-        
-        # Kullanıcı ile paylaşılan medyayı bul (MediaShare tablosundan)
-        shared_media_ids = [
-            share["media_id"] for share in 
-            mongo.db.media_shares.find({"user_id": user_id})
-        ]
-        
-        # Paylaşılan medya ID'lerini ObjectId'ye dönüştür
-        shared_media_object_ids = [
-            ObjectId(media_id) if isinstance(media_id, str) else media_id 
-            for media_id in shared_media_ids
-        ]
-        
-        # Paylaşılan medyayı bul
-        shared_media_query = {"_id": {"$in": shared_media_object_ids}}
-        if status is not None:
-            shared_media_query["status"] = status
+        try:
+            from bson import ObjectId
+            from pymongo import MongoClient
+            from urllib.parse import quote_plus
             
-        shared_media = list(mongo.db.media.find(shared_media_query))
-        
-        # Sonuçları birleştir (aynı medya hem sahip hem de paylaşılan olabilir)
-        all_media = owned_media + shared_media
-        
-        # Aynı ID'ye sahip medya öğelerini kaldır
-        seen_ids = set()
-        unique_media = []
-        
-        for media in all_media:
-            if str(media["_id"]) not in seen_ids:
-                seen_ids.add(str(media["_id"]))
-                unique_media.append(media)
-        
-        # Oluşturulma tarihine göre sırala
-        unique_media.sort(key=lambda x: x.get('created_at', datetime.min), reverse=True)
-        
-        # Limit uygula
-        return unique_media[skip:skip+limit]
+            # MongoDB bağlantısını doğrudan oluştur - Flask-PyMongo yerine
+            try:
+                mongo_user = os.environ.get('MONGO_USER', 'elektrobil_admin')
+                mongo_pass = os.environ.get('MONGO_PASS', 'Eb@2254097*')
+                mongo_host = os.environ.get('MONGO_HOST', 'localhost')
+                mongo_port = os.environ.get('MONGO_PORT', '27017')
+                mongo_db = os.environ.get('MONGO_DB', 'bulutvizyondb')
+                
+                encoded_password = quote_plus(mongo_pass)
+                
+                # MongoDB bağlantısı oluştur
+                mongo_uri = f"mongodb://{mongo_user}:{encoded_password}@{mongo_host}:{mongo_port}/{mongo_db}?authSource=admin"
+                client = MongoClient(mongo_uri)
+                db = client[mongo_db]
+                
+                # user_id string ise ObjectId'ye dönüştür
+                if isinstance(user_id, str):
+                    try:
+                        user_id = ObjectId(user_id)
+                    except Exception as e:
+                        print(f"ObjectId dönüşüm hatası: {str(e)}")
+                
+                # Kullanıcının sahip olduğu medyayı bul
+                query = {"user_id": user_id}
+                
+                # Duruma göre filtrele
+                if status is not None:
+                    query["status"] = status
+                
+                # Kullanıcının kendi medyasını bul
+                owned_media = list(db.media.find(query).sort("created_at", -1).skip(skip).limit(limit))
+                print(f"Kullanıcıya ait medya sayısı: {len(owned_media)}")
+                
+                # Kullanıcı ile paylaşılan medyayı bul (MediaShare tablosundan)
+                shared_media_ids = [
+                    share["media_id"] for share in 
+                    db.media_shares.find({"user_id": user_id})
+                ]
+                
+                # Paylaşılan medya ID'lerini ObjectId'ye dönüştür
+                shared_media_object_ids = [
+                    ObjectId(media_id) if isinstance(media_id, str) else media_id 
+                    for media_id in shared_media_ids
+                ]
+                
+                # Paylaşılan medyayı bul
+                shared_media = []
+                if shared_media_object_ids:
+                    shared_media_query = {"_id": {"$in": shared_media_object_ids}}
+                    if status is not None:
+                        shared_media_query["status"] = status
+                        
+                    shared_media = list(db.media.find(shared_media_query))
+                    print(f"Paylaşılan medya sayısı: {len(shared_media)}")
+                
+                # Sonuçları birleştir (aynı medya hem sahip hem de paylaşılan olabilir)
+                all_media = owned_media + shared_media
+                
+                # Aynı ID'ye sahip medya öğelerini kaldır
+                seen_ids = set()
+                unique_media = []
+                
+                for media in all_media:
+                    if str(media["_id"]) not in seen_ids:
+                        seen_ids.add(str(media["_id"]))
+                        # Sınıf örneği oluştur
+                        unique_media.append(cls(**media))
+                
+                # Oluşturulma tarihine göre sırala
+                unique_media.sort(key=lambda x: getattr(x, 'created_at', datetime.min), reverse=True)
+                
+                # Limit uygula
+                return unique_media[:limit]
+            except Exception as e:
+                print(f"MongoDB işlemleri hatası: {str(e)}")
+                return []
+                
+        except Exception as e:
+            import traceback
+            print(f"Medyalar getirilemedi: {str(e)}")
+            print(traceback.format_exc())
+            return []
     
     @classmethod
     def find_public(cls, limit=100, skip=0, category=None, search=None):

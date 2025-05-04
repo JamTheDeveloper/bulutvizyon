@@ -14,7 +14,7 @@ from app import mongo
 from bson.objectid import ObjectId
 from app.utils.admin_ekran_detay import get_screen_detail, get_user_screens_detail
 
-bp = Blueprint('admin', __name__)
+bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 @bp.route('/dashboard')
 @admin_required
