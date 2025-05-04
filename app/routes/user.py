@@ -457,6 +457,12 @@ def edit_screen(screen_id):
         refresh_rate = request.form.get('refresh_rate', 15)
         show_clock = True if request.form.get('show_clock') else False
         
+        # Panel türü ve boyutlar
+        screen_type = request.form.get('screen_type')
+        panel_type = request.form.get('panel_type')
+        width_cm = request.form.get('width_cm')
+        height_cm = request.form.get('height_cm')
+        
         # Çözünürlük kontrolü
         if request.form.get('resolution') == 'custom':
             width = request.form.get('width')
@@ -465,22 +471,59 @@ def edit_screen(screen_id):
         else:
             resolution = request.form.get('resolution')
         
+        # Update işlemine panel_type ve boyutları ekle
+        update_data = {
+            'name': name,
+            'orientation': orientation,
+            'resolution': resolution,
+            'location': location,
+            'description': description,
+            'status': status,
+            'refresh_rate': int(refresh_rate),
+            'show_clock': show_clock
+        }
+        
+        # Ekstra alanlar
+        if screen_type:
+            update_data['screen_type'] = screen_type
+        if panel_type:
+            update_data['panel_type'] = panel_type
+        if width_cm:
+            update_data['width_cm'] = float(width_cm)
+        if height_cm:
+            update_data['height_cm'] = float(height_cm)
+            
         # Ekranı güncelle
-        screen.update(
-            name=name,
-            orientation=orientation,
-            resolution=resolution,
-            location=location,
-            description=description,
-            status=status,
-            refresh_rate=int(refresh_rate),
-            show_clock=show_clock
-        )
+        screen.update(**update_data)
         
         flash(f'"{name}" ekranı başarıyla güncellendi.', 'success')
         return redirect(url_for('user.screens'))
     
-    return render_template('user/edit_screen.html', screen=screen)
+    # Ekran verileri için hazırlık
+    screen_data = {
+        'id': screen.id,
+        'name': screen.name,
+        'orientation': screen.orientation,
+        'resolution': screen.resolution,
+        'location': screen.location or '',
+        'description': screen.description or '',
+        'status': screen.status,
+        'refresh_rate': screen.refresh_rate or 15,
+        'show_clock': screen.show_clock,
+        'api_key': screen.api_key
+    }
+    
+    # Ekstra alanlar (varsa)
+    if hasattr(screen, 'screen_type'):
+        screen_data['screen_type'] = screen.screen_type
+    if hasattr(screen, 'panel_type'):
+        screen_data['panel_type'] = screen.panel_type
+    if hasattr(screen, 'width_cm'):
+        screen_data['width_cm'] = screen.width_cm
+    if hasattr(screen, 'height_cm'):
+        screen_data['height_cm'] = screen.height_cm
+    
+    return render_template('user/edit_screen.html', screen=screen_data)
 
 @bp.route('/screens/delete/<screen_id>', methods=['POST'])
 @user_required

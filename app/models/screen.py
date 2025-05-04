@@ -34,6 +34,10 @@ class Screen:
     - updated_at: Güncellenme zamanı
     - offline_periods: Offline kalma dönemleri
     - playlist_id: Playlist ID
+    - screen_type: Ekran tipi (monitor, led)
+    - panel_type: Panell tipi (P2.5, P3, P4, P5, ...)
+    - width_cm: Genişlik (cm)
+    - height_cm: Yükseklik (cm)
     """
     
     # Status değerleri
@@ -64,6 +68,10 @@ class Screen:
             'organization_id': data.get('organization_id'),
             'refresh_rate': int(data.get('refresh_rate', 15)),
             'show_clock': bool(data.get('show_clock', True)),
+            'screen_type': data.get('screen_type', 'monitor'),  # monitor veya led
+            'panel_type': data.get('panel_type'),  # P2.5, P3, P4, P5, ...
+            'width_cm': data.get('width_cm'),  # Genişlik (cm)
+            'height_cm': data.get('height_cm'),  # Yükseklik (cm)
             'last_active': None,
             'offline_periods': [],
             'created_at': datetime.utcnow(),
@@ -174,7 +182,8 @@ class Screen:
         
         # Güncellenebilir alanlar
         for field in ['name', 'description', 'orientation', 'resolution', 
-                     'location', 'status', 'refresh_rate', 'show_clock', 'last_active']:
+                     'location', 'status', 'refresh_rate', 'show_clock', 'last_active',
+                     'screen_type', 'panel_type', 'width_cm', 'height_cm']:
             if field in data:
                 update_data[field] = data[field]
         
@@ -247,7 +256,8 @@ class Screen:
     def __init__(self, _id, user_id, name, orientation, resolution, api_key, 
                  status='active', location=None, description=None, refresh_rate=15, 
                  show_clock=True, preview_image=None, created_at=None, 
-                 updated_at=None, last_active=None, offline_periods=None, playlist_id=None, **kwargs):
+                 updated_at=None, last_active=None, offline_periods=None, playlist_id=None,
+                 screen_type=None, panel_type=None, width_cm=None, height_cm=None, **kwargs):
         """Yeni bir ekran örneği başlat"""
         self.id = str(_id)
         self.user_id = user_id
@@ -266,6 +276,10 @@ class Screen:
         self.last_active = last_active
         self.offline_periods = offline_periods if offline_periods else []
         self.playlist_id = playlist_id
+        self.screen_type = screen_type  # monitor veya led
+        self.panel_type = panel_type    # P2.5, P3, P4, P5, ...
+        self.width_cm = width_cm        # Genişlik (cm)
+        self.height_cm = height_cm      # Yükseklik (cm)
     
     def update(self, **kwargs):
         """Ekran bilgilerini güncelle"""
@@ -274,7 +288,8 @@ class Screen:
         # Güncellenebilir alanlar
         updatable_fields = [
             'name', 'orientation', 'resolution', 'location', 
-            'description', 'status', 'refresh_rate', 'show_clock'
+            'description', 'status', 'refresh_rate', 'show_clock',
+            'screen_type', 'panel_type', 'width_cm', 'height_cm'
         ]
         
         for field in updatable_fields:
@@ -339,7 +354,11 @@ class Screen:
             "updated_at": self.updated_at,
             "last_active": self.last_active,
             "offline_periods": self.offline_periods,
-            "playlist_id": self.playlist_id
+            "playlist_id": self.playlist_id,
+            "screen_type": self.screen_type,
+            "panel_type": self.panel_type,
+            "width_cm": self.width_cm,
+            "height_cm": self.height_cm
         }
     
     def add_offline_period(self, offline_period):

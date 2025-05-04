@@ -299,12 +299,9 @@
         const calculatedResolution = document.getElementById('calculated_resolution');
         const ledOption = document.getElementById('led_option');
         const monitorOption = document.getElementById('monitor_option');
-        
-        // Ekran önizleme oluştur
-        updateScreenPreview();
-        
-        // Ekranın mevcut çözünürlüğüne göre ekran türünü ve boyutlarını belirle
-        initializeScreenValues();
+        const ledDimensionsContainer = document.getElementById('led_dimensions_container');
+        const monitorResolutionContainer = document.getElementById('monitor_resolution_container');
+        const monitorResolutionSelect = document.getElementById('monitor_resolution');
         
         // Panel çözünürlük değerleri
         const panelResolutions = {
@@ -317,43 +314,50 @@
         // Panel boyutları (cm)
         const panelSize = { width: 16, height: 32 };
         
-        function initializeScreenValues() {
+        // Monitör standart çözünürlükleri
+        const monitorResolutions = ['1366x768', '1600x900', '1920x1080', '2560x1440', '3840x2160', 
+                                   '768x1366', '900x1600', '1080x1920', '1440x2560', '2160x3840'];
+        
+        // Ekranın mevcut değerlerini göster
+        showExistingValues();
+        
+        // Ekran önizleme oluştur
+        updateScreenPreview();
+        
+        function showExistingValues() {
             // Mevcut çözünürlük değerine göre panel türünü tahmin et
             const resolution = resolutionInput.value;
+            const orientation = orientationInput.value;
+            
+            // Hesaplanan değerleri göster
+            calculatedOrientation.textContent = orientation === 'horizontal' ? 'Yatay' : 'Dikey';
+            calculatedResolution.textContent = resolution;
+            calculatedValues.style.display = 'flex';
+            
             let [width, height] = resolution.split('x').map(Number);
             
-            // Monitör standart çözünürlükleri
-            const monitorResolutions = ['1366x768', '1600x900', '1920x1080', '2560x1440', '3840x2160', 
-                                      '768x1366', '900x1600', '1080x1920', '1440x2560', '2160x3840'];
-            
-            const ledDimensionsContainer = document.getElementById('led_dimensions_container');
-            const monitorResolutionContainer = document.getElementById('monitor_resolution_container');
-            const monitorResolutionSelect = document.getElementById('monitor_resolution');
-            
+            // Standart monitör çözünürlükleri arasında mı kontrol et
             if (monitorResolutions.includes(resolution)) {
                 // Monitör ise
                 screenTypeSelect.value = 'monitor';
+                monitorOption.selected = true;
+                
+                // Çözünürlük seçeneğini seç
+                for (let i = 0; i < monitorResolutionSelect.options.length; i++) {
+                    if (monitorResolutionSelect.options[i].value === resolution) {
+                        monitorResolutionSelect.options[i].selected = true;
+                        break;
+                    }
+                }
+                
+                // Alanları göster/gizle
                 ledDimensionsContainer.style.display = 'none';
                 panelTypeContainer.style.display = 'none';
                 monitorResolutionContainer.style.display = 'block';
-                
-                // Çözünürlük dropdown'ında doğru değeri seç
-                Array.from(monitorResolutionSelect.options).forEach(option => {
-                    if (option.value === resolution) {
-                        option.selected = true;
-                    }
-                });
-                
-                // Hesaplanan değerleri göster
-                calculatedOrientation.textContent = orientationInput.value === 'horizontal' ? 'Yatay' : 'Dikey';
-                calculatedResolution.textContent = resolution;
-                calculatedValues.style.display = 'flex';
             } else {
-                // LED ekran olabilir, en uygun panel türünü bul
+                // LED ekran olabilir
                 screenTypeSelect.value = 'led';
-                ledDimensionsContainer.style.display = 'flex';
-                panelTypeContainer.style.display = 'block';
-                monitorResolutionContainer.style.display = 'none';
+                ledOption.selected = true;
                 
                 // Mevcut çözünürlüğe göre en uygun panel tipini seç
                 let bestMatch = null;
@@ -387,34 +391,28 @@
                 }
                 
                 if (bestMatch) {
+                    // Panel tipini seç
                     panelTypeSelect.value = bestMatch.type;
+                    
+                    // Boyutları ayarla
                     widthCmInput.value = bestMatch.width.toFixed(1);
                     heightCmInput.value = bestMatch.height.toFixed(1);
-                    
-                    // Hesaplanan değerleri göster
-                    calculatedOrientation.textContent = orientationInput.value === 'horizontal' ? 'Yatay' : 'Dikey';
-                    calculatedResolution.textContent = resolution;
-                    calculatedValues.style.display = 'flex';
                 } else {
                     // Eşleşme bulunamazsa varsayılan değerleri kullan
                     panelTypeSelect.value = 'p2.5';
                     widthCmInput.value = (width / 64 * 16).toFixed(1);
                     heightCmInput.value = (height / 128 * 32).toFixed(1);
-                    
-                    // Hesaplanan değerleri göster
-                    calculatedOrientation.textContent = orientationInput.value === 'horizontal' ? 'Yatay' : 'Dikey';
-                    calculatedResolution.textContent = resolution;
-                    calculatedValues.style.display = 'flex';
                 }
+                
+                // Alanları göster/gizle
+                ledDimensionsContainer.style.display = 'flex';
+                panelTypeContainer.style.display = 'block';
+                monitorResolutionContainer.style.display = 'none';
             }
         }
         
         // Ekran türü değiştiğinde
         screenTypeSelect.addEventListener('change', function() {
-            const ledDimensionsContainer = document.getElementById('led_dimensions_container');
-            const monitorResolutionContainer = document.getElementById('monitor_resolution_container');
-            const monitorResolutionSelect = document.getElementById('monitor_resolution');
-            
             // Tüm alanları sıfırla ve gizle
             panelTypeContainer.style.display = 'none';
             panelTypeSelect.required = false;
@@ -441,7 +439,6 @@
         });
         
         // Monitör çözünürlük değişimi
-        const monitorResolutionSelect = document.getElementById('monitor_resolution');
         monitorResolutionSelect.addEventListener('change', updateMonitorResolution);
         
         function updateMonitorResolution() {
@@ -465,6 +462,9 @@
             calculatedOrientation.textContent = isHorizontal ? 'Yatay' : 'Dikey';
             calculatedResolution.textContent = resolution;
             calculatedValues.style.display = 'flex';
+            
+            // Ekran önizlemesini güncelle
+            updateScreenPreview();
         }
         
         function calculateResolution() {
@@ -498,6 +498,9 @@
             resolutionInput.value = `${totalWidth}x${totalHeight}`;
             calculatedResolution.textContent = `${totalWidth}x${totalHeight}`;
             calculatedValues.style.display = 'flex';
+            
+            // Ekran önizlemesini güncelle
+            updateScreenPreview();
         }
         
         // Boyutlar veya panel türü değiştiğinde çözünürlük hesapla
