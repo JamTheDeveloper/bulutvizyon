@@ -15,98 +15,92 @@ class PlaylistMedia:
     STATUS_INACTIVE = 'inactive'
     
     @classmethod
-    def create(cls, data):
-        """Yeni bir playlist-medya ilişkisi oluştur"""
-        import traceback
+    def create(cls, playlist_id=None, media_id=None, display_time=None, order=None, **kwargs):
+        """Yeni playlist medya ilişkisi oluşturur"""
         
+        import traceback
+        print(f"PlaylistMedia.create called with: playlist_id={playlist_id}, media_id={media_id}, display_time={display_time}")
+        
+        # ID kontrolleri
         try:
-            print(f"DEBUG - PlaylistMedia.create - Gelen veriler: {data}")
-            
-            # playlist_id ve media_id'yi ObjectId'ye dönüştür
-            playlist_id = data.get('playlist_id')
-            media_id = data.get('media_id')
-            
-            print(f"DEBUG - Ham playlist_id: {playlist_id}, media_id: {media_id}")
-            
+            # playlist_id'yi ObjectId'ye dönüştür
             if isinstance(playlist_id, str):
                 try:
                     playlist_id = ObjectId(playlist_id)
-                    print(f"DEBUG - playlist_id ObjectId'ye dönüştürüldü: {playlist_id}")
+                    print(f"Playlist ID converted to ObjectId: {playlist_id}")
                 except Exception as e:
-                    print(f"DEBUG - playlist_id ObjectId dönüşüm hatası: {str(e)}")
-                    return None
-            
+                    print(f"Error converting playlist_id to ObjectId: {e}")
+                    raise ValueError(f"Geçersiz playlist ID formatı: {playlist_id}")
+                
+            # media_id'yi ObjectId'ye dönüştür
             if isinstance(media_id, str):
                 try:
                     media_id = ObjectId(media_id)
-                    print(f"DEBUG - media_id ObjectId'ye dönüştürüldü: {media_id}")
+                    print(f"Media ID converted to ObjectId: {media_id}")
                 except Exception as e:
-                    print(f"DEBUG - media_id ObjectId dönüşüm hatası: {str(e)}")
-                    return None
+                    print(f"Error converting media_id to ObjectId: {e}")
+                    raise ValueError(f"Geçersiz media ID formatı: {media_id}")
+                
+            # Null kontrolleri
+            if not playlist_id:
+                raise ValueError("Playlist ID gereklidir")
+            if not media_id:
+                raise ValueError("Media ID gereklidir")
             
-            playlist_media_data = {
-                "playlist_id": playlist_id,
-                "media_id": media_id,
-                "order": data.get('order', 0),  # Sıralama için kullanılır
-                "display_time": data.get('display_time'),  # Medyanın gösterilme süresi (None ise varsayılan değer kullanılır)
-                "status": data.get('status', cls.STATUS_ACTIVE),
-                "created_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow()
+            # Son ID kontrolü
+            try:
+                # Playlist'in var olduğunu kontrol et
+                from app.models.playlist import Playlist
+                playlist = Playlist.find_by_id(playlist_id)
+                if not playlist:
+                    print(f"Playlist not found: {playlist_id}")
+                    raise ValueError(f"Playlist bulunamadı: {playlist_id}")
+                
+                # Media'nın var olduğunu kontrol et
+                from app.models.media import Media
+                media = Media.find_by_id(media_id)
+                if not media:
+                    print(f"Media not found: {media_id}")
+                    raise ValueError(f"Media bulunamadı: {media_id}")
+            except Exception as check_error:
+                print(f"Error checking playlist/media existence: {check_error}")
+            
+            # Sıra numarasını belirle - verilmemişse en sona ekle
+            if order is None:
+                order = cls.get_max_order(playlist_id) + 1
+            
+            # Yeni playlist media dökümanı
+            playlist_media = {
+                'playlist_id': playlist_id,
+                'media_id': media_id,
+                'display_time': 10 if display_time is None else display_time,
+                'order': order,
+                'created_at': datetime.utcnow()
             }
             
-            print(f"DEBUG - Oluşturulan playlist_media_data: {playlist_media_data}")
+            # Ek parametreler
+            for key, value in kwargs.items():
+                playlist_media[key] = value
             
-            # Aynı playlist ve medya ilişkisi varsa güncelle
-            existing = mongo.db.playlist_media.find_one({
-                "playlist_id": playlist_id,
-                "media_id": media_id
-            })
+            # MongoDB'ye ekle
+            result = mongo.db.playlist_media.insert_one(playlist_media)
             
-            print(f"DEBUG - Mevcut playlist_media kontrolü: {existing}")
-            
-            if existing:
-                playlist_media_data["_id"] = existing["_id"]
-                print(f"DEBUG - Var olan playlist_media güncelleniyor: {existing['_id']}")
-                
-                mongo.db.playlist_media.replace_one({"_id": existing["_id"]}, playlist_media_data)
-                
-                # Playlist medya sayısını güncelle
-                from app.models.playlist import Playlist
-                print(f"DEBUG - Playlist.find_by_id çağrılıyor: {playlist_id}")
-                
-                playlist = Playlist.find_by_id(playlist_id)
-                if playlist:
-                    print(f"DEBUG - Playlist bulundu, medya sayısı güncelleniyor")
-                    playlist.update_media_count()
-                else:
-                    print(f"DEBUG - Playlist bulunamadı: {playlist_id}")
-                    
-                return existing
-                
-            # Yoksa yeni oluştur
-            print(f"DEBUG - Yeni playlist_media oluşturuluyor")
-            
-            result = mongo.db.playlist_media.insert_one(playlist_media_data)
-            playlist_media_data['_id'] = result.inserted_id
-            
-            print(f"DEBUG - Yeni oluşturulan playlist_media ID: {result.inserted_id}")
+            # ID'yi ayarla ve döndür
+            playlist_media['_id'] = result.inserted_id
+            print(f"Playlist media created successfully: {result.inserted_id}")
             
             # Playlist medya sayısını güncelle
-            from app.models.playlist import Playlist
-            print(f"DEBUG - Playlist.find_by_id çağrılıyor (yeni): {playlist_id}")
+            try:
+                from app.models.playlist import Playlist
+                Playlist.update_media_count(playlist_id)
+            except Exception as e:
+                print(f"Error updating playlist media count: {e}")
             
-            playlist = Playlist.find_by_id(playlist_id)
-            if playlist:
-                print(f"DEBUG - Playlist bulundu (yeni), medya sayısı güncelleniyor")
-                playlist.update_media_count()
-            else:
-                print(f"DEBUG - Playlist bulunamadı (yeni): {playlist_id}")
-                
-            return playlist_media_data
+            return playlist_media
         except Exception as e:
-            print(f"DEBUG - PlaylistMedia.create genel hatası: {str(e)}")
+            print(f"Error in PlaylistMedia.create: {e}")
             print(traceback.format_exc())
-            return None
+            raise
     
     @classmethod
     def find_by_id(cls, playlist_media_id):
@@ -122,24 +116,144 @@ class PlaylistMedia:
     @classmethod
     def find_by_playlist(cls, playlist_id):
         """Belirli bir playlist'teki tüm medyaları bul"""
-        if isinstance(playlist_id, str):
-            try:
-                playlist_id = ObjectId(playlist_id)
-            except:
-                return []
+        import traceback
+        print(f"PlaylistMedia.find_by_playlist çağrıldı: playlist_id={playlist_id}, tip={type(playlist_id)}")
         
-        # Playlist-media ilişkisini bul ve sırala
-        relations = list(mongo.db.playlist_media.find({"playlist_id": playlist_id}).sort("order", 1))
-        
-        # Medya detaylarını ekle
-        from app.models.media import Media
-        
-        for relation in relations:
-            media = Media.find_by_id(relation['media_id'])
-            if media:
-                relation['media'] = media
+        try:
+            # ObjectId dönüşümü
+            if isinstance(playlist_id, str):
+                try:
+                    obj_id = ObjectId(playlist_id)
+                    print(f"Playlist ID ObjectId'ye dönüştürüldü: {obj_id}")
+                except Exception as e:
+                    print(f"ObjectId dönüşüm hatası: {str(e)}")
+                    obj_id = None
+            else:
+                obj_id = playlist_id
+            
+            # Her iki ID formatı için sorgu
+            query = {"$or": []}
+            
+            if obj_id:
+                query["$or"].append({"playlist_id": obj_id})
+            
+            if isinstance(playlist_id, str):
+                query["$or"].append({"playlist_id": playlist_id})
+            elif obj_id:
+                query["$or"].append({"playlist_id": str(obj_id)})
+            
+            print(f"Sorgu: {query}")
+            
+            # Bu playlist'teki tüm medyaları al ve sırala
+            playlist_media = list(mongo.db.playlist_media.find(query).sort("order", 1))
+            print(f"Bulunan playlist media sayısı: {len(playlist_media)}")
+            
+            # Medya detaylarını ekle
+            from app.models.media import Media
+            
+            result_with_media = []
+            for pm in playlist_media:
+                print(f"Playlist media işleniyor: {pm.get('_id')}, media_id: {pm.get('media_id')}")
                 
-        return relations
+                # Her medyanın detaylarını al
+                media_id = pm.get('media_id')
+                media = None
+                
+                if media_id:
+                    # Doğrudan string ID'yi ObjectId'ye dönüştürmeyi deneyelim
+                    if isinstance(media_id, str):
+                        try:
+                            media_id_obj = ObjectId(media_id)
+                            media = Media.find_by_id(media_id_obj)
+                            print(f"String media_id ile bulma başarılı: {media_id}")
+                        except Exception as e:
+                            print(f"String ID dönüşüm hatası: {e}")
+                            # Dönüşüm başarısız olursa orijinal ID ile devam et
+                    
+                    # ObjectId ile bulunamadıysa orijinal ID ile tekrar dene
+                    if not media:
+                        media = Media.find_by_id(media_id)
+                        print(f"Orijinal media_id ile sorgu: {media_id}, tip: {type(media_id)}")
+                    
+                    # Hala bulunamadıysa string ile dene
+                    if not media and isinstance(media_id, ObjectId):
+                        media = Media.find_by_id(str(media_id))
+                        print(f"String'e dönüştürülmüş media_id ile sorgu: {str(media_id)}")
+                    
+                    print(f"Medya bulundu mu: {bool(media)}")
+                    
+                    # Medya bulunamazsa atlama, önemli medya bilgilerini ekle
+                    if media:
+                        # Medya bilgilerini ekle
+                        pm['media'] = media
+                        
+                        # Görüntülenme süresini kontrol et ve varsayılan değer ata
+                        if pm.get('display_time') is None:
+                            # Medya nesnesinden süreyi al, o da yoksa varsayılan değer kullan
+                            if isinstance(media, dict) and media.get('display_time'):
+                                pm['display_time'] = media.get('display_time')
+                            elif hasattr(media, 'display_time') and media.display_time:
+                                pm['display_time'] = media.display_time
+                            else:
+                                pm['display_time'] = 10
+                    else:
+                        print(f"Medya bulunamadı, ID: {media_id}")
+                        
+                        # MongoDB'den doğrudan sorgu yapalım
+                        try:
+                            direct_media = mongo.db.media.find_one({'_id': media_id})
+                            if not direct_media and isinstance(media_id, ObjectId):
+                                direct_media = mongo.db.media.find_one({'_id': str(media_id)})
+                            if not direct_media and isinstance(media_id, str):
+                                try:
+                                    direct_media = mongo.db.media.find_one({'_id': ObjectId(media_id)})
+                                except:
+                                    pass
+                                    
+                            # Alternatif koleksiyon adını dene
+                            if not direct_media:
+                                direct_media = mongo.db.medias.find_one({'_id': media_id})
+                                if not direct_media and isinstance(media_id, ObjectId):
+                                    direct_media = mongo.db.medias.find_one({'_id': str(media_id)})
+                                if not direct_media and isinstance(media_id, str):
+                                    try:
+                                        direct_media = mongo.db.medias.find_one({'_id': ObjectId(media_id)})
+                                    except:
+                                        pass
+                            
+                            if direct_media:
+                                print(f"Doğrudan MongoDB sorgusu ile medya bulundu: {direct_media.get('_id')}")
+                                pm['media'] = direct_media
+                                
+                                # Görüntülenme süresini ayarla
+                                if pm.get('display_time') is None:
+                                    pm['display_time'] = direct_media.get('display_time', 10)
+                            else:
+                                # Boş bir medya nesnesi ekle
+                                pm['media'] = {
+                                    '_id': media_id,
+                                    'title': 'Medya bulunamadı',
+                                    'file_type': 'unknown',
+                                    'filename': ''
+                                }
+                        except Exception as mongo_error:
+                            print(f"Doğrudan MongoDB sorgusu hatası: {mongo_error}")
+                            # Boş bir medya nesnesi ekle
+                            pm['media'] = {
+                                '_id': media_id,
+                                'title': 'Medya bulunamadı',
+                                'file_type': 'unknown',
+                                'filename': ''
+                            }
+                
+                result_with_media.append(pm)
+            
+            print(f"Medya bilgileriyle birlikte döndürülen item sayısı: {len(result_with_media)}")
+            return result_with_media
+        except Exception as e:
+            print(f"find_by_playlist hatası: {str(e)}")
+            print(traceback.format_exc())
+            return []
     
     @classmethod
     def find_by_media(cls, media_id):
@@ -197,7 +311,7 @@ class PlaylistMedia:
         playlist = Playlist.find_by_id(playlist_id)
         if playlist:
             playlist.update_media_count()
-            
+        
         return result.deleted_count > 0
     
     @classmethod
@@ -269,7 +383,7 @@ class PlaylistMedia:
             try:
                 playlist_id = ObjectId(playlist_id)
             except:
-                return None
+                return 0
                 
         # Son sıradaki öğeyi bul
         result = mongo.db.playlist_media.find_one(
@@ -279,7 +393,7 @@ class PlaylistMedia:
         
         if result:
             return result.get("order", 0)
-        return None
+        return 0
     
     @classmethod
     def find_one(cls, query):

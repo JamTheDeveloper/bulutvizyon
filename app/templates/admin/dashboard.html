@@ -109,8 +109,43 @@
 {% block content %}
 <div class="row mb-4">
     <div class="col">
-        <h2 class="mb-3"><i class="fas fa-tachometer-alt"></i> Admin Kontrol Paneli</h2>
+        <h2 class="mb-3"><i class="fas fa-tachometer-alt"></i> Kontrol Paneli</h2>
         <p class="text-muted">Sistem durumu ve özet istatistikler</p>
+    </div>
+</div>
+
+<!-- Hızlı İşlemler -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-bolt me-2"></i> Hızlı İşlemler</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6 col-md-3 mb-3">
+                        <a href="{{ url_for('admin.create_user') }}" class="btn btn-primary w-100 py-2 py-md-3">
+                            <i class="fas fa-user-plus me-2"></i> <span class="d-none d-md-inline">Kullanıcı</span> Ekle
+                        </a>
+                    </div>
+                    <div class="col-6 col-md-3 mb-3">
+                        <a href="{{ url_for('admin.upload_media') }}" class="btn btn-success w-100 py-2 py-md-3">
+                            <i class="fas fa-upload me-2"></i> Medya <span class="d-none d-md-inline">Yükle</span>
+                        </a>
+                    </div>
+                    <div class="col-6 col-md-3 mb-3">
+                        <a href="{{ url_for('admin.admin_playlists') }}" class="btn btn-danger w-100 py-2 py-md-3">
+                            <i class="fas fa-list-ul me-2"></i> Playlistler
+                        </a>
+                    </div>
+                    <div class="col-6 col-md-3 mb-3">
+                        <a href="{{ url_for('admin.logs') }}" class="btn btn-info w-100 py-2 py-md-3 text-white">
+                            <i class="fas fa-clipboard-list me-2"></i> Loglar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -226,6 +261,67 @@
         </div>
     </div>
 </div>
+
+<!-- Sistem Performans Bilgileri -->
+{% if current_user.role == 'admin' %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-server me-2"></i> Sistem Performansı</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- CPU Kullanımı -->
+                    <div class="col-md-4 mb-3">
+                        <h6 class="text-muted mb-2">CPU Kullanımı</h6>
+                        <div class="progress">
+                            <div class="progress-bar {{ 'bg-danger' if system_stats.cpu_percent > 80 else ('bg-warning' if system_stats.cpu_percent > 60 else 'bg-success') }}" 
+                                role="progressbar" 
+                                style="width: {{ system_stats.cpu_percent }}%"
+                                aria-valuenow="{{ system_stats.cpu_percent }}" 
+                                aria-valuemin="0" 
+                                aria-valuemax="100">
+                                {{ system_stats.cpu_percent }}%
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- RAM Kullanımı -->
+                    <div class="col-md-4 mb-3">
+                        <h6 class="text-muted mb-2">RAM Kullanımı ({{ system_stats.ram_used }} / {{ system_stats.ram_total }})</h6>
+                        <div class="progress">
+                            <div class="progress-bar {{ 'bg-danger' if system_stats.ram_percent > 80 else ('bg-warning' if system_stats.ram_percent > 60 else 'bg-success') }}" 
+                                role="progressbar" 
+                                style="width: {{ system_stats.ram_percent }}%"
+                                aria-valuenow="{{ system_stats.ram_percent }}" 
+                                aria-valuemin="0" 
+                                aria-valuemax="100">
+                                {{ system_stats.ram_percent }}%
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Disk Kullanımı -->
+                    <div class="col-md-4 mb-3">
+                        <h6 class="text-muted mb-2">Disk Kullanımı ({{ system_stats.disk_used }} / {{ system_stats.disk_total }})</h6>
+                        <div class="progress">
+                            <div class="progress-bar {{ 'bg-danger' if system_stats.disk_percent > 80 else ('bg-warning' if system_stats.disk_percent > 60 else 'bg-success') }}" 
+                                role="progressbar" 
+                                style="width: {{ system_stats.disk_percent }}%"
+                                aria-valuenow="{{ system_stats.disk_percent }}" 
+                                aria-valuemin="0" 
+                                aria-valuemax="100">
+                                {{ system_stats.disk_percent }}%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <div class="row">
     <!-- Son Kullanıcılar -->
@@ -363,41 +459,6 @@
     </div>
 </div>
 
-<!-- Hızlı İşlemler -->
-<div class="row mb-4">
-    <div class="col-md-12">
-        <div class="card shadow">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-bolt me-2"></i> Hızlı İşlemler</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-6 col-md-3 mb-3">
-                        <a href="{{ url_for('admin.create_user') }}" class="btn btn-primary w-100 py-2 py-md-3">
-                            <i class="fas fa-user-plus me-2"></i> <span class="d-none d-md-inline">Kullanıcı</span> Ekle
-                        </a>
-                    </div>
-                    <div class="col-6 col-md-3 mb-3">
-                        <a href="{{ url_for('admin.upload_media') }}" class="btn btn-success w-100 py-2 py-md-3">
-                            <i class="fas fa-upload me-2"></i> Medya <span class="d-none d-md-inline">Yükle</span>
-                        </a>
-                    </div>
-                    <div class="col-6 col-md-3 mb-3">
-                        <a href="{{ url_for('admin.admin_playlists') }}" class="btn btn-danger w-100 py-2 py-md-3">
-                            <i class="fas fa-list-ul me-2"></i> Playlistler
-                        </a>
-                    </div>
-                    <div class="col-6 col-md-3 mb-3">
-                        <a href="{{ url_for('admin.logs') }}" class="btn btn-info w-100 py-2 py-md-3 text-white">
-                            <i class="fas fa-clipboard-list me-2"></i> Loglar
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="row">
     <!-- Son Playlistler -->
     <div class="col-lg-6 mb-4">
@@ -450,5 +511,85 @@
             </div>
         </div>
     </div>
+    
+    <!-- Canlı Loglar -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+                <h5 class="mb-0"><i class="fas fa-history me-2"></i> Canlı Loglar</h5>
+                <a href="{{ url_for('admin.logs') }}" class="btn btn-sm btn-primary mt-2 mt-sm-0">
+                    Tümünü Gör
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="live-logs-table">
+                        <thead class="table-header-dark">
+                            <tr>
+                                <th>Tarih</th>
+                                <th>Tip</th>
+                                <th>Kullanıcı</th>
+                                <th>Detay</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="4" class="text-center py-3">
+                                    <p class="text-muted mb-0">Loglar yükleniyor...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Canlı log güncelleme fonksiyonu
+    function updateLiveLogs() {
+        fetch('{{ url_for("admin.api_recent_logs") }}')
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.querySelector('#live-logs-table tbody');
+                tbody.innerHTML = '';
+                
+                if (data.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="4" class="text-center py-3">
+                                <p class="text-muted mb-0">Henüz log kaydı bulunmuyor.</p>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                data.forEach(log => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${log.date}</td>
+                            <td>${log.type}</td>
+                            <td>${log.user}</td>
+                            <td>${log.detail}</td>
+                        </tr>
+                    `;
+                });
+            })
+            .catch(error => {
+                console.error('Log yükleme hatası:', error);
+            });
+    }
+    
+    // Sayfa yüklendiğinde logları yükle
+    document.addEventListener('DOMContentLoaded', () => {
+        updateLiveLogs();
+        // Her 10 saniyede bir güncelle
+        setInterval(updateLiveLogs, 10000);
+    });
+</script>
 {% endblock %} 

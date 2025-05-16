@@ -129,6 +129,31 @@
                         {% endif %}
                     </div>
                     
+                    <!-- Nöbetmatik Pro ve İşletme Bilgileri -->
+                    <div class="mb-4">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input bg-dark text-light border-dark" type="checkbox" id="is_nobetmatik_pro" name="is_nobetmatik_pro" {% if user.is_nobetmatik_pro %}checked{% endif %}>
+                            <label class="form-check-label text-light" for="is_nobetmatik_pro">
+                                <span class="fw-bold text-success">Nöbetmatik Pro Kullanıcısı</span>
+                            </label>
+                            <div class="form-text">Nöbetmatik Pro özellikleri aktif olacak</div>
+                        </div>
+                        
+                        <!-- Terminal No alanı -->
+                        <div class="mb-3" id="terminal_no_container" style="display: {% if user.is_nobetmatik_pro %}block{% else %}none{% endif %};">
+                            <label for="terminal_no" class="form-label text-light">Terminal No</label>
+                            <input type="text" class="form-control bg-dark text-light border-dark" id="terminal_no" name="terminal_no" value="{{ user.terminal_no or '' }}">
+                            <div class="form-text">Nöbetmatik Pro terminal numarası</div>
+                        </div>
+                        
+                        <!-- İşletme İsmi -->
+                        <div class="mb-3">
+                            <label for="business_name" class="form-label text-light">İşletme İsmi</label>
+                            <input type="text" class="form-control bg-dark text-light border-dark" id="business_name" name="business_name" value="{{ user.business_name or '' }}">
+                            <div class="form-text">Kullanıcının işletme/firma ismi</div>
+                        </div>
+                    </div>
+                    
                     <div class="d-flex justify-content-between mt-4">
                         <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary">İptal</a>
                         <button type="submit" class="btn btn-primary" id="saveUserBtn">
@@ -240,42 +265,42 @@
     <div class="col-md-4">
         <!-- Kullanıcı İstatistikleri -->
         <div class="card shadow mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Kullanıcı İstatistikleri</h5>
+            <div class="card-header bg-dark text-light">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i> Kullanıcı İstatistikleri</h5>
             </div>
-            <div class="card-body">
+            <div class="card-body bg-dark bg-opacity-10 text-light">
                 <div class="d-flex align-items-center mb-3">
-                    <div class="avatar-container me-3 bg-{{ user.role }}" style="width: 60px; height: 60px; font-size: 24px;">
+                    <div class="avatar-container me-3 bg-{{ user.role }} rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; font-size: 24px;">
                         {{ user.name[0].upper() }}
                     </div>
                     <div>
-                        <h5 class="mb-1">{{ user.name }}</h5>
-                        <span class="text-muted">{{ user.email }}</span>
+                        <h5 class="mb-1 text-light">{{ user.name }}</h5>
+                        <span class="text-light opacity-75">{{ user.email }}</span>
                     </div>
                 </div>
                 
-                <hr>
+                <hr class="border-secondary">
                 
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                        <span><i class="fas fa-desktop me-2"></i> Toplam Ekran</span>
+                <ul class="list-group list-group-flush bg-transparent">
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0 bg-transparent border-secondary text-light">
+                        <span><i class="fas fa-desktop me-2 text-primary"></i> Toplam Ekran</span>
                         <span class="badge bg-primary rounded-pill">{{ screen_count }}</span>
                     </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                        <span><i class="fas fa-photo-video me-2"></i> Toplam Medya</span>
-                        <span class="badge bg-primary rounded-pill">{{ media_count }}</span>
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0 bg-transparent border-secondary text-light">
+                        <span><i class="fas fa-photo-video me-2 text-success"></i> Toplam Medya</span>
+                        <span class="badge bg-success rounded-pill">{{ media_count }}</span>
                     </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                        <span><i class="fas fa-eye me-2"></i> Toplam Görüntülenme</span>
-                        <span class="badge bg-primary rounded-pill">{{ view_count }}</span>
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0 bg-transparent border-secondary text-light">
+                        <span><i class="fas fa-eye me-2 text-info"></i> Toplam Görüntülenme</span>
+                        <span class="badge bg-info rounded-pill">{{ view_count }}</span>
                     </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                        <span><i class="fas fa-clock me-2"></i> Hesap Oluşturulma</span>
-                        <span>{{ user.created_at.strftime('%d.%m.%Y') }}</span>
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0 bg-transparent border-secondary text-light">
+                        <span><i class="fas fa-clock me-2 text-warning"></i> Hesap Oluşturulma</span>
+                        <span class="text-warning">{{ user.created_at.strftime('%d.%m.%Y') }}</span>
                     </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                        <span><i class="fas fa-sign-in-alt me-2"></i> Son Giriş</span>
-                        <span>{% if user.last_login %}{{ user.last_login.strftime('%d.%m.%Y %H:%M') }}{% else %}-{% endif %}</span>
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0 bg-transparent border-secondary text-light">
+                        <span><i class="fas fa-sign-in-alt me-2 text-danger"></i> Son Giriş</span>
+                        <span class="text-danger">{% if user.last_login %}{{ user.last_login.strftime('%d.%m.%Y %H:%M') }}{% else %}-{% endif %}</span>
                     </li>
                 </ul>
                 
@@ -291,28 +316,28 @@
         
         <!-- Kullanıcı Aktivitesi -->
         <div class="card shadow">
-            <div class="card-header">
-                <h5 class="mb-0">Son Aktiviteler</h5>
+            <div class="card-header bg-dark text-light">
+                <h5 class="mb-0"><i class="fas fa-history me-2"></i> Son Aktiviteler</h5>
             </div>
-            <div class="card-body">
+            <div class="card-body bg-dark bg-opacity-10 text-light">
                 {% if activities %}
                 <ul class="list-group list-group-flush">
                     {% for activity in activities %}
-                    <li class="list-group-item px-0">
+                    <li class="list-group-item px-0 bg-transparent border-secondary text-light">
                         <div class="d-flex">
                             <div class="me-3">
                                 <i class="fas fa-{{ activity.icon }} text-{{ activity.color }}"></i>
                             </div>
                             <div>
-                                <div>{{ activity.description }}</div>
-                                <small class="text-muted">{{ activity.time.strftime('%d.%m.%Y %H:%M') }}</small>
+                                <div class="text-light">{{ activity.description }}</div>
+                                <small class="text-light opacity-75">{{ activity.time.strftime('%d.%m.%Y %H:%M') }}</small>
                             </div>
                         </div>
                     </li>
                     {% endfor %}
                 </ul>
                 {% else %}
-                <p class="text-muted mb-0">Henüz aktivite bulunmuyor.</p>
+                <p class="text-light mb-0">Henüz aktivite bulunmuyor.</p>
                 {% endif %}
             </div>
         </div>

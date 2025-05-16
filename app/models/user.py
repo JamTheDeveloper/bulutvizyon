@@ -38,7 +38,8 @@ class User(UserMixin):
     
     @classmethod
     def create(cls, email, password, name, role=ROLE_USER, 
-               package=PACKAGE_STANDARD, status=STATUS_ACTIVE):
+               package=PACKAGE_STANDARD, status=STATUS_ACTIVE,
+               is_nobetmatik_pro=False, terminal_no=None, business_name=None):
         """Yeni kullanıcı oluştur"""
         user_data = {
             "email": email.lower(),
@@ -49,52 +50,53 @@ class User(UserMixin):
             "status": status,
             "created_at": datetime.now(),
             "updated_at": datetime.now(),
-            "last_login": None
+            "last_login": None,
+            "is_nobetmatik_pro": is_nobetmatik_pro,
+            "terminal_no": terminal_no,
+            "business_name": business_name
         }
         
         result = mongo.db.users.insert_one(user_data)
         user_data['_id'] = result.inserted_id
+        
         return cls(**user_data)
     
     @classmethod
     def find_by_id(cls, user_id):
-        """ID'ye göre kullanıcı bul"""
+        """ID'ye göre kullanıcı bulma"""
         try:
-            # Doğrudan MongoDB bağlantısı oluştur
-            try:
-                mongo_user = os.environ.get('MONGO_USER', 'elektrobil_admin')
-                mongo_pass = os.environ.get('MONGO_PASS', 'Eb@2254097*')
-                mongo_host = os.environ.get('MONGO_HOST', 'localhost')
-                mongo_port = os.environ.get('MONGO_PORT', '27017')
-                mongo_db = os.environ.get('MONGO_DB', 'bulutvizyondb')
-                
-                encoded_password = quote_plus(mongo_pass)
-                
-                # MongoDB bağlantısı oluştur
-                mongo_uri = f"mongodb://{mongo_user}:{encoded_password}@{mongo_host}:{mongo_port}/{mongo_db}?authSource=admin"
-                client = MongoClient(mongo_uri)
-                db = client[mongo_db]
-                
-                # Eğer string olarak geldiyse ObjectId'ye çevir
-                if isinstance(user_id, str):
-                    try:
-                        obj_id = ObjectId(user_id)
-                    except Exception as e:
-                        print(f"ObjectId dönüşüm hatası: {str(e)}")
-                        return None
-                else:
-                    obj_id = user_id
-                
-                user_data = db.users.find_one({"_id": obj_id})
-                
-                if not user_data:
-                    print(f"Kullanıcı bulunamadı: {user_id}")
+            # Konfigürasyon değerlerini al
+            mongo_user = os.environ.get('MONGODB_USERNAME', 'elektrobil_admin')
+            mongo_pass = os.environ.get('MONGODB_PASSWORD', 'Eb@2254097*')
+            mongo_host = os.environ.get('MONGODB_HOST', 'localhost')
+            mongo_port = os.environ.get('MONGODB_PORT', '27017')
+            mongo_db = os.environ.get('MONGO_DB', 'bulutvizyondb')
+            
+            encoded_password = quote_plus(mongo_pass)
+            
+            # MongoDB bağlantısı oluştur
+            mongo_uri = f"mongodb://{mongo_user}:{encoded_password}@{mongo_host}:{mongo_port}/{mongo_db}?authSource=admin"
+            client = MongoClient(mongo_uri)
+            db = client[mongo_db]
+            
+            # Eğer string olarak geldiyse ObjectId'ye çevir
+            if isinstance(user_id, str):
+                try:
+                    obj_id = ObjectId(user_id)
+                except Exception as e:
+                    print(f"ObjectId dönüşüm hatası: {str(e)}")
                     return None
-                    
-                return cls(**user_data)
-            except Exception as e:
-                print(f"MongoDB bağlantı hatası: {str(e)}")
+            else:
+                obj_id = user_id
+            
+            # Kullanıcıyı bul
+            user_data = db.users.find_one({"_id": obj_id})
+            
+            if not user_data:
+                print(f"Kullanıcı bulunamadı: {user_id}")
                 return None
+                
+            return cls(**user_data)
         except Exception as e:
             print(f"Kullanıcı bulunamadı. Hata: {str(e)}, ID: {user_id}")
             return None
@@ -134,11 +136,12 @@ class User(UserMixin):
         """Şifre sıfırlama tokeni oluştur"""
         return str(uuid.uuid4())
     
-    def __init__(self, _id, email, password_hash, name, role=ROLE_USER, 
-                 package=PACKAGE_STANDARD, status=STATUS_ACTIVE, created_at=None, 
-                 updated_at=None, last_login=None, reset_token=None, 
-                 reset_token_expires=None, supervisor_id=None, **kwargs):
-        """Yeni bir kullanıcı örneği başlat"""
+    def __init__(self, _id, email, password_hash, name, role, 
+               package=PACKAGE_STANDARD, status=STATUS_ACTIVE, 
+               created_at=None, updated_at=None, last_login=None, 
+               reset_token=None, reset_token_expires=None, supervisor_id=None,
+               is_nobetmatik_pro=False, terminal_no=None, business_name=None, **kwargs):
+        """Yeni bir kullanıcı nesnesi başlat"""
         self.id = str(_id)
         self.email = email
         self.password_hash = password_hash
@@ -151,43 +154,37 @@ class User(UserMixin):
         self.last_login = last_login
         self.reset_token = reset_token
         self.reset_token_expires = reset_token_expires
-        self.supervisor_id = supervisor_id  # Kullanıcıya atanmış supervisor ID'si
+        self.supervisor_id = supervisor_id
+        self.is_nobetmatik_pro = is_nobetmatik_pro
+        self.terminal_no = terminal_no
+        self.business_name = business_name
+        
+        # Ekstra özellikleri de ekle
+        for key, value in kwargs.items():
+            setattr(self, key, value)
     
     def update(self, **kwargs):
         """Kullanıcı bilgilerini güncelle"""
         updates = {"updated_at": datetime.now()}
         
         # Güncellenebilir alanlar
-        updatable_fields = ['name', 'role', 'package', 'status', 'supervisor_id']
+        updatable_fields = ['name', 'role', 'email', 'status', 'package', 'supervisor_id', 
+                            'is_nobetmatik_pro', 'terminal_no', 'business_name']
         
         for field in updatable_fields:
             if field in kwargs:
                 updates[field] = kwargs[field]
         
-        # Özel alanlar
+        # Şifre ayrı işlenir
         if 'password' in kwargs:
             updates['password_hash'] = generate_password_hash(kwargs['password'])
-            
-        if 'last_login' in kwargs:
-            updates['last_login'] = kwargs['last_login']
-            
-        if 'reset_token' in kwargs:
-            updates['reset_token'] = kwargs['reset_token']
-            
-        if 'reset_token_expires' in kwargs:
-            updates['reset_token_expires'] = kwargs['reset_token_expires']
         
-        # Veritabanını güncelle
-        mongo.db.users.update_one(
-            {"_id": ObjectId(self.id)},
+        result = mongo.db.users.update_one(
+            {"_id": ObjectId(self.id)}, 
             {"$set": updates}
         )
         
-        # Nesne bilgilerini güncelle
-        for key, value in updates.items():
-            setattr(self, key, value)
-            
-        return self
+        return result.modified_count > 0
     
     def delete(self):
         """Kullanıcıyı sil"""

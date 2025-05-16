@@ -1,0 +1,64 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">{{ title }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-success">
+                        {{ message }}
+                    </div>
+                    
+                    {% if updates %}
+                    <h6 class="mt-4">Güncellenen Playlist'ler</h6>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Playlist Adı</th>
+                                    <th>Eski Medya Sayısı</th>
+                                    <th>Yeni Medya Sayısı</th>
+                                    <th>Değişim</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for name, counts in updates.items() %}
+                                <tr>
+                                    <td>{{ name }}</td>
+                                    <td>{{ counts.old }}</td>
+                                    <td>{{ counts.new }}</td>
+                                    <td>
+                                        {% if counts.new > counts.old %}
+                                        <span class="text-success">+{{ counts.new - counts.old }}</span>
+                                        {% elif counts.new < counts.old %}
+                                        <span class="text-danger">{{ counts.new - counts.old }}</span>
+                                        {% else %}
+                                        <span class="text-muted">0</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="mb-0">Güncellenmesi gereken playlist bulunmadı.</p>
+                    {% endif %}
+                    
+                    <div class="mt-4">
+                        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-primary">
+                            <i class="fas fa-arrow-left mr-1"></i> Yönetim Paneline Dön
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

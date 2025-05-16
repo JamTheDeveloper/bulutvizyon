@@ -43,31 +43,38 @@
                     </div>
                     
                     <!-- Rol Seçimi -->
+                    <div class="mb-3">
+                        <label for="role" class="form-label text-light">Kullanıcı Rolü</label>
+                        <select class="form-select bg-dark text-light border-dark" id="role" name="role" required>
+                            <option value="user">Standart Kullanıcı</option>
+                            <option value="supervisor">Denetmen (Supervisor)</option>
+                            <option value="admin">Admin (Yönetici)</option>
+                        </select>
+                        <div class="form-text">Kullanıcı yetki seviyesi</div>
+                    </div>
+                    
+                    <!-- Nöbetmatik Pro ve İşletme Bilgileri -->
                     <div class="mb-4">
-                        <label class="form-label text-light">Kullanıcı Rolü <span class="text-danger">*</span></label>
-                        
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="role" id="roleUser" value="user" checked>
-                            <label class="form-check-label text-light" for="roleUser">
-                                <span class="fw-bold text-primary">Kullanıcı</span>
-                                <div class="form-text">Kendi ekranlarını ve medyalarını yönetebilir</div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input bg-dark text-light border-dark" type="checkbox" id="is_nobetmatik_pro" name="is_nobetmatik_pro">
+                            <label class="form-check-label text-light" for="is_nobetmatik_pro">
+                                <span class="fw-bold text-success">Nöbetmatik Pro Kullanıcısı</span>
                             </label>
+                            <div class="form-text">Nöbetmatik Pro özellikleri aktif olacak</div>
                         </div>
                         
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="role" id="roleSupervisor" value="supervisor">
-                            <label class="form-check-label text-light" for="roleSupervisor">
-                                <span class="fw-bold text-warning">Denetmen</span>
-                                <div class="form-text">Kullanıcıları ve içerikleri denetleyebilir, onay verebilir</div>
-                            </label>
+                        <!-- Terminal No alanı (JavaScript ile gizlenecek/gösterilecek) -->
+                        <div class="mb-3" id="terminal_no_container" style="display: none;">
+                            <label for="terminal_no" class="form-label text-light">Terminal No</label>
+                            <input type="text" class="form-control bg-dark text-light border-dark" id="terminal_no" name="terminal_no">
+                            <div class="form-text">Nöbetmatik Pro terminal numarası</div>
                         </div>
                         
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="role" id="roleAdmin" value="admin">
-                            <label class="form-check-label text-light" for="roleAdmin">
-                                <span class="fw-bold text-danger">Admin</span>
-                                <div class="form-text">Tüm sistem üzerinde tam yetkiye sahiptir</div>
-                            </label>
+                        <!-- İşletme İsmi -->
+                        <div class="mb-3">
+                            <label for="business_name" class="form-label text-light">İşletme İsmi</label>
+                            <input type="text" class="form-control bg-dark text-light border-dark" id="business_name" name="business_name">
+                            <div class="form-text">Kullanıcının işletme/firma ismi</div>
                         </div>
                     </div>
                     
@@ -131,4 +138,19 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const nobetmatikProCheckbox = document.getElementById('is_nobetmatik_pro');
+        const terminalNoContainer = document.getElementById('terminal_no_container');
+        
+        // Checkbox durumuna göre Terminal No alanını göster/gizle
+        nobetmatikProCheckbox.addEventListener('change', function() {
+            terminalNoContainer.style.display = this.checked ? 'block' : 'none';
+        });
+    });
+</script>
 {% endblock %} 

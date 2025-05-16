@@ -203,21 +203,14 @@ class Media:
     @classmethod
     def find_by_user(cls, user_id, status=None, limit=20, skip=0, sort_by=None, sort_order=-1):
         """
-        Kullanıcı ID'sine göre medya öğelerini bul.
-        
-        Bu fonksiyon üç tip medya döndürür:
-        1. Kullanıcının yüklediği medya (user_id ile doğrudan eşleşme)
-        2. Kullanıcı ile paylaşılan medya (media_shares koleksiyonu aracılığıyla)
-        3. Herkese açık medya (is_public=True)
+        Kullanıcının medyalarını getir
         
         Args:
-            user_id: Kullanıcı ID'si
-            status: Medya durumu (isteğe bağlı)
-            limit: Döndürülecek maksimum kayıt sayısı
+            user_id: Kullanıcı ID
+            status: Medya durumu (active, inactive, pending)
+            limit: Sayfalama limiti
             skip: Atlanacak kayıt sayısı
-            sort_by: Sıralama alanı
-            sort_order: Sıralama düzeni (1: artan, -1: azalan)
-        
+            
         Returns:
             Medya öğelerinin listesi
         """
@@ -240,7 +233,7 @@ class Media:
                 mongo_uri = f"mongodb://{mongo_user}:{encoded_password}@{mongo_host}:{mongo_port}/{mongo_db}?authSource=admin"
                 client = MongoClient(mongo_uri)
                 db = client[mongo_db]
-                
+            
                 # user_id string ise ObjectId'ye dönüştür
                 if isinstance(user_id, str):
                     try:
@@ -277,7 +270,7 @@ class Media:
                     shared_media_query = {"_id": {"$in": shared_media_object_ids}}
                     if status is not None:
                         shared_media_query["status"] = status
-                        
+                    
                     shared_media = list(db.media.find(shared_media_query))
                     print(f"Paylaşılan medya sayısı: {len(shared_media)}")
                 
@@ -512,26 +505,36 @@ class Media:
         
         return result.modified_count
     
-    def __init__(self, _id, user_id, title, filename, file_type, file_size, 
-                 status='active', category=None, description=None, duration=None, 
-                 display_time=10, is_public=False, views=0,
-                 created_at=None, updated_at=None, **kwargs):
-        """Yeni bir medya örneği başlat"""
-        self.id = str(_id)
-        self.user_id = user_id
-        self.title = title
-        self.filename = filename
-        self.file_type = file_type
-        self.file_size = file_size
-        self.category = category
-        self.description = description
-        self.status = status
-        self.duration = duration
-        self.display_time = display_time
-        self.is_public = is_public
-        self.views = views
-        self.created_at = created_at
-        self.updated_at = updated_at
+    def __init__(self, **kwargs):
+        """
+        Medya nesnesi oluştur
+        """
+        self.id = kwargs.get('_id')  # _id alanını id olarak da ayarla
+        self._id = kwargs.get('_id') # _id alanını ayarla ki şablonlarda {{media._id}} çalışsın
+        self.title = kwargs.get('title')
+        self.description = kwargs.get('description')
+        self.filename = kwargs.get('filename')
+        self.file_type = kwargs.get('file_type')
+        self.file_size = kwargs.get('file_size')
+        self.file_path = kwargs.get('file_path')
+        self.category = kwargs.get('category')
+        self.tags = kwargs.get('tags', [])
+        self.status = kwargs.get('status', self.STATUS_PENDING)
+        self.user_id = kwargs.get('user_id')
+        self.width = kwargs.get('width')
+        self.height = kwargs.get('height')
+        self.duration = kwargs.get('duration')
+        self.display_time = kwargs.get('display_time')
+        self.created_at = kwargs.get('created_at', datetime.utcnow())
+        self.updated_at = kwargs.get('updated_at', self.created_at)
+        self.is_public = kwargs.get('is_public', False)
+        self.views = kwargs.get('views', 0)
+        self.orientation = kwargs.get('orientation', 'horizontal')
+        
+        # Dictionary'den alınan tüm değerleri üyelere ayarla
+        for key, value in kwargs.items():
+            if not hasattr(self, key):
+                setattr(self, key, value)
     
     def increment_view(self):
         """Görüntülenme sayısını artır"""
@@ -610,6 +613,22 @@ class Media:
             print(f"DEBUG: MediaShare kayıtları temizlendi")
         except Exception as e:
             print(f"DEBUG: MediaShare temizleme hatası: {str(e)}")
+        
+        # Playlist-Media ilişkilerini temizle
+        try:
+            from app.models.playlist_media import PlaylistMedia
+            deleted_count = PlaylistMedia.remove_media_from_all_playlists(media_id)
+            print(f"DEBUG: PlaylistMedia kayıtları temizlendi, silinen ilişki sayısı: {deleted_count}")
+        except Exception as e:
+            print(f"DEBUG: PlaylistMedia temizleme hatası: {str(e)}")
+        
+        # Ekran içeriklerini temizle
+        try:
+            from app.models.screen_content import ScreenContent
+            deleted_count = ScreenContent.delete_by_media_id(media_id)
+            print(f"DEBUG: ScreenContent kayıtları temizlendi, silinen içerik sayısı: {deleted_count}")
+        except Exception as e:
+            print(f"DEBUG: ScreenContent temizleme hatası: {str(e)}")
         
         # Dosyayı diskten sil
         try:

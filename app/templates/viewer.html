@@ -181,7 +181,7 @@
                     if (response.status === 403) {
                         throw new Error(`403 Forbidden: Erişim reddedildi`);
                     } else {
-                        throw new Error(`HTTP error: ${response.status}`);
+                    throw new Error(`HTTP error: ${response.status}`);
                     }
                 }
                 const data = await response.json();

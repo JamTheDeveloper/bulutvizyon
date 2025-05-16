@@ -511,7 +511,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (type === 'video') {
                 const video = this.querySelector('video');
                 if (video) {
-                    video.play();
+                    video.play().catch(e => {
+                        console.warn('Video oynatma hatası:', e);
+                    });
                 }
             }
         });

@@ -236,7 +236,7 @@
                     <a href="{{ url_for('user.edit_media', media_id=media._id) }}" class="btn btn-outline-primary btn-sm">
                         <i class="fas fa-edit"></i> Düzenle
                     </a>
-                    <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteMedia{{ media.id }}">
+                    <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteMedia{{ media._id }}"> 
                         <i class="fas fa-trash"></i> Sil
                     </button>
                 </div>
@@ -244,11 +244,11 @@
         </div>
         
         <!-- Silme Modal -->
-        <div class="modal fade" id="deleteMedia{{ media.id }}" tabindex="-1" aria-labelledby="deleteMediaLabel{{ media.id }}" aria-hidden="true">
+        <div class="modal fade" id="deleteMedia{{ media._id }}" tabindex="-1" aria-labelledby="deleteMediaLabel{{ media._id }}" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="deleteMediaLabel{{ media.id }}">Medya Silme Onayı</h5>
+                        <h5 class="modal-title" id="deleteMediaLabel{{ media._id }}">Medya Silme Onayı</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
                     </div>
                     <div class="modal-body">
@@ -256,20 +256,18 @@
                             <strong>{{ media.title }}</strong> isimli medya içeriğini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
                         </p>
                         <div class="form-check mt-3">
-                            <input class="form-check-input force-delete-check" type="checkbox" id="forceDelete{{ media.id }}" data-input-id="forceDeleteInput{{ media.id }}">
-                            <label class="form-check-label text-danger" for="forceDelete{{ media.id }}">
+                            <input class="form-check-input force-delete-check" type="checkbox" id="forceDelete{{ media._id }}" data-input-id="forceDeleteInput{{ media._id }}">
+                            <label class="form-check-label text-danger" for="forceDelete{{ media._id }}">
                                 <strong>Zorunlu sil:</strong> Bu medyayı ekranlarda kullanılsa bile tamamen sil ve ilişkili tüm içerikleri kaldır.
                             </label>
                         </div>
-                        <!-- Hata ayıklama için ID'yi göster -->
-                        <small class="text-muted mt-2">Medya ID: {{ media._id }}</small>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                        <form action="{{ url_for('user.delete_media') }}" method="POST">
+                        <form action="{{ url_for('user.delete_media', media_id=media._id) }}" method="POST">
                             <input type="hidden" name="media_id" value="{{ media._id }}">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <input type="hidden" id="forceDeleteInput{{ media.id }}" name="force_delete" value="0">
+                            <input type="hidden" id="forceDeleteInput{{ media._id }}" name="force_delete" value="0">
                             <button type="submit" class="btn btn-danger">Sil</button>
                         </form>
                     </div>
@@ -297,16 +295,100 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Sayfa yüklendiğinde tüm formların değerlerini kontrol et ve düzelt
+    document.querySelectorAll('form[action*="delete_media"]').forEach(form => {
+        const mediaIdInput = form.querySelector('input[name="media_id"]');
+        const modal = form.closest('.modal');
+        
+        if (modal && mediaIdInput) {
+            // Modal ID'sinden media ID'yi çıkar
+            const modalIdMatch = modal.id.match(/deleteMedia([a-f0-9]+)/i);
+            if (modalIdMatch && modalIdMatch[1]) {
+                const correctMediaId = modalIdMatch[1];
+                
+                // Input değerini kontrol et
+                if (!mediaIdInput.value || mediaIdInput.value.trim() === '') {
+                    console.warn(`Boş media_id tespit edildi modal=${modal.id}. Düzeltiliyor: ${correctMediaId}`);
+                    mediaIdInput.value = correctMediaId;
+                }
+            }
+        }
+    });
+    
     // Tüm zorunlu silme checkboxlarını dinleyin
     const checkboxes = document.querySelectorAll('.force-delete-check');
+    
+    // Tüm silme formlarına submit event listener ekle
+    document.querySelectorAll('form[action*="delete_media"]').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            // Formu bir süreliğine durdur
+            e.preventDefault();
+            
+            // Medya ID kontrolü - boş olmamalı
+            const mediaIdInput = this.querySelector('input[name="media_id"]');
+            const mediaId = mediaIdInput ? mediaIdInput.value : null;
+            const formAction = this.action;
+            
+            if (!mediaId || mediaId.trim() === '') {
+                console.error('HATA: Silme işlemi başlatılamadı - Media ID boş!', {
+                    form: this.outerHTML,
+                    formAction: this.action,
+                    mediaIdValue: mediaId
+                });
+                
+                // Media ID değerini otomatik düzeltmeye çalış
+                const modalIdMatch = this.closest('.modal').id.match(/deleteMedia([a-f0-9]+)/i);
+                if (modalIdMatch && modalIdMatch[1]) {
+                    const correctMediaId = modalIdMatch[1];
+                    console.log(`Düzeltilmiş Media ID bulundu: ${correctMediaId}`);
+                    
+                    // Input değerini güncelle
+                    if (mediaIdInput) {
+                        mediaIdInput.value = correctMediaId;
+                        console.log(`Media ID input değeri güncellendi: ${correctMediaId}`);
+                    } else {
+                        console.error('Media ID input elementi bulunamadı!');
+                        return; // İşlemi durdur
+                    }
+                } else {
+                    console.error('Modal ID formatından Media ID alınamadı!');
+                    return; // İşlemi durdur
+                }
+            }
+            
+            console.log('Medya silme formu gönderiliyor:', {
+                mediaId: mediaIdInput.value,
+                mediaIdLength: mediaIdInput.value.length,
+                formAction: this.action,
+                forceDelete: this.querySelector('input[name="force_delete"]').value,
+                formElements: Array.from(this.elements).map(el => ({
+                    name: el.name,
+                    value: el.value,
+                    type: el.type
+                }))
+            });
+            
+            // Formu devam ettir
+            this.submit();
+        });
+    });
     
     checkboxes.forEach(checkbox => {
         checkbox.addEventListener('change', function() {
             const inputId = this.getAttribute('data-input-id');
             const hiddenInput = document.getElementById(inputId);
             
+            console.log('Checkbox değişti:', {
+                checkbox: this.id,
+                inputId: inputId, 
+                hiddenInputExist: !!hiddenInput,
+                value: this.checked ? "1" : "0"
+            });
+            
             if (hiddenInput) {
                 hiddenInput.value = this.checked ? "1" : "0";
+            } else {
+                console.error('Hidden input bulunamadı:', inputId);
             }
         });
     });
@@ -318,7 +400,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (type === 'video') {
                 const video = this.querySelector('video');
                 if (video) {
-                    video.play();
+                    video.play().catch(e => {
+                        console.warn('Video oynatma hatası:', e);
+                    });
                 }
             }
         });

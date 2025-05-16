@@ -51,49 +51,55 @@ def login():
 
     # POST isteği: Giriş işlemi
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        
-        print(f"Login: Giriş denemesi için email: {email}")
-        
-        user = User.find_by_email(email)
-        
-        if not user:
-            print(f"Login: Kullanıcı bulunamadı, email: {email}")
-            flash('Geçersiz e-posta veya şifre.', 'danger')
-            return render_template('auth/login.html')
+        # CSRF token doğrulama işlemindeki hatayı yakalamak için try-except bloğu ekleyelim
+        try:
+            email = request.form.get('email')
+            password = request.form.get('password')
             
-        if not user.verify_password(password):
-            print(f"Login: Şifre doğrulanmadı, kullanıcı: {user.name}")
-            flash('Geçersiz e-posta veya şifre.', 'danger')
-            return render_template('auth/login.html')
-        
-        if user.status != User.STATUS_ACTIVE:
-            print(f"Login: Kullanıcı aktif değil, durum: {user.status}")
-            flash('Hesabınız aktif değil. Lütfen yönetici ile iletişime geçin.', 'danger')
-            return render_template('auth/login.html')
+            print(f"Login: Giriş denemesi için email: {email}")
             
-        # Kullanıcı giriş bilgilerini doğrula ve oturum oluştur
-        session['user_id'] = user.id
-        user.update_last_login()
-        
-        print(f"Login: Giriş başarılı, user_id: {user.id}, rol: {user.role}")
-        
-        # Log kaydı oluştur
-        Log.log_action(
-            action="user_login",
-            user_id=user.id,
-            ip_address=request.remote_addr,
-            details={"email": email}
-        )
-        
-        # Kullanıcı rolüne göre yönlendir
-        if user.is_admin():
-            return redirect(url_for('admin.dashboard'))
-        elif user.is_supervisor():
-            return redirect(url_for('supervisor.dashboard'))
-        else:
-            return redirect(url_for('user.dashboard'))
+            user = User.find_by_email(email)
+            
+            if not user:
+                print(f"Login: Kullanıcı bulunamadı, email: {email}")
+                flash('Geçersiz e-posta veya şifre.', 'danger')
+                return render_template('auth/login.html')
+                
+            if not user.verify_password(password):
+                print(f"Login: Şifre doğrulanmadı, kullanıcı: {user.name}")
+                flash('Geçersiz e-posta veya şifre.', 'danger')
+                return render_template('auth/login.html')
+            
+            if user.status != User.STATUS_ACTIVE:
+                print(f"Login: Kullanıcı aktif değil, durum: {user.status}")
+                flash('Hesabınız aktif değil. Lütfen yönetici ile iletişime geçin.', 'danger')
+                return render_template('auth/login.html')
+                
+            # Kullanıcı giriş bilgilerini doğrula ve oturum oluştur
+            session['user_id'] = user.id
+            user.update_last_login()
+            
+            print(f"Login: Giriş başarılı, user_id: {user.id}, rol: {user.role}")
+            
+            # Log kaydı oluştur
+            Log.log_action(
+                action="user_login",
+                user_id=user.id,
+                ip_address=request.remote_addr,
+                details={"email": email}
+            )
+            
+            # Kullanıcı rolüne göre yönlendir
+            if user.is_admin():
+                return redirect(url_for('admin.dashboard'))
+            elif user.is_supervisor():
+                return redirect(url_for('supervisor.dashboard'))
+            else:
+                return redirect(url_for('user.dashboard'))
+        except Exception as e:
+            print(f"Login hatası: {str(e)}")
+            flash('Giriş işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.', 'danger')
+            return render_template('auth/login.html')
     
     return render_template('auth/login.html')
 

@@ -247,4 +247,96 @@ class ScreenPlaylist:
         
         result = mongo.db.screen_playlists.delete_many({'playlist_id': playlist_id})
         
-        return result.deleted_count 
+        return result.deleted_count
+    
+    @classmethod
+    def refresh_screen_playlist(cls, screen_id):
+        """
+        Ekrana atanmış playlist'i yeniler
+        
+        Bu metod, ekrana atanmış playlist'i bulup, ekrandaki içerikleri
+        güncel playlist içeriğiyle değiştirir.
+        
+        Args:
+            screen_id: Ekran ID'si
+            
+        Returns:
+            dict: İşlem sonucu (success ve message alanları)
+        """
+        import traceback
+        from app.models.screen_content import ScreenContent
+        from app.models.playlist_media import PlaylistMedia
+        
+        try:
+            print(f"DEBUG - ScreenPlaylist.refresh_screen_playlist çağrıldı: {screen_id}")
+            
+            # Ekran-playlist ilişkisini bul
+            screen_playlist = cls.find_by_screen_id(screen_id)
+            
+            if not screen_playlist:
+                print(f"DEBUG - Ekran {screen_id} için atanmış playlist bulunamadı")
+                return {
+                    'success': False,
+                    'message': 'Bu ekran için atanmış playlist bulunamadı.'
+                }
+                
+            # Playlist ID'sini al
+            playlist_id = screen_playlist.get('playlist_id')
+            
+            # Mevcut ekran içeriklerini temizle
+            delete_count = ScreenContent.delete_by_screen(screen_id)
+            print(f"DEBUG - Mevcut ekran içerikleri silindi: {delete_count}")
+            
+            # Playlist'teki medyaları al
+            playlist_media = PlaylistMedia.find_by_playlist(playlist_id)
+            
+            if not playlist_media:
+                print(f"DEBUG - Playlist {playlist_id} için medya bulunamadı")
+                return {
+                    'success': True,
+                    'message': 'Playlist yenilendi, ancak içerik yok.',
+                    'updated': 0
+                }
+            
+            # Ekrana medyaları ekle
+            created_contents = []
+            order = 1
+            
+            for item in sorted(playlist_media, key=lambda x: x.get('order', 0) if isinstance(x, dict) else getattr(x, 'order', 0)):
+                media_id = item.get('media_id') if isinstance(item, dict) else getattr(item, 'media_id', None)
+                
+                if media_id:
+                    # Ekran içeriği oluştur
+                    new_content = ScreenContent.create({
+                        'screen_id': screen_id,
+                        'media_id': media_id,
+                        'order': order,
+                        'status': ScreenContent.STATUS_ACTIVE
+                    })
+                    
+                    if new_content:
+                        created_contents.append(new_content)
+                        order += 1
+            
+            print(f"DEBUG - Playlist medyaları ekrana eklendi: {len(created_contents)}")
+            
+            # İlişki tablosunu güncelle
+            mongo.db.screen_playlists.update_one(
+                {'_id': screen_playlist.get('_id')},
+                {'$set': {'updated_at': datetime.utcnow()}}
+            )
+            
+            return {
+                'success': True,
+                'message': f'Playlist başarıyla yenilendi ve {len(created_contents)} medya eklendi.',
+                'updated': len(created_contents)
+            }
+            
+        except Exception as e:
+            print(f"ERROR - Playlist yenileme hatası: {str(e)}")
+            traceback.print_exc()
+            
+            return {
+                'success': False,
+                'message': f'Playlist yenilenirken bir hata oluştu: {str(e)}'
+            } 

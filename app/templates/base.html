@@ -496,11 +496,7 @@
             
             <nav class="modern-nav">
                 <ul class="nav-links" id="navLinks">
-                    <li style="--i: 0" class="{{ 'active' if request.endpoint == 'auth.index' else '' }}">
-                        <a href="{{ url_for('auth.index') }}" class="{{ 'active' if request.endpoint == 'auth.index' else '' }}">
-                            <span>Ana Sayfa</span>
-                        </a>
-                    </li>
+                   
                     <li style="--i: 1" class="{{ 'active' if request.endpoint == 'user.guide' else '' }}">
                         <a href="{{ url_for('user.guide') }}" class="{{ 'active' if request.endpoint == 'user.guide' else '' }}">
                             <span>Kullanım Kılavuzu</span>
@@ -526,7 +522,7 @@
                         {% if current_user and current_user.is_admin() %}
                             <li style="--i: 5" class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin.') else '' }}">
                                 <a href="{{ url_for('admin.dashboard') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin.') else '' }}">
-                                    <span>Admin Panel</span>
+                                    <span>Dashboard</span>
                                 </a>
                             </li>
                         {% elif current_user and current_user.is_supervisor() %}
@@ -563,7 +559,7 @@
                                 {% if current_user and current_user.is_admin() %}
                                     <li>
                                         <a class="dropdown-item" href="{{ url_for('admin.dashboard') }}" style="color: var(--text-light); padding: 12px 20px; font-size: 14px; transition: all 0.3s ease;">
-                                            <i class="fas fa-tachometer-alt me-2"></i> Admin Panel
+                                            <i class="fas fa-tachometer-alt me-2"></i> Kontrol Paneli
                                         </a>
                                     </li>
                                     <li>

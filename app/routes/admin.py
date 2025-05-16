@@ -8,13 +8,43 @@ from app.utils.decorators import admin_required
 import secrets
 import string
 import os
+import psutil
 from bson import ObjectId
 from functools import wraps
 from app import mongo
 from bson.objectid import ObjectId
 from app.utils.admin_ekran_detay import get_screen_detail, get_user_screens_detail
+from datetime import datetime
+from app.utils.email import send_welcome_email
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
+
+def get_system_stats():
+    """Sistem performans değerlerini al"""
+    # CPU kullanımı
+    cpu_percent = psutil.cpu_percent(interval=1)
+    
+    # RAM kullanımı
+    memory = psutil.virtual_memory()
+    ram_percent = memory.percent
+    ram_used = f"{memory.used / (1024 * 1024 * 1024):.2f} GB"
+    ram_total = f"{memory.total / (1024 * 1024 * 1024):.2f} GB"
+    
+    # Disk kullanımı
+    disk = psutil.disk_usage('/')
+    disk_percent = disk.percent
+    disk_used = f"{disk.used / (1024 * 1024 * 1024):.2f} GB"
+    disk_total = f"{disk.total / (1024 * 1024 * 1024):.2f} GB"
+    
+    return {
+        'cpu_percent': cpu_percent,
+        'ram_percent': ram_percent,
+        'ram_used': ram_used,
+        'ram_total': ram_total,
+        'disk_percent': disk_percent,
+        'disk_used': disk_used,
+        'disk_total': disk_total
+    }
 
 @bp.route('/dashboard')
 @admin_required
@@ -40,9 +70,20 @@ def dashboard():
         user = User.find_by_id(playlist.user_id)
         playlist.user_name = f"{user.name}" if user else "Bilinmiyor"
     
-    recent_users = User.find_all()[:5]
+    # Son kullanıcıları oluşturma tarihine göre sırala (en yeni en üstte)
+    all_users = User.find_all()
+    all_users.sort(key=lambda x: x.created_at if hasattr(x, 'created_at') and x.created_at else datetime.min, reverse=True)
+    recent_users = all_users[:5]
+    
+    # Son medyaları oluşturma tarihine göre sırala (en yeni en üstte)
+    all_media = Media.find_all()
+    all_media.sort(key=lambda x: x.created_at if hasattr(x, 'created_at') and x.created_at else datetime.min, reverse=True)
+    recent_media = all_media[:5]
+    
     recent_screens = Screen.find_all()[:5]
-    recent_media = Media.find_all()[:5]
+    
+    # Sistem performans bilgilerini ekle
+    system_stats = get_system_stats()
     
     return render_template(
         'admin/dashboard.html', 
@@ -55,6 +96,7 @@ def dashboard():
         recent_screens=recent_screens,
         recent_media=recent_media,
         recent_playlists=playlist_objects,
+        system_stats=system_stats,
         User=User  # User sınıfını template'e gönderiyoruz
     )
 
@@ -74,11 +116,14 @@ def create_user():
         email = request.form.get('email')
         role = request.form.get('role')
         package = request.form.get('package')
+        is_nobetmatik_pro = 'is_nobetmatik_pro' in request.form
+        terminal_no = request.form.get('terminal_no')
+        business_name = request.form.get('business_name')
         
         # E-posta kontrolü
         existing_user = User.find_by_email(email)
         if existing_user:
-            flash('Bu e-posta adresi zaten kullanımda.', 'danger')
+            flash('Bu e-posta adresi zaten kullanılıyor.', 'danger')
             return render_template('admin/create_user.html')
         
         # Rastgele şifre oluştur
@@ -86,51 +131,34 @@ def create_user():
         
         # Kullanıcı oluştur
         user = User.create(
-            email=email, 
+            email=email,
             password=password, 
             name=name, 
-            role=role, 
-            package=package, 
-            status='active'
+            role=role,
+            package=package,
+            status='active',
+            is_nobetmatik_pro=is_nobetmatik_pro,
+            terminal_no=terminal_no,
+            business_name=business_name
         )
         
-        # Hoşgeldin e-postası gönder
-        try:
-            # Basit ASCII içerikli bir e-posta 
-            from app.utils.email import Mailer
-            login_url = url_for('auth.login', _external=True)
-            mailer = Mailer()
-            simple_content = """
-            <html>
-            <body>
-                <p>Merhaba,</p>
-                <p>BulutVizyon sistemine hosgeldiniz!</p>
-                <p>Giris bilgileriniz:</p>
-                <p>E-posta: {}</p>
-                <p>Gecici sifreniz: {}</p>
-                <p>Giris yapmak icin: <a href="{}">Buraya tiklayin</a></p>
-                <p>Tesekkurler,<br>BulutVizyon Ekibi</p>
-            </body>
-            </html>
-            """.format(email, password, login_url)
-            
-            mailer.sendHTML(
-                to=email,
-                subject="BulutVizyon - Hos Geldiniz",
-                content=simple_content
-            )
-        except Exception as e:
-            current_app.logger.error(f"Hosgeldin e-postasi gonderilemedi: {str(e)}")
-            # E-posta başarısız olsa da kullanıcı oluşturma işlemini devam ettir
+        # Kullanıcıya hoşgeldin e-postası gönder
+        login_url = url_for('auth.login', _external=True)
+        send_welcome_email(email, name, password, login_url)
         
+        # Log kaydı oluştur
         Log.log_action(
-            action=Log.TYPE_USER_CREATE,
+            action="user_created",
             user_id=session['user_id'],
             ip_address=request.remote_addr,
-            details={"created_user_id": user.id, "name": name, "email": email}
+            details={
+                "target_user": str(user.id),
+                "target_email": email,
+                "summary": f"Kullanıcı oluşturuldu: {name} ({email})"
+            }
         )
         
-        flash(f'Kullanıcı başarıyla oluşturuldu. Geçici şifre: {password}', 'success')
+        flash(f'Kullanıcı başarıyla oluşturuldu. Şifre: {password}', 'success')
         return redirect(url_for('admin.users'))
         
     return render_template('admin/create_user.html')
@@ -139,132 +167,88 @@ def create_user():
 @admin_required
 def edit_user(user_id):
     """Kullanıcı düzenleme sayfası"""
-    # MongoDB ile doğrudan erişim
-    try:
-        from app import mongo
-        from bson.objectid import ObjectId
-        
-        # URL'den gelen ID'yi doğrula
-        current_app.logger.info(f"Kullanıcı düzenleme sayfası: user_id={user_id}, method={request.method}")
-        
-        if not ObjectId.is_valid(user_id):
-            flash('Geçersiz kullanıcı ID formatı.', 'danger')
-            return redirect(url_for('admin.users'))
-            
-        # MongoDB'den doğrudan kullanıcıyı al
-        user_data = mongo.db.users.find_one({"_id": ObjectId(user_id)})
-        
-        if not user_data:
-            flash('Kullanıcı bulunamadı.', 'danger')
-            return redirect(url_for('admin.users'))
-            
-        # Kullanıcı nesnesini manuel oluştur
-        from app.models.user import User
-        user = User(**user_data)
-        
-        if request.method == 'POST':
-            # POST verilerini al
-            current_app.logger.info(f"POST verisi alındı: {request.form}")
-            
-            name = request.form.get('name')
-            email = request.form.get('email')
-            role = request.form.get('role')
-            package = request.form.get('package')
-            status = request.form.get('status')
-            
-            current_app.logger.info(f"Form değerleri: name={name}, email={email}, role={role}, package={package}, status={status}")
-            
-            # E-posta kontrolü (kendisi hariç)
-            email_exists = User.find_by_email(email)
-            
-            if email_exists and str(email_exists.id) != str(user_id):
-                flash('Bu e-posta adresi zaten kullanımda.', 'danger')
-                return render_template('admin/edit_user.html', 
-                                      user=user,
-                                      screen_count=len(Screen.find_by_user(user.id)),
-                                      media_count=len(Media.find_by_user(user.id)),
-                                      view_count=0)
-            
-            try:
-                # Kullanıcıyı güncelle
-                user.update(
-                    name=name,
-                    email=email,
-                    role=role, 
-                    package=package,
-                    status=status
-                )
-                
-                from app.models.logs import Log
-                Log.log_action(
-                    action="user_update",
-                    user_id=session['user_id'],
-                    ip_address=request.remote_addr,
-                    details={"updated_user_id": user.id, "name": name, "email": email}
-                )
-                
-                flash('Kullanıcı başarıyla güncellendi.', 'success')
-                return redirect(url_for('admin.users'))
-            except Exception as update_error:
-                current_app.logger.error(f"Kullanıcı güncellenirken hata: {str(update_error)}")
-                flash('Kullanıcı güncellenirken bir hata oluştu.', 'danger')
-                
-                # Hata oluştuğunda form değerlerini koruyarak sayfayı yeniden göster
-                return render_template('admin/edit_user.html', 
-                                      user=user,
-                                      screen_count=len(Screen.find_by_user(user.id)),
-                                      media_count=len(Media.find_by_user(user.id)),
-                                      view_count=0)
-        
-        # Kullanıcı istatistiklerini hesapla
-        from app.models.screen import Screen
-        from app.models.media import Media
-        
-        screen_count = len(Screen.find_by_user(user.id))
-        media_count = len(Media.find_by_user(user.id))
-        view_count = 0  # İleriki aşamalarda görüntülenme sayısı için
-        
-        # Atanmış supervisor'ı bul (varsa)
-        assigned_supervisor = None
-        if hasattr(user, 'supervisor_id') and user.supervisor_id:
-            assigned_supervisor = User.find_by_id(user.supervisor_id)
-        
-        # Tüm supervisor'ları getir
-        supervisors = User.find_all(role=User.ROLE_SUPERVISOR)
-        
-        # Aktivite verileri
-        activities = [
-            {
-                'icon': 'sign-in-alt',
-                'color': 'primary',
-                'description': 'Kullanıcı giriş yaptı',
-                'time': user.last_login or user.created_at
-            },
-            {
-                'icon': 'upload',
-                'color': 'success',
-                'description': 'Yeni medya yükledi',
-                'time': user.created_at
-            }
-        ]
-        
-        # Template'e verileri gönder
-        return render_template('admin/edit_user.html', 
-                            user=user, 
-                            screen_count=screen_count, 
-                            media_count=media_count, 
-                            view_count=view_count,
-                            activities=activities,
-                            supervisors=supervisors,
-                            assigned_supervisor=assigned_supervisor)
-                            
-    except Exception as e:
-        # Hata durumunda log ve yönlendirme
-        import traceback
-        current_app.logger.error(f"Kullanıcı düzenleme sayfası yüklenirken hata: {str(e)}")
-        current_app.logger.error(traceback.format_exc())
-        flash('Beklenmeyen bir hata oluştu.', 'danger')
+    user = User.find_by_id(user_id)
+    if not user:
+        flash('Kullanıcı bulunamadı.', 'danger')
         return redirect(url_for('admin.users'))
+    
+    if request.method == 'POST':
+        name = request.form.get('name')
+        email = request.form.get('email')
+        role = request.form.get('role')
+        package = request.form.get('package')
+        status = request.form.get('status')
+        is_nobetmatik_pro = 'is_nobetmatik_pro' in request.form
+        terminal_no = request.form.get('terminal_no')
+        business_name = request.form.get('business_name')
+        
+        # Mevcut e-posta kontrolü
+        if email != user.email:
+            existing_user = User.find_by_email(email)
+            if existing_user:
+                flash('Bu e-posta adresi zaten kullanılıyor.', 'danger')
+                return render_template('admin/edit_user.html', user=user)
+        
+        try:
+            user.update(
+                name=name,
+                email=email,
+                role=role, 
+                package=package,
+                status=status,
+                is_nobetmatik_pro=is_nobetmatik_pro,
+                terminal_no=terminal_no,
+                business_name=business_name
+            )
+            
+            # Log kaydı oluştur
+            Log.log_action(
+                action="user_updated",
+                user_id=session['user_id'],
+                ip_address=request.remote_addr,
+                details={
+                    "updated_user_id": str(user.id),
+                    "name": name,
+                    "email": email
+                }
+            )
+            
+            flash('Kullanıcı başarıyla güncellendi.', 'success')
+            return redirect(url_for('admin.users'))
+        except Exception as e:
+            flash(f'Bir hata oluştu: {str(e)}', 'danger')
+    
+    # Kullanıcı istatistiklerini hesapla
+    screen_count = len(Screen.find_by_user(user.id)) if hasattr(Screen, 'find_by_user') else 0
+    media_count = len(Media.find_by_user(user.id)) if hasattr(Media, 'find_by_user') else 0
+    view_count = 0  # İleriki aşamalarda görüntülenme sayısı için
+    
+    # Supervisor listesini ekle
+    supervisors = User.find_all(role=User.ROLE_SUPERVISOR)
+    
+    # Atanmış supervisor'ı bul
+    assigned_supervisor = None
+    if hasattr(user, 'supervisor_id') and user.supervisor_id:
+        assigned_supervisor = User.find_by_id(user.supervisor_id)
+    
+    # Kullanıcının aktivitelerini ekle
+    activities = [
+        {
+            'icon': 'sign-in-alt',
+            'color': 'primary',
+            'description': 'Kullanıcı giriş yaptı',
+            'time': user.last_login or user.created_at
+        }
+    ]
+    
+    return render_template('admin/edit_user.html', 
+                          user=user,
+                          screen_count=screen_count,
+                          media_count=media_count,
+                          view_count=view_count,
+                          supervisors=supervisors,
+                          assigned_supervisor=assigned_supervisor,
+                          activities=activities)
 
 @bp.route('/users/delete/<user_id>', methods=['POST'])
 @admin_required
@@ -1666,3 +1650,83 @@ def view_playlist(playlist_id):
                           playlist=playlist, 
                           media_list=sorted(media_list, key=lambda x: x['order']),
                           screens=screens) 
+
+@bp.route('/admin/update-playlist-counts')
+def update_playlist_counts():
+    """Tüm playlist medya sayılarını günceller"""
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login'))
+    
+    # Yönetici kontrolü
+    user_id = session['user_id']
+    user = User.find_by_id(user_id)
+    if not user or not user.is_admin():
+        flash('Bu işlem için yönetici yetkisine sahip olmanız gerekiyor.', 'danger')
+        return redirect(url_for('auth.login'))
+        
+    try:
+        from app.models.playlist import Playlist
+        from app.models.playlist_media import PlaylistMedia
+        import traceback
+        
+        updated_count = 0
+        total_media = 0
+        updates = {}
+        
+        # Tüm playlistleri getir
+        all_playlists = list(mongo.db.playlists.find())
+        
+        # Her playlist için medya sayısını güncelle
+        for playlist in all_playlists:
+            playlist_id = playlist['_id']
+            
+            # Medya sayısını hesapla
+            query = {"$or": [{"playlist_id": playlist_id}, {"playlist_id": str(playlist_id)}]}
+            media_count = mongo.db.playlist_media.count_documents(query)
+            old_count = playlist.get('media_count', 0)
+            
+            if old_count != media_count:
+                # Veritabanını güncelle
+                mongo.db.playlists.update_one(
+                    {"_id": playlist_id},
+                    {"$set": {"media_count": media_count}}
+                )
+                updated_count += 1
+                updates[playlist.get('name', str(playlist_id))] = {
+                    'old': old_count, 
+                    'new': media_count
+                }
+            
+            total_media += media_count
+        
+        # Sonuç sayfasını göster
+        return render_template('admin/update_success.html',
+                              title="Playlist Medya Sayıları Güncellendi",
+                              message=f"Toplam {updated_count} playlist güncellendi. Sistemde toplam {total_media} medya var.",
+                              updates=updates)
+        
+    except Exception as e:
+        error_msg = f"Playlist medya sayıları güncellenirken bir hata oluştu: {str(e)}"
+        print(error_msg)
+        print(traceback.format_exc())
+        flash(error_msg, 'danger')
+        return redirect(url_for('admin.dashboard')) 
+
+@bp.route('/api/logs/recent', methods=['GET'])
+@admin_required
+def api_recent_logs():
+    """Son 5 log kaydını getir"""
+    recent_logs = mongo.db.logs.find().sort('timestamp', -1).limit(5)
+    logs_data = []
+    
+    for log in recent_logs:
+        user = User.find_by_id(log.get('user_id')) if log.get('user_id') else None
+        log_data = {
+            'date': log.get('timestamp', datetime.now()).strftime('%d.%m.%Y %H:%M'),
+            'type': log.get('action', 'Bilinmiyor'),
+            'user': user.name if user else 'Sistem',
+            'detail': log.get('details', {}).get('summary', '-')
+        }
+        logs_data.append(log_data)
+        
+    return jsonify(logs_data) 

@@ -89,19 +89,33 @@ class Screen:
         """
         ID'ye göre ekran bul
         """
+        print(f"DEBUG - Screen.find_by_id çağrıldı: {screen_id}, tip: {type(screen_id)}")
+        
         if isinstance(screen_id, str):
             try:
                 screen_id = ObjectId(screen_id)
-            except:
+                print(f"DEBUG - String ID, ObjectId'ye dönüştürüldü: {screen_id}")
+            except Exception as e:
+                print(f"DEBUG - ObjectId dönüşüm hatası: {str(e)}")
                 return None
         
-        screen_data = mongo.db.screens.find_one({'_id': screen_id})
-        
-        if not screen_data:
+        try:
+            screen_data = mongo.db.screens.find_one({'_id': screen_id})
+            
+            if not screen_data:
+                print(f"DEBUG - Ekran bulunamadı: {screen_id}")
+                return None
+            
+            print(f"DEBUG - Ekran bulundu: {screen_data.get('_id')}, isim: {screen_data.get('name')}")
+            
+            # MongoDB belgesini Screen nesnesine dönüştür
+            screen = cls(**screen_data)
+            return screen
+        except Exception as e:
+            print(f"DEBUG - MongoDB sorgulama hatası: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
             return None
-        
-        # MongoDB belgesini Screen nesnesine dönüştür
-        return cls(**screen_data)
     
     @classmethod
     def find_by_api_key(cls, api_key):
@@ -117,39 +131,33 @@ class Screen:
         return cls(**screen_data)
     
     @classmethod
-    def find_by_user(cls, user_id, limit=100, skip=0, status=None):
+    def find_by_user(cls, user_id, status=None, limit=100, skip=0):
         """
         Kullanıcı ID'sine göre ekranları bul
         """
         try:
-            # MongoDB bağlantısını doğrudan oluştur - Flask-PyMongo yerine
-            try:
-                # user_id'yi doğru şekilde dönüştür
-                if isinstance(user_id, str):
-                    try:
-                        user_id_obj = ObjectId(user_id)
-                    except Exception as e:
-                        print(f"ObjectId dönüşüm hatası: {str(e)}")
-                        user_id_obj = user_id
-                else:
+            # user_id'yi doğru şekilde dönüştür
+            if isinstance(user_id, str):
+                try:
+                    user_id_obj = ObjectId(user_id)
+                except Exception as e:
+                    print(f"ObjectId dönüşüm hatası: {str(e)}")
                     user_id_obj = user_id
-                
-                # İki şekilde de sorgula (String veya ObjectId)
-                query = {'$or': [{'user_id': user_id}, {'user_id': user_id_obj}]}
-                
-                if status:
-                    query['status'] = status
-                
-                screen_list = []
-                for screen_data in mongo.db.screens.find(query).sort('created_at', -1).skip(skip).limit(limit):
-                    screen_list.append(cls(**screen_data))
-                
-                print(f"Kullanıcıya ait {len(screen_list)} ekran bulundu - user_id: {user_id}")
-                return screen_list
-            except Exception as e:
-                print(f"MongoDB işlemleri hatası: {str(e)}")
-                return []
-                
+            else:
+                user_id_obj = user_id
+            
+            # İki şekilde de sorgula (String veya ObjectId)
+            query = {'$or': [{'user_id': user_id}, {'user_id': user_id_obj}]}
+        
+            if status:
+                query['status'] = status
+            
+            screen_list = []
+            for screen_data in mongo.db.screens.find(query).sort('created_at', -1).skip(skip).limit(limit):
+                screen_list.append(cls(**screen_data))
+            
+            print(f"Kullanıcıya ait {len(screen_list)} ekran bulundu - user_id: {user_id}")
+            return screen_list
         except Exception as e:
             print(f"Ekranlar getirilirken hata: {str(e)}")
             return []
@@ -329,7 +337,12 @@ class Screen:
     def get_contents(self):
         """Ekranın içeriklerini getir"""
         from app.models.screen_content import ScreenContent
-        return ScreenContent.find_by_screen(self.id)
+        return ScreenContent.find_by_screen_id(self.id)
+    
+    def content(self):
+        """Ekranın içeriğini getir"""
+        from app.models.screen_content import ScreenContent
+        return ScreenContent.find_by_screen_id(self.id)
     
     def update_last_active(self):
         """Son aktif zamanını güncelle"""
@@ -376,4 +389,10 @@ class Screen:
             {"$push": {"offline_periods": offline_period}}
         )
         
-        return True 
+        return True
+    
+    @classmethod
+    def get_content(cls, screen_id):
+        """Ekranın içeriğini getir"""
+        from app.models.screen_content import ScreenContent
+        return ScreenContent.find_by_screen_id(screen_id) 

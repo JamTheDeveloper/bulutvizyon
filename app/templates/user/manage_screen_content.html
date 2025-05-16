@@ -356,6 +356,12 @@
                                         <span class="toggle-icon"></span>
                                     </div>
                                     <div>
+                                        <form action="/user/screens/{{ screen.id }}/refresh_playlist" method="POST" style="display:inline;">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-success me-1" title="Playlist'i yenile">
+                                                <i class="fas fa-sync-alt"></i> Yenile
+                                            </button>
+                                        </form>
                                         <button type="button" class="btn btn-sm btn-outline-primary me-1" 
                                             onclick="editPlaylist('{{ assigned_playlist.id }}')">
                                             <i class="fas fa-edit"></i> Düzenle
@@ -375,34 +381,57 @@
                                         <div class="flex-grow-1 p-2">
                                             <div class="d-flex align-items-center mb-1">
                                                 <div class="me-2">
-                                                    {% if content.media.file_type == 'image' %}
-                                                    <span class="badge bg-info"><i class="fas fa-image me-1"></i> Resim</span>
+                                                    {% set media = content.media if content is not mapping else content.get('media') %}
+                                                    {% if media %}
+                                                        {% set file_type = media.file_type if media is not mapping else media.get('file_type') %}
+                                                        {% if file_type == 'image' %}
+                                                        <span class="badge bg-info"><i class="fas fa-image me-1"></i> Resim</span>
+                                                        {% else %}
+                                                        <span class="badge bg-danger"><i class="fas fa-video me-1"></i> Video</span>
+                                                        {% endif %}
                                                     {% else %}
-                                                    <span class="badge bg-danger"><i class="fas fa-video me-1"></i> Video</span>
+                                                        <span class="badge bg-secondary"><i class="fas fa-question me-1"></i> Bilinmiyor</span>
                                                     {% endif %}
                                                 </div>
-                                                <h6 class="mb-0 text-truncate" style="max-width: 200px;">{{ content.media.title }}</h6>
+                                                <h6 class="mb-0 text-truncate" style="max-width: 200px;">
+                                                    {% if media %}
+                                                        {{ media.title if media is not mapping else media.get('title', 'İsimsiz') }}
+                                                    {% else %}
+                                                        İsimsiz
+                                                    {% endif %}
+                                                </h6>
                                             </div>
                                             <small class="text-muted">
                                                 Gösterim Süresi: 
-                                                {% if content.media.file_type == 'video' %}
-                                                    {{ content.media.duration or '00:00' }} (Video Süresi)
+                                                {% if media %}
+                                                    {% set file_type = media.file_type if media is not mapping else media.get('file_type') %}
+                                                    {% if file_type == 'video' %}
+                                                        {{ media.duration if media is not mapping else media.get('duration') or '00:00' }} (Video Süresi)
+                                                    {% else %}
+                                                        {% set display_time = content.display_time if content is not mapping else content.get('display_time') %}
+                                                        {% set media_display_time = media.display_time if media is not mapping else media.get('display_time') %}
+                                                        {{ display_time or media_display_time or '10' }} saniye
+                                                    {% endif %}
                                                 {% else %}
-                                                    {{ content.display_time or content.media.display_time }} saniye
+                                                    Belirsiz
                                                 {% endif %}
                                             </small>
                                             <input type="hidden" name="content_ids[]" value="{{ content._id }}">
                                         </div>
                                         <div class="d-flex p-2">
                                             <button type="button" class="btn btn-sm btn-outline-primary me-2" 
-                                                onclick="previewMedia('{{ content.media._id }}', '{{ content.media.file_type }}')">
+                                                onclick="previewMedia(
+                                                    '{% if media %}{{ media._id if media is not mapping else media.get('_id') }}{% else %}{% endif %}', 
+                                                    '{% if media %}{{ media.file_type if media is not mapping else media.get('file_type') }}{% else %}{% endif %}'
+                                                )">
                                                 <i class="fas fa-eye"></i>
                                             </button>
-                                            {% if content.media.file_type == 'image' %}
+                                            {% if media and (media.file_type if media is not mapping else media.get('file_type')) == 'image' %}
                                             <button type="button" class="btn btn-sm btn-outline-primary me-2 edit-content-btn" 
                                                 data-bs-toggle="modal" data-bs-target="#editContentModal"
                                                 data-content-id="{{ content._id }}"
-                                                data-display-time="{{ content.display_time or content.media.display_time }}">
+                                                data-display-time="{{ content.display_time if content is not mapping else content.get('display_time') or 
+                                                                     media.display_time if media is not mapping else media.get('display_time') or '10' }}">
                                                 <i class="fas fa-edit"></i>
                                             </button>
                                             {% endif %}
@@ -424,34 +453,57 @@
                                     <div class="flex-grow-1 p-2">
                                         <div class="d-flex align-items-center mb-1">
                                             <div class="me-2">
-                                                {% if content.media.file_type == 'image' %}
-                                                <span class="badge bg-info"><i class="fas fa-image me-1"></i> Resim</span>
+                                                {% set media = content.media if content is not mapping else content.get('media') %}
+                                                {% if media %}
+                                                    {% set file_type = media.file_type if media is not mapping else media.get('file_type') %}
+                                                    {% if file_type == 'image' %}
+                                                    <span class="badge bg-info"><i class="fas fa-image me-1"></i> Resim</span>
+                                                    {% else %}
+                                                    <span class="badge bg-danger"><i class="fas fa-video me-1"></i> Video</span>
+                                                    {% endif %}
                                                 {% else %}
-                                                <span class="badge bg-danger"><i class="fas fa-video me-1"></i> Video</span>
+                                                    <span class="badge bg-secondary"><i class="fas fa-question me-1"></i> Bilinmiyor</span>
                                                 {% endif %}
                                             </div>
-                                            <h6 class="mb-0 text-truncate" style="max-width: 200px;">{{ content.media.title }}</h6>
+                                            <h6 class="mb-0 text-truncate" style="max-width: 200px;">
+                                                {% if media %}
+                                                    {{ media.title if media is not mapping else media.get('title', 'İsimsiz') }}
+                                                {% else %}
+                                                    İsimsiz
+                                                {% endif %}
+                                            </h6>
                                         </div>
                                         <small class="text-muted">
                                             Gösterim Süresi: 
-                                            {% if content.media.file_type == 'video' %}
-                                                {{ content.media.duration or '00:00' }} (Video Süresi)
+                                            {% if media %}
+                                                {% set file_type = media.file_type if media is not mapping else media.get('file_type') %}
+                                                {% if file_type == 'video' %}
+                                                    {{ media.duration if media is not mapping else media.get('duration') or '00:00' }} (Video Süresi)
+                                                {% else %}
+                                                    {% set display_time = content.display_time if content is not mapping else content.get('display_time') %}
+                                                    {% set media_display_time = media.display_time if media is not mapping else media.get('display_time') %}
+                                                    {{ display_time or media_display_time or '10' }} saniye
+                                                {% endif %}
                                             {% else %}
-                                                {{ content.display_time or content.media.display_time }} saniye
+                                                Belirsiz
                                             {% endif %}
                                         </small>
                                         <input type="hidden" name="content_ids[]" value="{{ content._id }}">
                                     </div>
                                     <div class="d-flex p-2">
                                         <button type="button" class="btn btn-sm btn-outline-primary me-2" 
-                                            onclick="previewMedia('{{ content.media._id }}', '{{ content.media.file_type }}')">
+                                            onclick="previewMedia(
+                                                '{% if media %}{{ media._id if media is not mapping else media.get('_id') }}{% else %}{% endif %}', 
+                                                '{% if media %}{{ media.file_type if media is not mapping else media.get('file_type') }}{% else %}{% endif %}'
+                                            )">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                        {% if content.media.file_type == 'image' %}
+                                        {% if media and (media.file_type if media is not mapping else media.get('file_type')) == 'image' %}
                                         <button type="button" class="btn btn-sm btn-outline-primary me-2 edit-content-btn" 
                                             data-bs-toggle="modal" data-bs-target="#editContentModal"
                                             data-content-id="{{ content._id }}"
-                                            data-display-time="{{ content.display_time or content.media.display_time }}">
+                                            data-display-time="{{ content.display_time if content is not mapping else content.get('display_time') or 
+                                                                         media.display_time if media is not mapping else media.get('display_time') or '10' }}">
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         {% endif %}
@@ -493,88 +545,104 @@
                     <div class="card-header">
                         <ul class="nav nav-tabs card-header-tabs" id="mediaTabList" role="tablist">
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="my-media-tab" data-bs-toggle="tab" data-bs-target="#my-media" 
-                                      type="button" role="tab" aria-controls="my-media" aria-selected="true">
-                                    Medyalarım
+                                <button class="nav-link active" id="playlists-tab" data-bs-toggle="tab" data-bs-target="#playlists" 
+                                      type="button" role="tab" aria-controls="playlists" aria-selected="true">
+                                    Playlistlerim
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="library-tab" data-bs-toggle="tab" data-bs-target="#library" 
-                                      type="button" role="tab" aria-controls="library" aria-selected="false">
-                                    Kütüphane
+                                <button class="nav-link" id="public-playlists-tab" data-bs-toggle="tab" data-bs-target="#public-playlists" 
+                                      type="button" role="tab" aria-controls="public-playlists" aria-selected="false">
+                                    Playlist Kütüphanesi
                                 </button>
                             </li>
                         </ul>
                     </div>
                     <div class="card-body">
                         <div class="tab-content" id="mediaTabContent">
-                            <div class="tab-pane fade show active" id="my-media" role="tabpanel" aria-labelledby="my-media-tab">
+                            <div class="tab-pane fade show active" id="playlists" role="tabpanel" aria-labelledby="playlists-tab">
                                 <div class="mb-3">
-                                    <input type="text" class="form-control" id="my-media-search" placeholder="Medya ara...">
+                                    <input type="text" class="form-control" id="playlists-search" placeholder="Playlist ara...">
                                 </div>
                                 
-                                {% if not user_media %}
+                                {% if not user_playlists %}
                                 <div class="text-center py-4">
-                                    <i class="fas fa-photo-video fa-3x mb-3 text-muted"></i>
-                                    <p class="mb-3">Henüz yüklediğiniz medya yok</p>
-                                    <a href="{{ url_for('user.upload_media') }}" class="btn btn-sm btn-primary">
-                                        <i class="fas fa-upload me-1"></i> Medya Yükle
+                                    <i class="fas fa-list-alt fa-3x mb-3 text-muted"></i>
+                                    <p class="mb-3">Henüz oluşturduğunuz bir playlist yok</p>
+                                    <a href="{{ url_for('user.create_playlist') }}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-plus me-1"></i> Playlist Oluştur
                                     </a>
                                 </div>
                                 {% else %}
-                                <div class="media-grid">
-                                    {% for media in user_media %}
-                                    <div class="media-item" data-id="{{ media.id }}" data-title="{{ media.title }}" 
-                                        data-display-time="{{ media.display_time }}" data-type="{{ media.file_type }}">
-                                        <div class="media-item-preview">
-                                            {% if media.file_type == 'image' %}
-                                            <img src="{{ media.get_file_url() }}" alt="{{ media.title }}">
-                                            <span class="media-type-badge badge bg-info">Resim</span>
-                                            {% else %}
-                                            <div class="video-icon">
-                                                <i class="fas fa-play-circle"></i>
-                                            </div>
-                                            <span class="media-type-badge badge bg-danger">Video</span>
-                                            {% endif %}
+                                <div class="list-group playlist-list">
+                                    {% for playlist in user_playlists %}
+                                    <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">{{ playlist.name }}</h6>
+                                            <small class="text-muted">
+                                                {% if playlist.media_count is defined %}
+                                                    {{ playlist.media_count }}
+                                                {% else %}
+                                                    0
+                                                {% endif %}
+                                                medya içeriği
+                                            </small>
                                         </div>
-                                        <div class="media-item-info">
-                                            <div class="media-item-title">{{ media.title }}</div>
-                                            <small class="text-muted d-block">{{ media.display_time }} san</small>
+                                        <div class="btn-group">
+                                            <a href="{{ url_for('user.view_playlist', playlist_id=playlist.id) }}" 
+                                               class="btn btn-sm btn-outline-secondary" title="Görüntüle">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('user.assign_playlist_to_screen', screen_id=screen.id, playlist_id=playlist.id) }}" 
+                                               class="btn btn-sm btn-primary" title="Bu ekrana ata">
+                                                <i class="fas fa-plus"></i> Ekrana Ata
+                                            </a>
                                         </div>
                                     </div>
                                     {% endfor %}
                                 </div>
+                                <div class="d-grid gap-2 mt-3">
+                                    <a href="{{ url_for('user.create_playlist') }}" class="btn btn-outline-primary">
+                                        <i class="fas fa-plus-circle me-1"></i> Yeni Playlist Oluştur
+                                    </a>
+                                </div>
                                 {% endif %}
                             </div>
-                            <div class="tab-pane fade" id="library" role="tabpanel" aria-labelledby="library-tab">
+                            <div class="tab-pane fade" id="public-playlists" role="tabpanel" aria-labelledby="public-playlists-tab">
                                 <div class="mb-3">
-                                    <input type="text" class="form-control" id="library-search" placeholder="Kütüphane ara...">
+                                    <input type="text" class="form-control" id="public-playlists-search" placeholder="Kütüphane ara...">
                                 </div>
                                 
-                                {% if not library_media %}
+                                {% if not public_playlists %}
                                 <div class="text-center py-4">
-                                    <i class="fas fa-photo-video fa-3x mb-3 text-muted"></i>
-                                    <p>Kütüphanede medya bulunamadı</p>
+                                    <i class="fas fa-list-alt fa-3x mb-3 text-muted"></i>
+                                    <p>Paylaşılan playlist bulunamadı</p>
                                 </div>
                                 {% else %}
-                                <div class="media-grid">
-                                    {% for media in library_media %}
-                                    <div class="media-item" data-id="{{ media.id }}" data-title="{{ media.title }}" 
-                                        data-display-time="{{ media.display_time }}" data-type="{{ media.file_type }}">
-                                        <div class="media-item-preview">
-                                            {% if media.file_type == 'image' %}
-                                            <img src="{{ media.get_file_url() }}" alt="{{ media.title }}">
-                                            <span class="media-type-badge badge bg-info">Resim</span>
-                                            {% else %}
-                                            <div class="video-icon">
-                                                <i class="fas fa-play-circle"></i>
-                                            </div>
-                                            <span class="media-type-badge badge bg-danger">Video</span>
-                                            {% endif %}
+                                <div class="list-group playlist-list">
+                                    {% for playlist in public_playlists %}
+                                    <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">{{ playlist.name }}</h6>
+                                            <small class="text-muted">
+                                                {% if playlist.media_count is defined %}
+                                                    {{ playlist.media_count }}
+                                                {% else %}
+                                                    0
+                                                {% endif %}
+                                                medya içeriği
+                                                <span class="badge bg-info ms-2">Paylaşımlı</span>
+                                            </small>
                                         </div>
-                                        <div class="media-item-info">
-                                            <div class="media-item-title">{{ media.title }}</div>
-                                            <small class="text-muted d-block">{{ media.display_time }} san</small>
+                                        <div class="btn-group">
+                                            <a href="{{ url_for('user.view_playlist', playlist_id=playlist.id) }}" 
+                                               class="btn btn-sm btn-outline-secondary" title="Görüntüle">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('user.assign_playlist_to_screen', screen_id=screen.id, playlist_id=playlist.id) }}" 
+                                               class="btn btn-sm btn-primary" title="Bu ekrana ata">
+                                                <i class="fas fa-plus"></i> Ekrana Ata
+                                            </a>
                                         </div>
                                     </div>
                                     {% endfor %}
@@ -582,36 +650,6 @@
                                 {% endif %}
                             </div>
                         </div>
-                        
-                        <hr>
-                        
-                        <div id="selectedMediaContainer" class="mb-3" style="display: none;">
-                            <p class="fw-bold mb-2">Seçilen Medya</p>
-                            <div class="selected-media-preview d-flex align-items-center p-2 border rounded">
-                                <div class="flex-grow-1">
-                                    <div class="selected-media-title fw-bold"></div>
-                                    <div class="selected-media-type small"></div>
-                                </div>
-                            </div>
-                            
-                            <div class="form-group mt-3">
-                                <label for="display_time" class="form-label">Gösterim Süresi (saniye)</label>
-                                <input type="number" class="form-control" id="display_time" min="1" max="300" value="10">
-                                <div class="form-text">Bu medyanın ekranda kalacağı süre</div>
-                            </div>
-                            
-                            <div class="d-grid mt-3">
-                                <button type="button" id="addContentBtn" class="btn btn-success" disabled>
-                                    <i class="fas fa-plus-circle me-2"></i> İçeriğe Ekle
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <p class="mt-3 mb-0">
-                            <a href="{{ url_for('user.upload_media') }}" class="btn btn-sm btn-outline-primary w-100">
-                                <i class="fas fa-upload me-1"></i> Yeni Medya Yükle
-                            </a>
-                        </p>
                     </div>
                 </div>
             </div>

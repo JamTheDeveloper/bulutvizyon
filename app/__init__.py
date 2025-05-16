@@ -11,7 +11,7 @@ from flask_mail import Mail
 from flask_bootstrap import Bootstrap
 from datetime import datetime, timedelta
 from pymongo import MongoClient
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFProtect, CSRFError
 from dotenv import load_dotenv
 import logging
 from logging.handlers import RotatingFileHandler
@@ -108,7 +108,14 @@ def create_app(test_config=None):
     
     # CSRF koruması
     app.config['WTF_CSRF_ENABLED'] = True
+    app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # 1 saat (saniye cinsinden)
+    app.config['WTF_CSRF_SSL_STRICT'] = False  # HTTPS kontrolünü gevşet
     csrf.init_app(app)
+    
+    # CSRF hatası için özel hata işleyici
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(e):
+        return render_template('errors/csrf_error.html', reason=e.description), 400
     
     # Giriş görünümünü ayarla
     login_manager.login_view = 'auth.login'

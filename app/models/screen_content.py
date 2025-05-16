@@ -30,10 +30,14 @@ class ScreenContent:
         Yeni ekran içeriği oluştur
         """
         # İçerik nesnesi
+        display_time = data.get('display_time', 10)
+        if display_time is None:
+            display_time = 10
+            
         content = {
             'screen_id': data.get('screen_id'),
             'media_id': data.get('media_id'),
-            'display_time': int(data.get('display_time', 10)),
+            'display_time': int(display_time),
             'order': int(data.get('order', 0)),
             'status': data.get('status', cls.STATUS_ACTIVE),
             'created_at': datetime.utcnow(),
@@ -77,8 +81,8 @@ class ScreenContent:
             try:
                 obj_id = ObjectId(screen_id)
                 query_conditions.append({'screen_id': obj_id})
-            except:
-                pass
+            except Exception as e:
+                print(f"DEBUG - ObjectId dönüşüm hatası: {str(e)}")
         
         # Halihazırda ObjectId ise 
         elif isinstance(screen_id, ObjectId):
@@ -91,17 +95,24 @@ class ScreenContent:
         
         # Her durum için OR sorgusu oluştur
         query = {
-            '$or': query_conditions,
-            'status': cls.STATUS_ACTIVE
+            '$or': query_conditions
         }
+        
+        # Status kontrolü ekle (eğer varsa)
+        query['status'] = cls.STATUS_ACTIVE
         
         print(f"DEBUG - screen_contents sorgusu: {query}")
         
-        # Tüm olası eşleşmeleri getir
-        result = list(mongo.db.screen_contents.find(query).sort('order', 1))
-        print(f"DEBUG - Bulunan içerikler: {len(result)}")
-        
-        return result
+        try:
+            # Tüm olası eşleşmeleri getir
+            result = list(mongo.db.screen_contents.find(query).sort('order', 1))
+            print(f"DEBUG - Bulunan içerikler: {len(result)}")
+            return result
+        except Exception as e:
+            print(f"DEBUG - İçerik getirme hatası: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
+            return []
     
     @classmethod
     def update(cls, content_id, data):
@@ -231,6 +242,53 @@ class ScreenContent:
         
         # Sadece aktif içerikleri say
         return mongo.db.screen_contents.count_documents(query)
+    
+    @classmethod
+    def delete_by_media_id(cls, media_id):
+        """
+        Belirli bir medyaya ait tüm ekran içeriklerini sil
+        
+        Args:
+            media_id: Medya ID'si
+            
+        Returns:
+            Silinen içerik sayısı
+        """
+        print(f"DEBUG - ScreenContent.delete_by_media_id çağrıldı: media_id={media_id}, tip={type(media_id)}")
+        
+        # String ID'leri ObjectId'ye çevirme girişimi
+        media_id_str = media_id
+        if isinstance(media_id, str):
+            try:
+                media_id_obj = ObjectId(media_id)
+            except:
+                media_id_obj = None
+        else:
+            media_id_obj = media_id
+            media_id_str = str(media_id)
+            
+        # Her iki format için sorgu oluştur
+        query = {
+            '$or': [
+                {'media_id': media_id_str},  # String format
+                {'media_id': media_id_obj}   # ObjectId format
+            ]
+        }
+        
+        print(f"DEBUG - Silinecek içerikler için sorgu: {query}")
+        
+        # Silinecek kayıtları göster
+        matching_records = list(mongo.db.screen_contents.find(query))
+        print(f"DEBUG - Eşleşen içerik sayısı: {len(matching_records)}")
+        for record in matching_records:
+            print(f"DEBUG - Silinecek içerik: {record.get('_id')}, screen_id: {record.get('screen_id')}")
+        
+        # Silme işlemi
+        result = mongo.db.screen_contents.delete_many(query)
+        deleted_count = result.deleted_count
+        print(f"DEBUG - Silinen içerik sayısı: {deleted_count}")
+        
+        return deleted_count
     
     def __init__(self, _id, screen_id, media_id, order=1, display_time=None, 
                  created_at=None, updated_at=None, **kwargs):

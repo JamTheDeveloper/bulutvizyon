@@ -86,6 +86,10 @@ def dashboard():
     # Aktif ekran sayısı
     active_screens_count = sum(1 for screen in screens if hasattr(screen, 'status') and screen.status == Screen.STATUS_ACTIVE)
     
+    # Kullanıcının playlistlerini getir
+    from app.models.playlist import Playlist
+    playlists = Playlist.find_by_user(user_id, status=Playlist.STATUS_ACTIVE)
+    
     return render_template('user/dashboard.html', 
                           user=user,
                           screens=screens[:5],  # Son 5 ekran
@@ -96,7 +100,8 @@ def dashboard():
                           active_media_count=active_media_count,
                           allowed_screen_count=allowed_screen_count,
                           total_views=total_views,
-                          active_screens_count=active_screens_count)
+                          active_screens_count=active_screens_count,
+                          playlists=playlists[:5])  # Son 5 playlist
 
 @bp.route('/profile')
 @user_required
@@ -418,16 +423,28 @@ def create_screen():
         }
         
         screen = Screen.create(screen_data)
+        screen_id = screen['_id']
         
         Log.log_action(
             action=Log.TYPE_SCREEN_CREATE,
             user_id=session['user_id'],
             ip_address=request.remote_addr,
-            details={"screen_id": str(screen['_id']), "name": name}
+            details={"screen_id": str(screen_id), "name": name}
         )
         
         flash('Ekran başarıyla oluşturuldu.', 'success')
-        return redirect(url_for('user.screens'))
+        
+        # Kullanıcının playlistleri var mı kontrol et
+        from app.models.playlist import Playlist
+        user_playlists = Playlist.find_by_user(user_id, status=Playlist.STATUS_ACTIVE)
+        
+        # Playlist varsa içerik yönetim sayfasına, yoksa playlist oluşturma sayfasına yönlendir
+        if user_playlists and len(user_playlists) > 0:
+            flash('Ekranınıza içerik eklemek için playlist seçebilirsiniz.', 'info')
+            return redirect(url_for('user.assign_playlist_to_screen', screen_id=screen_id))
+        else:
+            flash('Ekranınıza içerik eklemek için önce bir playlist oluşturun.', 'info')
+            return redirect(url_for('user.create_playlist'))
     
     return render_template('user/create_screen.html', 
                           screen_count=screen_count, 
@@ -772,100 +789,74 @@ def edit_media(media_id):
 def delete_media(media_id=None):
     """Medya silme"""
     # Form'dan veya URL'den media_id al
+    from flask import current_app
     form_media_id = request.form.get('media_id')
     force_delete = request.form.get('force_delete') == '1'
     
-    print(f"DELETE_MEDIA ÇAĞRILDI: media_id={media_id}, form_media_id={form_media_id}, force_delete={force_delete}")
+    current_app.logger.info(f"DELETE_MEDIA ÇAĞRILDI: media_id={media_id}, form_media_id={form_media_id}, force_delete={force_delete}")
+    current_app.logger.info(f"REQUEST FORM: {request.form}")
+    current_app.logger.info(f"REQUEST METHOD: {request.method}")
+    current_app.logger.info(f"REQUEST PATH: {request.path}")
     
-    if not media_id:
+    # URL'den gelen media_id'ye öncelik ver, yoksa form'dan al
+    if not media_id or media_id == '':
         media_id = form_media_id
     
-    if not media_id:
+    # Özel debug log - media_id'nin içeriğini ve türünü kontrol et
+    current_app.logger.info(f"MEDIA ID: '{media_id}' - TİP: {type(media_id)}")
+    
+    # Media ID'yi temizle ve kontrol et
+    if isinstance(media_id, str):
+        # Boşluk ve diğer sorunlu karakterleri temizle
+        media_id = media_id.strip()
+        current_app.logger.info(f"Temizlenmiş MEDIA ID: '{media_id}', uzunluk: {len(media_id)}")
+        current_app.logger.info(f"MEDIA ID hex karakterleri: {' '.join([hex(ord(c)) for c in media_id])}")
+    
+    if not media_id or (isinstance(media_id, str) and media_id.strip() == ''):
+        current_app.logger.error("HATA: Media ID bulunamadı!")
         flash('Geçersiz medya ID.', 'danger')
         return redirect(url_for('user.media'))
     
     try:
-        # Basit Silme İşlemi - Hiçbir kontrol yapılmadan
-        print(f"ID BİLGİSİ: {media_id}, Tip: {type(media_id)}")
-        
-        # Medya bilgilerini önce al (silmeden önce)
-        # MongoDB'yi doğrudan kullan
-        from pymongo import MongoClient
+        # Silme işlemi için Media.delete metodu kullanılıyor
+        from app.models.media import Media
         from bson.objectid import ObjectId
         
-        # Mevcut mongo bağlantısını kullan, Flask-PyMongo'dan
-        db = mongo.db
-        
-        # Önce medya bilgilerini al
+        # ObjectId dönüşümü ve medya bilgilerini al
         try:
-            media_collection = db.media
-            media_info = media_collection.find_one({'_id': ObjectId(media_id)})
+            object_id = ObjectId(media_id) if isinstance(media_id, str) else media_id
+            media_info = Media.find_by_id(object_id)
             
             if not media_info:
-                # medias koleksiyonunda da ara
-                if 'medias' in db.list_collection_names():
-                    media_info = db.medias.find_one({'_id': ObjectId(media_id)})
+                current_app.logger.warning(f"Silinecek medya bulunamadı: {object_id}")
+                flash('Belirtilen medya bulunamadı.', 'warning')
+                return redirect(url_for('user.media'))
             
-            if media_info:
-                print(f"Medya bilgileri bulundu: {media_info}")
-                # Dosya adını al
-                filename = media_info.get('filename')
-                print(f"Silinecek dosya: {filename}")
-                
-                # Dosya yollarını belirleme
-                upload_paths = [
-                    os.path.join('app', 'static', 'uploads', filename),
-                    os.path.join('static', 'uploads', filename),
-                    os.path.join('/root/bulutvizyonServer/app/static/uploads', filename),
-                    os.path.join('/uploads', filename)
-                ]
-                
-                # Dosyayı fiziksel olarak silmeye çalış
-                for path in upload_paths:
-                    if os.path.exists(path):
-                        print(f"Dosya bulundu: {path}")
-                        try:
-                            os.remove(path)
-                            print(f"Dosya başarıyla silindi: {path}")
-                            break
-                        except OSError as e:
-                            print(f"Dosya silme hatası: {e}")
-                else:
-                    print(f"Dosya bulunamadı. Kontrol edilen yollar: {upload_paths}")
+            # Kullanıcı yetkisi kontrolü
+            if str(media_info.get('user_id')) != str(session['user_id']):
+                current_app.logger.warning(f"Medyayı silmeye çalışan kullanıcının yetkisi yok. Medya sahibi: {media_info.get('user_id')}, İstek yapan: {session['user_id']}")
+                flash('Bu medyayı silme yetkiniz yok.', 'danger')
+                return redirect(url_for('user.media'))
+            
+            # Media.delete ile silme işlemini başlat
+            current_app.logger.info(f"Media.delete çağrılıyor: {object_id}")
+            if Media.delete(object_id):
+                current_app.logger.info(f"Medya başarıyla silindi: {object_id}")
+                flash('Medya ve tüm ilişkili içerikler başarıyla silindi.', 'success')
             else:
-                print(f"Medya bilgileri bulunamadı: {media_id}")
-        except Exception as e:
-            print(f"Medya bilgileri alma hatası: {str(e)}")
-            
-        # Medya kaydını MongoDB'den sil
-        try:
-            media_collection = db.media
-            result = media_collection.delete_one({'_id': ObjectId(media_id)})
-            print(f"Silme sonucu: {result.deleted_count}")
-            
-            if result.deleted_count > 0:
-                flash('Medya başarıyla silindi.', 'success')
-            else:
-                # Alternatif koleksiyon adlarını dene
-                if 'medias' in db.list_collection_names():
-                    print("'medias' koleksiyonu deneniyor")
-                    result = db.medias.delete_one({'_id': ObjectId(media_id)})
-                    print(f"medias koleksiyonu silme sonucu: {result.deleted_count}")
-                    
-                    if result.deleted_count > 0:
-                        flash('Medya başarıyla silindi.', 'success')
-                    else:
-                        flash('Medya veritabanından silindi ancak dosya silinirken sorun oluştu.', 'warning')
-                else:
-                    flash('Medya veritabanından silindi ancak dosya silinirken sorun oluştu.', 'warning')
-        except Exception as e:
-            print(f"MongoDB silme hatası: {str(e)}")
-            flash(f'Medya silinirken bir hata oluştu: {str(e)}', 'danger')
+                current_app.logger.error(f"Medya silme işlemi başarısız: {object_id}")
+                flash('Medya silinirken bir hata oluştu.', 'danger')
         
+        except Exception as e:
+            current_app.logger.error(f"Medya silme işleminde hata: {str(e)}")
+            import traceback
+            current_app.logger.error(traceback.format_exc())
+            flash(f'Medya silme işleminde bir hata oluştu: {str(e)}', 'danger')
+    
     except Exception as e:
-        print(f"Genel hata: {str(e)}")
+        current_app.logger.error(f"Genel hata: {str(e)}")
         import traceback
-        print(traceback.format_exc())
+        current_app.logger.error(traceback.format_exc())
         flash(f'Medya silme işleminde bir hata oluştu: {str(e)}', 'danger')
     
     return redirect(url_for('user.media'))
@@ -1105,14 +1096,25 @@ def save_screen_content_order(screen_id):
     # Ekranı bul
     screen = Screen.find_by_id(screen_id)
     if not screen:
-        return jsonify({'success': False, 'message': 'Ekran bulunamadı.'}), 404
+        flash('Ekran bulunamadı.', 'danger')
+        return redirect(url_for('user.screens'))
     
     # Ekranın kullanıcıya ait olup olmadığını kontrol et
     if screen.user_id != session['user_id']:
-        return jsonify({'success': False, 'message': 'Bu ekrana erişim izniniz yok.'}), 403
+        flash('Bu ekrana erişim izniniz yok.', 'danger')
+        return redirect(url_for('user.screens'))
     
-    # İçerik sıralamasını al
-    content_order = request.json.get('content_order', [])
+    # İçerik sıralamasını al - JSON veya form verisi olarak gönderilebilir
+    content_order = []
+    
+    if request.is_json:
+        # JSON verisi kontrolü
+        content_order = request.json.get('content_order', [])
+    else:
+        # Form verisi kontrolü
+        content_ids = request.form.getlist('content_ids[]')
+        if content_ids:
+            content_order = content_ids
     
     # Her bir içerik için sıra numarasını güncelle
     from app.models.screen_media import ScreenMedia
@@ -1124,9 +1126,11 @@ def save_screen_content_order(screen_id):
                 success = False
     
     if success:
-        return jsonify({'success': True, 'message': 'İçerik sıralaması güncellendi.'}), 200
+        flash('İçerik sıralaması güncellendi.', 'success')
     else:
-        return jsonify({'success': False, 'message': 'İçerik sıralaması güncellenirken bir hata oluştu.'}), 500
+        flash('İçerik sıralaması güncellenirken bir hata oluştu.', 'danger')
+    
+    return redirect(url_for('user.manage_screen_content', screen_id=screen_id))
 
 @bp.route('/screens/<screen_id>/content', methods=['GET'])
 @user_required
@@ -1135,144 +1139,141 @@ def manage_screen_content(screen_id):
     import traceback
     
     try:
+        print(f"DEBUG - manage_screen_content başladı: screen_id={screen_id}, tip={type(screen_id)}")
+        
         # Ekranı kontrol et
         screen = Screen.find_by_id(screen_id)
+        print(f"DEBUG - Ekran bulundu mu: {screen is not None}")
         
-        if not screen or screen.user_id != session['user_id']:
-            flash('Ekran bulunamadı veya erişim izniniz yok.', 'danger')
+        if not screen:
+            flash('Ekran bulunamadı.', 'danger')
+            return redirect(url_for('user.screens'))
+        
+        # Ekranın kullanıcıya ait olup olmadığını kontrol et
+        user_id = session.get('user_id')
+        print(f"DEBUG - Oturum user_id: {user_id}, Ekran user_id: {screen.user_id}")
+        
+        if str(screen.user_id) != str(user_id):
+            flash('Bu ekrana erişim izniniz yok.', 'danger')
             return redirect(url_for('user.screens'))
         
         # Ekran içeriklerini getir
         from app.models.screen_content import ScreenContent
-        screen_content_list = ScreenContent.find_by_screen_id(screen_id)
+        try:
+            screen_content_list = ScreenContent.find_by_screen_id(screen_id)
+            print(f"DEBUG - Ekran içerikleri bulundu: {len(screen_content_list)}")
+        except Exception as e:
+            print(f"DEBUG - Ekran içerik getirme hatası: {str(e)}")
+            traceback.print_exc()
+            screen_content_list = []
         
-        print(f"DEBUG - Ekran içerikleri bulundu: {len(screen_content_list)}")
-        
-        # Her içerik için medya bilgilerini ekle
-        screen_contents_with_media = []
+        # Medya bilgilerini ekle - her content için ilgili medyayı getir
+        from app.models.media import Media
         for content in screen_content_list:
             try:
-                media_id = content.get('media_id')
-                print(f"DEBUG - İçerik için medya getiriliyor: {media_id}")
-                
-                media = Media.find_by_id(media_id)
-                if not media:
-                    print(f"DEBUG - Medya bulunamadı: {media_id}")
-                    continue
-                
-                # İçerik nesnesine medya bilgisini ekle
-                content_with_media = dict(content)
-                content_with_media['media'] = media
-                screen_contents_with_media.append(content_with_media)
-                
-                print(f"DEBUG - İçerik eklendi: ID: {content.get('_id')}, Media: {media.get('title')}")
-            except Exception as e:
-                print(f"DEBUG - İçerik işleme hatası: {str(e)}")
-                print(traceback.format_exc())
-        
-        print(f"DEBUG - Toplam işlenen içerik sayısı: {len(screen_contents_with_media)}")
-        
-        # Atanmış playlist'i getir
-        assigned_playlist = None
-        from app.models.screen_playlist import ScreenPlaylist
-        screen_playlist = ScreenPlaylist.find_by_screen_id(screen_id)
-        
-        if screen_playlist:
-            print(f"DEBUG - Ekrana atanmış playlist bulundu: {screen_playlist.get('playlist_id')}")
-            # Playlist detaylarını getir
-            from app.models.playlist import Playlist
-            playlist = Playlist.find_by_id(screen_playlist.get('playlist_id'))
-            
-            if playlist:
-                # Playlist medyalarını getir
-                from app.models.playlist_media import PlaylistMedia
-                playlist_media = PlaylistMedia.find_by_playlist(screen_playlist.get('playlist_id'))
-                
-                assigned_playlist = {
-                    'id': str(playlist.id),
-                    'name': playlist.name,
-                    'media_items': []
-                }
-                
-                for item in playlist_media:
-                    media = item.get('media')
+                # İçerik dict yada object olabilir
+                if isinstance(content, dict):
+                    media_id = content.get('media_id')
+                    media = Media.find_by_id(media_id)
                     if media:
-                        assigned_playlist['media_items'].append({
-                            'id': str(media.get('_id')),
-                            'name': media.get('title'),
-                            'media_type': media.get('file_type'),
-                            'display_time': item.get('display_time')
-                        })
-                
-                print(f"DEBUG - Atanmış playlist: {assigned_playlist}")
-            else:
-                print(f"DEBUG - Playlist bulunamadı: {screen_playlist.get('playlist_id')}")
-        else:
-            print(f"DEBUG - Ekrana atanmış playlist bulunamadı")
+                        content['media'] = media
+                else:  # Nesne ise
+                    media_id = content.media_id if hasattr(content, 'media_id') else None
+                    if media_id:
+                        media = Media.find_by_id(media_id)
+                        if media:
+                            content.media = media
+            except Exception as e:
+                print(f"DEBUG - Medya bilgisi ekleme hatası: {str(e)}")
+                traceback.print_exc()
         
-        # Kullanıcının medyaları ve kütüphane medyalarını da ekleyelim
-        user_media = Media.find_by_user(session['user_id'], status=Media.STATUS_ACTIVE)
-        library_media = Media.find_public()
+        # Kullanıcının tüm medyalarını getir
+        try:
+            from app.models.media import Media
+            user_media = Media.find_by_user(user_id, status=Media.STATUS_ACTIVE)
+            print(f"DEBUG - Kullanıcı medyaları bulundu: {len(user_media)}")
+        except Exception as e:
+            print(f"DEBUG - Kullanıcı medyası getirme hatası: {str(e)}")
+            traceback.print_exc()
+            user_media = []
         
-        # Medya nesnelerini işle
-        user_media_objects = []
-        for media in user_media:
-            media_obj = Media(
-                _id=media.id if hasattr(media, 'id') else media['_id'],
-                user_id=media.user_id if hasattr(media, 'user_id') else media.get('user_id'),
-                title=media.title if hasattr(media, 'title') else media.get('title', ''),
-                filename=media.filename if hasattr(media, 'filename') else media.get('filename', ''),
-                file_type=media.file_type if hasattr(media, 'file_type') else media.get('file_type', ''),
-                file_size=media.file_size if hasattr(media, 'file_size') else media.get('file_size', 0),
-                status=media.status if hasattr(media, 'status') else media.get('status', Media.STATUS_ACTIVE),
-                category=media.category if hasattr(media, 'category') else media.get('category'),
-                description=media.description if hasattr(media, 'description') else media.get('description'),
-                duration=media.duration if hasattr(media, 'duration') else media.get('duration'),
-                display_time=media.display_time if hasattr(media, 'display_time') else media.get('display_time', 10),
-                is_public=media.is_public if hasattr(media, 'is_public') else media.get('is_public', False),
-                views=media.views if hasattr(media, 'views') else media.get('views', 0),
-                created_at=media.created_at if hasattr(media, 'created_at') else media.get('created_at'),
-                updated_at=media.updated_at if hasattr(media, 'updated_at') else media.get('updated_at')
-            )
-            user_media_objects.append(media_obj)
+        # Tüm herkese açık (public) medyaları getir
+        try:
+            public_media = Media.find_public()
+            print(f"DEBUG - Public medyalar bulundu: {len(public_media)}")
+        except Exception as e:
+            print(f"DEBUG - Public medya getirme hatası: {str(e)}")
+            traceback.print_exc()
+            public_media = []
         
-        library_media_objects = []
-        for media in library_media:
-            # Eğer media bir sözlük ise
-            if isinstance(media, dict):
-                media_obj = Media(
-                    _id=media['_id'],
-                    user_id=media.get('user_id'),
-                    title=media.get('title', ''),
-                    filename=media.get('filename', ''),
-                    file_type=media.get('file_type', ''),
-                    file_size=media.get('file_size', 0),
-                    status=media.get('status', Media.STATUS_ACTIVE),
-                    category=media.get('category'),
-                    description=media.get('description'),
-                    duration=media.get('duration'),
-                    display_time=media.get('display_time', 10),
-                    is_public=media.get('is_public', False),
-                    views=media.get('views', 0),
-                    created_at=media.get('created_at'),
-                    updated_at=media.get('updated_at')
-                )
-            else:
-                # Zaten Media nesnesi ise
-                media_obj = media
+        # Playlist ekranı var mı kontrol et
+        try:
+            from app.models.screen_playlist import ScreenPlaylist
+            assigned_playlist = None
+            screen_playlist = ScreenPlaylist.find_by_screen_id(screen_id)
             
-            library_media_objects.append(media_obj)
+            if screen_playlist:
+                # Playlist bilgilerini getir
+                from app.models.playlist import Playlist
+                assigned_playlist = Playlist.find_by_id(screen_playlist.get('playlist_id'))
+                print(f"DEBUG - Atanmış playlist bulundu: {assigned_playlist is not None}")
+        except Exception as e:
+            print(f"DEBUG - Playlist kontrol hatası: {str(e)}")
+            traceback.print_exc()
+            assigned_playlist = None
         
+        # Kullanıcının playlistlerini getir
+        from app.models.playlist import Playlist
+        user_playlists = Playlist.find_by_user(session['user_id'], status=Playlist.STATUS_ACTIVE)
+        
+        # Public playlist'leri getir
+        public_playlists = Playlist.find_public()
+        
+        # Kullanıcının kendi oluşturduğu public playlist'leri filtrele
+        public_playlists = [p for p in public_playlists if str(p.user_id) != str(session['user_id'])]
+        
+        # DENEME P3 playlistini özel olarak bul ve güncelle
+        from app.models.playlist_media import PlaylistMedia
+        for playlist in user_playlists + public_playlists:
+            if 'DENEME P3' in playlist.name:
+                print(f"DEBUG - DENEME P3 playlist bulundu: id={playlist.id}, eski media_count={playlist.media_count}")
+                # Gerçek medya sayısını hesapla
+                media_list = PlaylistMedia.find_by_playlist(playlist.id)
+                real_count = len(media_list)
+                # Güncelle
+                if playlist.media_count != real_count:
+                    print(f"DEBUG - Medya sayısını güncelliyorum: {playlist.media_count} -> {real_count}")
+                    # Bellek nesnesini güncelle
+                    playlist.media_count = real_count
+                    # Veritabanını güncelle (çalışmazsa hata vermemesi için ObjectId kontrolünü es geçiyoruz)
+                    try:
+                        # Direkt MongoDB güncellemesi
+                        mongo.db.playlists.update_one(
+                            {"$or": [
+                                {"_id": playlist.id}, 
+                                {"_id": ObjectId(playlist.id) if isinstance(playlist.id, str) else str(playlist.id)}
+                            ]},
+                            {"$set": {"media_count": real_count}}
+                        )
+                        print(f"DEBUG - Veritabanı güncellendi: {playlist.name} ID: {playlist.id} count={real_count}")
+                    except Exception as db_error:
+                        print(f"DEBUG - Veritabanı güncellemesi başarısız: {str(db_error)}")
+        
+        # Şablona verileri gönder
+        print("DEBUG - Şablon render ediliyor")
         return render_template('user/manage_screen_content.html',
-                             screen=screen, 
-                             screen_content=screen_contents_with_media,
-                             assigned_playlist=assigned_playlist,
-                             user_media=user_media_objects,
-                             library_media=library_media_objects)
+                              screen=screen,
+                              screen_content=screen_content_list,
+                              user_media=user_media,
+                              public_media=public_media,
+                              user_playlists=user_playlists,
+                              public_playlists=public_playlists,
+                              assigned_playlist=assigned_playlist)
+                              
     except Exception as e:
-        print(f"DEBUG - Genel hata: {str(e)}")
+        print(f"DEBUG - manage_screen_content genel hata: {str(e)}")
         print(traceback.format_exc())
-        flash('İçerik yükleme sırasında bir hata oluştu.', 'danger')
+        flash('Beklenmeyen bir hata oluştu.', 'danger')
         return redirect(url_for('user.screens'))
 
 @bp.route('/screens/<screen_id>/content/add', methods=['POST'])
@@ -1627,6 +1628,7 @@ def add_to_screens():
 @user_required
 def playlists():
     """Kullanıcının playlist'lerini listeler"""
+    import traceback
     user_id = session['user_id']
     
     # Playlistleri getir
@@ -1638,6 +1640,20 @@ def playlists():
     
     # Kullanıcının kendi oluşturduğu public playlist'leri filtrele
     public_playlists = [p for p in public_playlists if str(p.user_id) != str(user_id)]
+    
+    # Tüm playlist medya sayılarını güncelle
+    from app.models.playlist_media import PlaylistMedia
+    all_playlists = user_playlists + public_playlists
+    for playlist in all_playlists:
+        try:
+            # Veritabanında medya sayısını güncelle
+            media_count = playlist.update_media_count()
+            # Nesne özelliğine güncel sayıyı ata
+            playlist.media_count = media_count
+            print(f"DEBUG - Playlist medya sayısı güncellendi: id={playlist.id}, name={playlist.name}, count={media_count}")
+        except Exception as e:
+            print(f"DEBUG - Playlist medya sayısı güncellenirken hata: {str(e)}")
+            traceback.print_exc()
     
     return render_template('user/playlists.html', 
                           user_playlists=user_playlists,
@@ -1749,7 +1765,38 @@ def edit_playlist(playlist_id):
             details={"playlist_id": playlist_id, "name": name}
         )
         
-        flash('Playlist başarıyla güncellendi.', 'success')
+        # Playlist'i kullanan ekranları bul ve güncelle
+        try:
+            from app.models.screen_playlist import ScreenPlaylist
+            import traceback
+            
+            # Bu playlist'in atanmış olduğu ekranları bul
+            screen_playlists = ScreenPlaylist.find_by_playlist_id(playlist_id)
+            
+            if screen_playlists:
+                updated_screens = 0
+                
+                for screen_playlist in screen_playlists:
+                    screen_id = screen_playlist.get('screen_id') if isinstance(screen_playlist, dict) else getattr(screen_playlist, 'screen_id', None)
+                    
+                    if screen_id:
+                        # Ekranı güncelle
+                        refresh_result = ScreenPlaylist.refresh_screen_playlist(screen_id)
+                        
+                        if refresh_result['success']:
+                            updated_screens += 1
+                
+                if updated_screens > 0:
+                    flash(f'Playlist güncellendi ve {updated_screens} ekran otomatik olarak yenilendi.', 'success')
+                else:
+                    flash('Playlist başarıyla güncellendi.', 'success')
+            else:
+                flash('Playlist başarıyla güncellendi.', 'success')
+        except Exception as e:
+            print(f"ERROR - Playlist ekran güncelleme hatası: {str(e)}")
+            traceback.print_exc()
+            flash('Playlist güncellendi ancak ilişkili ekranlar güncellenirken hata oluştu.', 'warning')
+        
         return redirect(url_for('user.edit_playlist', playlist_id=playlist_id))
     
     # Kullanıcının medyaları
@@ -1841,104 +1888,184 @@ def delete_playlist(playlist_id):
 @user_required
 def add_media_to_playlist(playlist_id):
     """Playlist'e medya ekleme"""
-    from app.models.playlist import Playlist
-    import traceback
-    
-    print(f"DEBUG - add_media_to_playlist başlatıldı - playlist_id: {playlist_id}")
-    print(f"DEBUG - form verileri: {request.form}")
-    
     try:
+        from app.models.playlist import Playlist
+        import traceback, json
+        
+        print(f"Add media request received: playlist_id={playlist_id}")
+        print(f"Request path: {request.path}")
+        print(f"Request method: {request.method}")
+        
+        # CSRF token ve request parametreleri için debug logları
+        csrf_token = request.headers.get('X-CSRF-Token')
+        print(f"CSRF token: {csrf_token}")
+        print(f"All headers: {dict(request.headers)}")
+        
+        # İstek içeriğini kontrol et
+        print(f"Content type: {request.content_type}")
+        request_data = request.get_data(as_text=True)
+        print(f"Raw request data: {request_data}")
+        
+        # JSON verisi almaya çalış
+        json_data = None
+        try:
+            if request.is_json:
+                json_data = request.get_json(silent=True)
+                print(f"Request.get_json() result: {json_data}")
+            else:
+                print("Request is not JSON format")
+                
+            # Eğer json_data alınamadıysa, manuel parse dene
+            if json_data is None and request_data:
+                try:
+                    json_data = json.loads(request_data)
+                    print(f"Manually parsed JSON: {json_data}")
+                except Exception as je:
+                    print(f"Manual JSON parse error: {str(je)}")
+        except Exception as je:
+            print(f"JSON parsing error: {str(je)}")
+        
+        # JSON verisi hala alınamadıysa form verilerini dene
+        if json_data is None:
+            print("Trying form data")
+            try:
+                media_id = request.form.get('media_id')
+                display_time = request.form.get('display_time')
+                if media_id:
+                    json_data = {'media_id': media_id, 'display_time': display_time}
+                    print(f"Form data parsed: {json_data}")
+            except Exception as fe:
+                print(f"Form data error: {str(fe)}")
+        
+        # Hala veri yoksa, manuel olarak istek verilerini inceleyelim
+        if not json_data:
+            print("No valid data found, checking request args and other sources")
+            
+            # URL query parametrelerini kontrol et
+            if request.args:
+                media_id = request.args.get('media_id')
+                if media_id:
+                    display_time = request.args.get('display_time')
+                    json_data = {'media_id': media_id, 'display_time': display_time}
+                    print(f"Args data: {json_data}")
+        
+        if not json_data:
+            print("No data could be extracted from the request")
+            return jsonify({'success': False, 'message': 'Geçersiz istek verisi.'}), 400
+        
+        # Playlist kontrolü
         playlist = Playlist.find_by_id(playlist_id)
-        
         if not playlist:
-            print(f"DEBUG - Playlist bulunamadı: {playlist_id}")
-            flash('Playlist bulunamadı.', 'danger')
-            return redirect(url_for('user.playlists'))
+            print(f"Playlist not found: {playlist_id}")
+            return jsonify({'success': False, 'message': 'Playlist bulunamadı.'}), 404
         
-        # Erişim kontrolü - yalnızca sahibi ekleyebilir
-        if str(playlist.user_id) != str(session['user_id']):
-            print(f"DEBUG - Erişim hatası: playlist.user_id: {playlist.user_id}, session.user_id: {session['user_id']}")
-            flash('Bu playlist\'e medya ekleme yetkiniz yok.', 'danger')
-            return redirect(url_for('user.playlists'))
+        # Playlist sahibi kontrolü - Doğrudan user_id özniteliğine erişim sorun çıkarabilir
+        playlist_user_id = None
+        if hasattr(playlist, 'user_id'):
+            playlist_user_id = playlist.user_id
+        elif isinstance(playlist, dict):
+            playlist_user_id = playlist.get('user_id')
+        else:
+            print(f"Cannot determine playlist owner: {type(playlist)}")
+            return jsonify({'success': False, 'message': 'Playlist erişim sorunu.'}), 500
+            
+        if str(playlist_user_id) != str(session['user_id']):
+            print(f"Playlist access denied: user_id={session['user_id']}, playlist.user_id={playlist_user_id}")
+            return jsonify({'success': False, 'message': 'Bu playlist\'e erişim izniniz yok.'}), 403
         
-        media_id = request.form.get('media_id')
-        display_time = request.form.get('display_time')
+        # JSON verisinden medya ID'yi al
+        media_id = json_data.get('media_id')
+        display_time = json_data.get('display_time')
         
-        print(f"DEBUG - media_id: {media_id}, display_time: {display_time}")
+        print(f"Extracted media_id: {media_id}, display_time: {display_time}")
         
         if not media_id:
-            print("DEBUG - media_id boş")
-            flash('Lütfen bir medya seçin.', 'warning')
-            return redirect(url_for('user.edit_playlist', playlist_id=playlist_id))
+            print("Media ID missing")
+            return jsonify({'success': False, 'message': 'Media ID belirtilmedi.'}), 400
         
-        # Medyayı kontrol et
-        from app.models.media import Media
+        # Medya kontrolü
         media = Media.find_by_id(media_id)
-        
         if not media:
-            print(f"DEBUG - Medya bulunamadı: {media_id}")
-            flash('Seçilen medya bulunamadı.', 'danger')
-            return redirect(url_for('user.edit_playlist', playlist_id=playlist_id))
-        
-        # Medya erişim kontrolü - kullanıcının kendi medyası veya public medya olmalı
-        # Nesne veya sözlük olma durumuna göre kontrol et
-        user_id_from_media = None
-        if hasattr(media, 'user_id'):
-            user_id_from_media = media.user_id
-        elif isinstance(media, dict):
-            user_id_from_media = media.get('user_id')
-        
-        is_public_media = False
+            print(f"Media not found: {media_id}")
+            return jsonify({'success': False, 'message': 'Medya bulunamadı.'}), 404
+            
+        print(f"Media found: {type(media)}")
+            
+        # Medya public mi kontrolü - dict veya nesne olma durumunu kapsayacak şekilde
+        is_public = False
         if hasattr(media, 'is_public'):
-            is_public_media = media.is_public
+            is_public = media.is_public
         elif isinstance(media, dict):
-            is_public_media = media.get('is_public', False)
+            is_public = media.get('is_public', False)
         
-        if str(user_id_from_media) != str(session['user_id']) and not is_public_media:
-            print(f"DEBUG - Medya erişim hatası: media user_id: {user_id_from_media}, session.user_id: {session['user_id']}")
-            flash('Bu medyaya erişim yetkiniz yok.', 'danger')
-            return redirect(url_for('user.edit_playlist', playlist_id=playlist_id))
+        # Medya user_id kontrolü - dict veya nesne olma durumunu kapsayacak şekilde
+        media_user_id = None
+        if hasattr(media, 'user_id'):
+            media_user_id = media.user_id
+        elif isinstance(media, dict):
+            media_user_id = media.get('user_id')
         
-        # Display time'ı sayıya çevir
-        try:
-            display_time = int(display_time) if display_time else None
-        except ValueError:
-            display_time = None
+        print(f"Media access check: is_public={is_public}, media_user_id={media_user_id}, session_user_id={session['user_id']}")
         
-        print(f"DEBUG - Dönüştürülmüş display_time: {display_time}")
+        # Medya sahibi kontrolü
+        if not is_public and str(media_user_id) != str(session['user_id']):
+            print(f"Media access denied: user_id={session['user_id']}, media.user_id={media_user_id}")
+            return jsonify({'success': False, 'message': 'Bu medyaya erişim izniniz yok.'}), 403
         
-        # Medyayı playlist'e ekle
+        # Medya zaten playlist'te mi kontrol et
         from app.models.playlist_media import PlaylistMedia
-        print(f"DEBUG - PlaylistMedia.create çağrılıyor: playlist_id: {playlist_id}, media_id: {media_id}")
+        existing = PlaylistMedia.find_by_playlist_and_media(playlist_id, media_id)
+        if existing:
+            print(f"Media already in playlist: {media_id}")
+            return jsonify({'success': False, 'message': 'Bu medya zaten playlist\'te bulunuyor.'}), 409
+        
+        # Display time düzeltme ve file_type kontrolü
+        file_type = None
+        if hasattr(media, 'file_type'):
+            file_type = media.file_type
+        elif isinstance(media, dict):
+            file_type = media.get('file_type')
+            
+        print(f"Media file_type: {file_type}")
+        
+        if file_type == 'video':
+            # Videolar için display_time null olmalı
+            display_time = None
+        elif not display_time:
+            # Gösterim süresi belirtilmediyse varsayılan değer
+            display_time = 10
+        
+        # Medyayı playliste ekle
+        print(f"Creating playlist media: playlist_id={playlist_id}, media_id={media_id}, display_time={display_time}")
         
         try:
-            result = PlaylistMedia.create({
-                'playlist_id': playlist_id,
-                'media_id': media_id,
-                'display_time': display_time
-            })
-            print(f"DEBUG - PlaylistMedia.create sonucu: {result}")
-        except Exception as e:
-            print(f"DEBUG - PlaylistMedia.create hatası: {str(e)}")
+            new_playlist_media = PlaylistMedia.create(
+                playlist_id=playlist_id,
+                media_id=media_id,
+                display_time=display_time
+            )
+            
+            if new_playlist_media:
+                print(f"Playlist media created successfully: {new_playlist_media}")
+                # Yeni eklenen medyanın ID'sini döndür
+                return jsonify({
+                    'success': True, 
+                    'media_id': str(media_id),
+                    'message': 'Medya başarıyla playlist\'e eklendi.'
+                })
+            else:
+                print("Failed to create playlist media")
+                return jsonify({'success': False, 'message': 'Medya eklenirken bir hata oluştu.'}), 500
+        except Exception as ce:
+            print(f"Error creating playlist media: {str(ce)}")
             print(traceback.format_exc())
-            flash('Medya eklenirken bir hata oluştu.', 'danger')
-            return redirect(url_for('user.edit_playlist', playlist_id=playlist_id))
-        
-        # Log kaydı
-        Log.log_action(
-            action="playlist_add_media",
-            user_id=session['user_id'],
-            ip_address=request.remote_addr,
-            details={"playlist_id": playlist_id, "media_id": media_id}
-        )
-        
-        flash('Medya playlist\'e başarıyla eklendi.', 'success')
-        return redirect(url_for('user.edit_playlist', playlist_id=playlist_id))
+            return jsonify({'success': False, 'message': f'Playlist media oluşturma hatası: {str(ce)}'}), 500
+            
     except Exception as e:
-        print(f"DEBUG - Genel hata: {str(e)}")
+        import traceback
+        print(f"General error: {str(e)}")
         print(traceback.format_exc())
-        flash('Beklenmeyen bir hata oluştu.', 'danger')
-        return redirect(url_for('user.edit_playlist', playlist_id=playlist_id))
+        return jsonify({'success': False, 'message': f'Beklenmeyen bir hata oluştu: {str(e)}'}), 500
 
 @bp.route('/playlists/<playlist_id>/remove_media', methods=['POST'])
 @user_required
@@ -1987,180 +2114,309 @@ def remove_media_from_playlist(playlist_id):
 def reorder_playlist_media(playlist_id):
     """Playlist medya sıralamasını güncelleme"""
     from app.models.playlist import Playlist
+    import traceback
     
     playlist = Playlist.find_by_id(playlist_id)
     
     if not playlist:
-        return jsonify({'success': False, 'message': 'Playlist bulunamadı.'}), 404
+        return jsonify({'success': False, 'message': 'Playlist bulunamadı'})
     
     # Erişim kontrolü - yalnızca sahibi düzenleyebilir
     if str(playlist.user_id) != str(session['user_id']):
-        return jsonify({'success': False, 'message': 'Bu playlist\'i düzenleme yetkiniz yok.'}), 403
+        return jsonify({'success': False, 'message': 'Bu playlist\'i düzenleme yetkiniz yok'})
     
-    data = request.get_json()
-    media_order = data.get('media_order', [])
+    # JSON verisini al
+    try:
+        data = request.get_json()
+        media_order = data.get('media_order', [])
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Geçersiz veri formatı: {str(e)}'})
     
     if not media_order:
-        return jsonify({'success': False, 'message': 'Geçersiz sıralama verisi.'}), 400
+        return jsonify({'success': False, 'message': 'Sıralama bilgisi bulunamadı'})
     
     # Sıralamayı güncelle
-    from app.models.playlist_media import PlaylistMedia
-    result = PlaylistMedia.reorder_playlist_media(playlist_id, media_order)
-    
-    if result:
-        # Log kaydı
-        Log.log_action(
-            action="playlist_reorder",
-            user_id=session['user_id'],
-            ip_address=request.remote_addr,
-            details={"playlist_id": playlist_id}
-        )
+    try:
+        from app.models.playlist_media import PlaylistMedia
+        result = PlaylistMedia.reorder_playlist_media(playlist_id, media_order)
         
-        return jsonify({'success': True, 'message': 'Sıralama güncellendi.'}), 200
-    else:
-        return jsonify({'success': False, 'message': 'Sıralama güncellenirken bir hata oluştu.'}), 500
+        if result:
+            # Playlist'i kullanan ekranları bul ve güncelle
+            try:
+                from app.models.screen_playlist import ScreenPlaylist
+                
+                # Bu playlist'in atanmış olduğu ekranları bul
+                screen_playlists = ScreenPlaylist.find_by_playlist_id(playlist_id)
+                
+                updated_screens = 0
+                if screen_playlists:
+                    for screen_playlist in screen_playlists:
+                        screen_id = screen_playlist.get('screen_id') if isinstance(screen_playlist, dict) else getattr(screen_playlist, 'screen_id', None)
+                        
+                        if screen_id:
+                            # Ekranı güncelle
+                            refresh_result = ScreenPlaylist.refresh_screen_playlist(screen_id)
+                            
+                            if refresh_result['success']:
+                                updated_screens += 1
+                    
+                # Log kaydı
+                from app.models.log import Log
+                Log.log_action(
+                    action="playlist_reorder",
+                    user_id=session['user_id'],
+                    ip_address=request.remote_addr,
+                    details={"playlist_id": playlist_id, "updated_screens": updated_screens}
+                )
+                
+                return jsonify({
+                    'success': True, 
+                    'message': 'Sıralama güncellendi',
+                    'updated_screens': updated_screens
+                })
+            except Exception as e:
+                print(f"ERROR - Sıralama sonrası ekran güncelleme hatası: {str(e)}")
+                traceback.print_exc()
+                
+                # Temel başarı mesajı döndür
+                return jsonify({'success': True, 'message': 'Sıralama güncellendi, ancak ilişkili ekranlar güncellenemedi'})
+        else:
+            return jsonify({'success': False, 'message': 'Sıralama güncellenirken bir hata oluştu'})
+    except Exception as e:
+        print(f"ERROR - Playlist sıralama hatası: {str(e)}")
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'Bir hata oluştu: {str(e)}'})
 
 @bp.route('/screens/<screen_id>/assign_playlist', methods=['GET', 'POST'])
 @user_required
 def assign_playlist_to_screen(screen_id):
     """Ekrana playlist atama"""
     import traceback
+    from bson.objectid import ObjectId
     
-    # Ekranı kontrol et
-    screen = Screen.find_by_id(screen_id)
-    
-    if not screen or screen.user_id != session['user_id']:
-        flash('Ekran bulunamadı veya erişim izniniz yok.', 'danger')
-        return redirect(url_for('user.screens'))
-    
-    if request.method == 'POST':
-        playlist_id = request.form.get('playlist_id')
+    try:
+        # Ekranı kontrol et
+        screen = Screen.find_by_id(screen_id)
         
-        if not playlist_id:
-            flash('Lütfen bir playlist seçin.', 'warning')
-            return redirect(request.url)
+        if not screen or screen.user_id != session['user_id']:
+            flash('Ekran bulunamadı veya erişim izniniz yok.', 'danger')
+            return redirect(url_for('user.screens'))
         
-        # Playlist'i kontrol et
-        from app.models.playlist import Playlist
-        playlist = Playlist.find_by_id(playlist_id)
+        # URL'den gelen playlist_id'yi kontrol et
+        playlist_id_from_url = request.args.get('playlist_id')
         
-        if not playlist:
-            flash('Seçilen playlist bulunamadı.', 'danger')
-            return redirect(request.url)
-        
-        # Erişim kontrolü - kullanıcının kendi playlist'i veya public playlist olmalı
-        if str(playlist.user_id) != str(session['user_id']) and not playlist.is_public:
-            flash('Bu playlist\'e erişim yetkiniz yok.', 'danger')
-            return redirect(request.url)
-        
-        try:
-            # Önce ekrandaki tüm içerikleri temizle
-            from app.models.screen_content import ScreenContent
-            print(f"DEBUG - Mevcut ekran içeriklerini temizleme: {screen_id}")
-            delete_count = ScreenContent.delete_by_screen(screen_id)
-            print(f"DEBUG - Silinen içerik sayısı: {delete_count}")
+        if request.method == 'POST' or playlist_id_from_url:
+            # Form'dan veya URL'den playlist_id al
+            playlist_id = request.form.get('playlist_id') or playlist_id_from_url
             
-            # Playlist'teki medyaları ekrana ekle
-            from app.models.playlist_media import PlaylistMedia
-            playlist_media = PlaylistMedia.find_by_playlist(playlist_id)
-            print(f"DEBUG - Playlist medya sayısı: {len(playlist_media)}")
-            print(f"DEBUG - Playlist medyalar: {playlist_media}")
+            if not playlist_id:
+                flash('Lütfen bir playlist seçin.', 'warning')
+                return redirect(url_for('user.assign_playlist_to_screen', screen_id=screen_id))
             
-            created_contents = []
-            for index, item in enumerate(playlist_media):
-                # Media nesnesine erişim
-                media = None
-                if hasattr(item, 'media'):
-                    media = item.media
-                elif isinstance(item, dict):
-                    media = item.get('media')
+            # Playlist'i kontrol et
+            from app.models.playlist import Playlist
+            playlist = Playlist.find_by_id(playlist_id)
+            
+            if not playlist:
+                flash('Seçilen playlist bulunamadı.', 'danger')
+                return redirect(url_for('user.assign_playlist_to_screen', screen_id=screen_id))
+            
+            # Erişim kontrolü - kullanıcının kendi playlist'i veya public playlist olmalı
+            playlist_user_id = getattr(playlist, 'user_id', None) if hasattr(playlist, 'user_id') else playlist.get('user_id') if isinstance(playlist, dict) else None
+            playlist_is_public = getattr(playlist, 'is_public', False) if hasattr(playlist, 'is_public') else playlist.get('is_public', False) if isinstance(playlist, dict) else False
+            
+            if str(playlist_user_id) != str(session['user_id']) and not playlist_is_public:
+                flash('Bu playlist\'e erişim yetkiniz yok.', 'danger')
+                return redirect(url_for('user.assign_playlist_to_screen', screen_id=screen_id))
+            
+            try:
+                # Önce ekrandaki tüm içerikleri temizle
+                from app.models.screen_content import ScreenContent
+                print(f"Mevcut ekran içeriklerini temizleme: {screen_id}")
+                delete_count = ScreenContent.delete_by_screen(screen_id)
+                print(f"Silinen içerik sayısı: {delete_count}")
                 
-                if media:
-                    # Media ID'si alırken önce nesne olarak, sonra dict olarak kontrol et
-                    media_id = None
-                    if hasattr(media, 'id'):
-                        media_id = media.id
-                    elif hasattr(media, '_id'):
-                        media_id = media._id
-                    elif isinstance(media, dict) and '_id' in media:
-                        media_id = media['_id']
+                # Playlist'teki medyaları ekrana ekle
+                from app.models.playlist_media import PlaylistMedia
+                playlist_media = PlaylistMedia.find_by_playlist(playlist_id)
+                print(f"Playlist medya sayısı: {len(playlist_media)}")
+                
+                created_contents = []
+                for index, item in enumerate(playlist_media):
+                    print(f"Ekrana eklenecek medya işleniyor: {index+1}/{len(playlist_media)}")
+                    print(f"İşlenen öğe tipi: {type(item)}, içerik: {item}")
                     
+                    # Media ID alınması
+                    media_id = None
+                    try:
+                        if isinstance(item, dict) and 'media_id' in item:
+                            media_id = item['media_id']
+                            print(f"Item'dan (dict) medya ID: {media_id}")
+                        elif hasattr(item, 'media_id'):
+                            media_id = item.media_id
+                            print(f"Item'dan (object) medya ID: {media_id}")
+                    except Exception as e:
+                        print(f"Media ID alınırken hata: {str(e)}")
+                        
+                    # Media nesnesine erişim
+                    media = None
+                    try:
+                        if isinstance(item, dict) and 'media' in item:
+                            media = item['media']
+                            print(f"Media item içinden bulundu (dict)")
+                        elif hasattr(item, 'media'):
+                            media = item.media
+                            print(f"Media item içinden bulundu (object)")
+                    except Exception as e:
+                        print(f"Media nesnesi alınırken hata: {str(e)}")
+                    
+                    # Media ID kontrolü - media nesnesi varsa ondan da alabiliriz
+                    if not media_id and media:
+                        try:
+                            if hasattr(media, 'id'):
+                                media_id = media.id
+                                print(f"Media.id: {media_id}")
+                            elif hasattr(media, '_id'):
+                                media_id = media._id
+                                print(f"Media._id: {media_id}")
+                            elif isinstance(media, dict):
+                                if '_id' in media:
+                                    media_id = media['_id']
+                                    print(f"Media['_id']: {media_id}")
+                                elif 'id' in media:
+                                    media_id = media['id']
+                                    print(f"Media['id']: {media_id}")
+                        except Exception as e:
+                            print(f"Media nesnesinden ID alınırken hata: {str(e)}")
+                    
+                    if not media_id:
+                        print(f"Geçersiz medya ID, bu içerik atlanıyor: {item}")
+                        continue
+                        
+                    # String formatına çevir
+                    if not isinstance(media_id, str):
+                        media_id = str(media_id)
+                        
                     # Display time kontrolü
                     display_time = None
-                    if hasattr(item, 'display_time'):
-                        display_time = item.display_time
-                    elif isinstance(item, dict):
-                        display_time = item.get('display_time')
-                    
-                    print(f"DEBUG - Ekrana ekleniyor: Media ID: {media_id}, Sıra: {index}, Gösterim süresi: {display_time}")
-                    
-                    # ScreenContent oluştur
-                    content_data = {
-                        'screen_id': screen_id,
-                        'media_id': str(media_id),
-                        'order': index,
-                        'display_time': display_time
-                    }
                     try:
-                        content = ScreenContent.create(content_data)
+                        if isinstance(item, dict) and 'display_time' in item:
+                            display_time = item['display_time']
+                        elif hasattr(item, 'display_time'):
+                            display_time = item.display_time
+                    except Exception as e:
+                        print(f"Display time alınırken hata: {str(e)}")
+                    
+                    # Varsayılan gösterim süresi 10 saniye
+                    if not display_time:
+                        display_time = 10
+                    
+                    # Sıralama
+                    order = index
+                    try:
+                        if isinstance(item, dict) and 'order' in item:
+                            order = item['order']
+                        elif hasattr(item, 'order'):
+                            order = item.order
+                    except Exception as e:
+                        print(f"Order alınırken hata: {str(e)}")
+                    
+                    # Yeni içerik oluştur
+                    try:
+                        print(f"Ekrana içerik ekleniyor: media_id={media_id}, display_time={display_time}, order={order}")
+                        content = ScreenContent.create({
+                            'screen_id': screen_id,
+                            'media_id': media_id,
+                            'display_time': display_time,
+                            'order': order
+                        })
                         
-                        # Content ID kontrolü
                         content_id = None
-                        if hasattr(content, 'id'):
+                        if isinstance(content, dict) and '_id' in content:
+                            content_id = content['_id']
+                        elif hasattr(content, 'id'):
                             content_id = content.id
                         elif hasattr(content, '_id'):
                             content_id = content._id
-                        elif isinstance(content, dict) and '_id' in content:
-                            content_id = content['_id']
-                            
-                        print(f"DEBUG - Ekran içeriği oluşturuldu: {content_id}")
+                        
+                        print(f"İçerik eklendi: {content_id}")
                         created_contents.append(content)
                     except Exception as e:
-                        print(f"DEBUG - Ekran içeriği oluşturma hatası: {str(e)}")
+                        print(f"İçerik ekleme hatası: {str(e)}")
                         print(traceback.format_exc())
-                else:
-                    print(f"DEBUG - Medya bulunamadı veya geçersiz: {item}")
-            
-            print(f"DEBUG - Toplam oluşturulan içerik sayısı: {len(created_contents)}")
-            
-            # Ekran-Playlist ilişkisi oluştur/güncelle
-            from app.models.screen_playlist import ScreenPlaylist
-            screen_playlist = ScreenPlaylist.create({
-                'screen_id': screen_id,
-                'playlist_id': playlist_id
-            })
-            print(f"DEBUG - Ekran-Playlist ilişkisi oluşturuldu: {screen_playlist.get('_id')}")
-            
-            # Log kaydı
-            Log.log_action(
-                action="screen_assign_playlist",
-                user_id=session['user_id'],
-                ip_address=request.remote_addr,
-                details={"screen_id": screen_id, "playlist_id": playlist_id}
-            )
-            
-            flash('Playlist ekrana başarıyla atandı.', 'success')
-            return redirect(url_for('user.manage_screen_content', screen_id=screen_id))
-        except Exception as e:
-            print(f"DEBUG - Genel hata: {str(e)}")
-            print(traceback.format_exc())
-            flash('Playlist atanırken bir hata oluştu: ' + str(e), 'danger')
-            return redirect(url_for('user.assign_playlist_to_screen', screen_id=screen_id))
-    
-    # Kullanıcının playlist'lerini getir
-    from app.models.playlist import Playlist
-    user_playlists = Playlist.find_by_user(session['user_id'], status=Playlist.STATUS_ACTIVE)
-    
-    # Public playlist'leri getir
-    public_playlists = Playlist.find_public()
-    
-    # Kullanıcının kendi oluşturduğu public playlist'leri filtrele
-    public_playlists = [p for p in public_playlists if str(p.user_id) != str(session['user_id'])]
-    
-    return render_template('user/assign_playlist.html',
-                          screen=screen,
-                          user_playlists=user_playlists,
-                          public_playlists=public_playlists)
+                
+                print(f"Toplam oluşturulan içerik sayısı: {len(created_contents)}")
+                if len(created_contents) != len(playlist_media):
+                    print(f"DİKKAT: Playlist'teki tüm medyalar ekrana aktarılamadı! Playlist: {len(playlist_media)}, Eklenen: {len(created_contents)}")
+                
+                # Ekran-Playlist ilişkisi oluştur/güncelle
+                from app.models.screen_playlist import ScreenPlaylist
+                try:
+                    screen_playlist = ScreenPlaylist.create({
+                        'screen_id': screen_id,
+                        'playlist_id': playlist_id
+                    })
+                    print(f"Ekran-Playlist ilişkisi oluşturuldu: {screen_playlist.get('_id') if isinstance(screen_playlist, dict) else screen_playlist}")
+                except Exception as e:
+                    print(f"Ekran-Playlist ilişkisi oluşturma hatası: {str(e)}")
+                    print(traceback.format_exc())
+                
+                # Log kaydı
+                Log.log_action(
+                    action="screen_assign_playlist",
+                    user_id=session['user_id'],
+                    ip_address=request.remote_addr,
+                    details={"screen_id": screen_id, "playlist_id": playlist_id}
+                )
+                
+                flash(f'Playlist ekrana başarıyla atandı. Toplam {len(created_contents)} medya içeriği eklendi.', 'success')
+                return redirect(url_for('user.manage_screen_content', screen_id=screen_id))
+            except Exception as e:
+                print(f"Genel hata: {str(e)}")
+                print(traceback.format_exc())
+                flash('Playlist atanırken bir hata oluştu: ' + str(e), 'danger')
+                return redirect(url_for('user.assign_playlist_to_screen', screen_id=screen_id))
+        
+        # Kullanıcının playlist'lerini getir
+        from app.models.playlist import Playlist
+        user_playlists = Playlist.find_by_user(session['user_id'], status=Playlist.STATUS_ACTIVE)
+        
+        # Public playlist'leri getir
+        public_playlists = Playlist.find_public()
+        
+        # Kullanıcının kendi oluşturduğu public playlist'leri filtrele
+        public_playlists = [p for p in public_playlists if str(p.user_id) != str(session['user_id'])]
+        
+        # Playlist'lere medya sayısı ekle
+        from app.models.playlist_media import PlaylistMedia
+        for playlist in user_playlists + public_playlists:
+            try:
+                # PlaylistMedia.find_by_playlist ile gerçek sayıyı al
+                media_list = PlaylistMedia.find_by_playlist(playlist.id)
+                
+                # Medya sayısını güncelle ve belleğe al
+                real_count = len(media_list) if media_list else 0
+                playlist.media_count = real_count
+                
+                # Veritabanında da güncelle
+                from app.models.playlist import Playlist
+                Playlist.update_media_count(playlist.id)
+                
+                print(f"DEBUG - Playlist medya sayısı güncellendi: playlist_id={playlist.id}, name={playlist.name}, count={real_count}")
+            except Exception as e:
+                print(f"DEBUG - Playlist medya sayısı alınırken hata: {str(e)}")
+                traceback.print_exc()
+                playlist.media_count = 0
+        
+        return render_template('user/assign_playlist.html',
+                              screen=screen,
+                              user_playlists=user_playlists,
+                              public_playlists=public_playlists)
+    except Exception as e:
+        print(f"assign_playlist_to_screen ana fonksiyon hatası: {str(e)}")
+        print(traceback.format_exc())
+        flash('Beklenmeyen bir hata oluştu.', 'danger')
+        return redirect(url_for('user.screens'))
 
 @bp.route('/screens/<screen_id>/remove_playlist', methods=['POST'])
 @user_required
@@ -2384,3 +2640,47 @@ def add_to_playlists():
         print(traceback.format_exc())
         flash('Playliste eklenirken beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.', 'danger')
         return redirect(url_for('user.public_library'))
+
+@bp.route('/playlists/refresh-counts', methods=['POST'])
+@user_required
+def refresh_playlist_counts():
+    """Tüm playlistlerin medya sayılarını yeniler"""
+    from app.models.playlist import Playlist
+    
+    # Tüm playlist'lerin medya sayılarını güncelle
+    result = Playlist.update_all_media_counts()
+    
+    flash(f"{result['updated_playlist_count']} playlist'in medya sayısı güncellendi.", 'success')
+    return redirect(url_for('user.playlists'))
+
+@bp.route('/screens/<screen_id>/refresh_playlist', methods=['POST'])
+@user_required
+def refresh_screen_playlist(screen_id):
+    """Ekrandaki playlist'i yeniler"""
+    import traceback
+    
+    try:
+        # Ekranı kontrol et
+        from app.models.screen import Screen
+        screen = Screen.find_by_id(screen_id)
+        
+        if not screen or screen.user_id != session['user_id']:
+            flash('Ekran bulunamadı veya erişim izniniz yok.', 'danger')
+            return redirect(url_for('user.screens'))
+        
+        # Playlist yenileme işlemini yap
+        from app.models.screen_playlist import ScreenPlaylist
+        result = ScreenPlaylist.refresh_screen_playlist(screen_id)
+        
+        if result['success']:
+            flash(result['message'], 'success')
+        else:
+            flash(result['message'], 'danger')
+            
+        return redirect(url_for('user.manage_screen_content', screen_id=screen_id))
+        
+    except Exception as e:
+        print(f"ERROR - Ekran playlist yenileme hatası: {str(e)}")
+        traceback.print_exc()
+        flash('Beklenmeyen bir hata oluştu.', 'danger')
+        return redirect(url_for('user.screens'))
